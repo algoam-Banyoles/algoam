@@ -44,31 +44,23 @@
   <script>
     let players = [];
 
-    // Nova funció millorada per extreure l’ID
-function extractVideoID(url) {
-  try {
-    // Si ve d'una URL de tipus /live/ID?feature=..., la convertim a watch?v=ID
-    if (url.includes("youtube.com/live/")) {
-      const videoId = url.split("/live/")[1].split("?")[0];
-      return videoId;
+    function extractVideoID(url) {
+      try {
+        const u = new URL(url);
+
+        if (u.hostname === 'youtu.be') {
+          return u.pathname.slice(1);
+        }
+
+        if (u.hostname.includes('youtube.com')) {
+          return u.searchParams.get('v');
+        }
+
+        return null;
+      } catch (e) {
+        return null;
+      }
     }
-
-    const u = new URL(url);
-
-    if (u.hostname === 'youtu.be') {
-      return u.pathname.slice(1);
-    }
-
-    if (u.hostname.includes('youtube.com')) {
-      return u.searchParams.get('v');
-    }
-
-    return null;
-  } catch (e) {
-    return null;
-  }
-}
-
 
     function createPlayer(divId, videoId) {
       const player = new YT.Player(divId, {
@@ -87,7 +79,6 @@ function extractVideoID(url) {
       });
     }
 
-    // Cal definir aquesta funció global per YouTube API
     function onYouTubeIframeAPIReady() {
       document.getElementById('videoForm').addEventListener('submit', function(e) {
         e.preventDefault();
@@ -97,7 +88,16 @@ function extractVideoID(url) {
         players = [];
 
         for (let i = 1; i <= 4; i++) {
-          const url = formData.get('url' + i);
+          let url = formData.get('url' + i);
+          const inputField = document.querySelector(`[name="url${i}"]`);
+
+          // Si és una URL de tipus /live/, la convertim a /watch?v=
+          if (url && url.includes("youtube.com/live/")) {
+            const videoId = url.split("/live/")[1].split("?")[0];
+            url = `https://www.youtube.com/watch?v=${videoId}`;
+            inputField.value = url; // Actualitzem el camp
+          }
+
           const videoId = extractVideoID(url);
           if (videoId) {
             const divId = 'player' + i;
@@ -118,7 +118,7 @@ function extractVideoID(url) {
       players.forEach(p => p.pauseVideo());
     });
 
-    // Service Worker PWA
+    // PWA Service Worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js')
         .then(reg => console.log('Service Worker registrat'))
