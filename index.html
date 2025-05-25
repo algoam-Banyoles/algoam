@@ -82,6 +82,19 @@
   <script>
     let players = [];
 
+    function convertirLiveAWatch(url) {
+      try {
+        const cleanUrl = url.trim();
+        const videoIdMatch = cleanUrl.match(/youtube\.com\/live\/([^?&]+)/);
+        if (videoIdMatch) {
+          return `https://www.youtube.com/watch?v=${videoIdMatch[1]}`;
+        }
+        return cleanUrl;
+      } catch (e) {
+        return url;
+      }
+    }
+
     function extractVideoID(url) {
       const regex = /(?:youtube\.com.*[?&]v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
       const match = url.match(regex);
@@ -116,7 +129,12 @@
         players = [];
 
         for (let i = 1; i <= 4; i++) {
-          const url = formData.get("url" + i);
+          let url = formData.get("url" + i);
+          if (!url) continue;
+
+          // 🧠 Converteix URL live/ a watch?v=
+          url = convertirLiveAWatch(url);
+
           const videoId = extractVideoID(url);
           if (videoId) {
             const wrapper = document.createElement("div");
