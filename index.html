@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Multi YouTube Viewer</title>
 
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+
   <style>
     body {
       font-family: sans-serif;
@@ -22,6 +30,7 @@
       padding: 8px;
       width: 80%;
       max-width: 400px;
+      font-size: 16px;
     }
 
     #video-container {
@@ -112,41 +121,50 @@
       });
     }
 
-function processForm() {
-  const formData = new FormData(document.getElementById("videoForm"));
-  const container = document.getElementById("video-container");
-  container.innerHTML = "";
-  players = [];
-
-  for (let i = 1; i <= 4; i++) {
-    const input = document.querySelector(`[name="url${i}"]`);
-    if (!input || !input.value.trim()) continue;
-
-    const originalUrl = input.value.trim();
-    const convertedUrl = convertirLiveAWatch(originalUrl);
-
-    if (convertedUrl !== originalUrl) {
-      input.value = convertedUrl;
+    function resetViewportZoom() {
+      const viewport = document.querySelector("meta[name=viewport]");
+      if (viewport) {
+        viewport.content = "width=device-width, initial-scale=1.01";
+        setTimeout(() => {
+          viewport.content = "width=device-width, initial-scale=1";
+        }, 100);
+      }
     }
 
-    const videoId = extractVideoID(convertedUrl);
-    if (videoId) {
-      const wrapper = document.createElement("div");
-      wrapper.className = "video-wrapper";
+    function processForm() {
+      const formData = new FormData(document.getElementById("videoForm"));
+      const container = document.getElementById("video-container");
+      container.innerHTML = "";
+      players = [];
 
-      const div = document.createElement("div");
-      div.id = "player" + i;
-      wrapper.appendChild(div);
-      container.appendChild(wrapper);
+      for (let i = 1; i <= 4; i++) {
+        const input = document.querySelector(`[name="url${i}"]`);
+        if (!input || !input.value.trim()) continue;
 
-      createPlayer(div.id, videoId);
+        const originalUrl = input.value.trim();
+        const convertedUrl = convertirLiveAWatch(originalUrl);
+
+        if (convertedUrl !== originalUrl) {
+          input.value = convertedUrl;
+        }
+
+        const videoId = extractVideoID(convertedUrl);
+        if (videoId) {
+          const wrapper = document.createElement("div");
+          wrapper.className = "video-wrapper";
+
+          const div = document.createElement("div");
+          div.id = "player" + i;
+          wrapper.appendChild(div);
+          container.appendChild(wrapper);
+
+          createPlayer(div.id, videoId);
+        }
+      }
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      resetViewportZoom(); // 👈 evita el zoom després d'escriure en inputs a iPhone
     }
-  }
-
-  // 👉 Desplaça cap a dalt després de carregar
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
 
     window.onYouTubeIframeAPIReady = function () {
       document.getElementById("videoForm").addEventListener("submit", function (e) {
@@ -163,16 +181,13 @@ function processForm() {
       players.forEach(p => p.pauseVideo());
     });
 
-    function resetViewportZoom() {
-  const viewport = document.querySelector("meta[name=viewport]");
-  if (viewport) {
-    // Forcem un reinici del viewport per treure el zoom actiu
-    viewport.content = "width=device-width, initial-scale=1.01";
-    setTimeout(() => {
-      viewport.content = "width=device-width, initial-scale=1";
-    }, 100);
-  }
-}
+    // PWA: registre del service worker
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("service-worker.js")
+        .then(reg => console.log("✅ Service Worker registrat"))
+        .catch(err => console.error("❌ Error en SW:", err));
+    }
   </script>
 
   <script src="https://www.youtube.com/iframe_api"></script>
