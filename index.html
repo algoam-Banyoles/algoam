@@ -112,37 +112,41 @@
       });
     }
 
-    function processForm() {
-      const formData = new FormData(document.getElementById("videoForm"));
-      const container = document.getElementById("video-container");
-      container.innerHTML = "";
-      players = [];
+function processForm() {
+  const formData = new FormData(document.getElementById("videoForm"));
+  const container = document.getElementById("video-container");
+  container.innerHTML = "";
+  players = [];
 
-      for (let i = 1; i <= 4; i++) {
-        const input = document.querySelector(`[name="url${i}"]`);
-        if (!input || !input.value.trim()) continue;
+  for (let i = 1; i <= 4; i++) {
+    const input = document.querySelector(`[name="url${i}"]`);
+    if (!input || !input.value.trim()) continue;
 
-        const originalUrl = input.value.trim();
-        const convertedUrl = convertirLiveAWatch(originalUrl);
+    const originalUrl = input.value.trim();
+    const convertedUrl = convertirLiveAWatch(originalUrl);
 
-        if (convertedUrl !== originalUrl) {
-          input.value = convertedUrl;
-        }
-
-        const videoId = extractVideoID(convertedUrl);
-        if (videoId) {
-          const wrapper = document.createElement("div");
-          wrapper.className = "video-wrapper";
-
-          const div = document.createElement("div");
-          div.id = "player" + i;
-          wrapper.appendChild(div);
-          container.appendChild(wrapper);
-
-          createPlayer(div.id, videoId);
-        }
-      }
+    if (convertedUrl !== originalUrl) {
+      input.value = convertedUrl;
     }
+
+    const videoId = extractVideoID(convertedUrl);
+    if (videoId) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "video-wrapper";
+
+      const div = document.createElement("div");
+      div.id = "player" + i;
+      wrapper.appendChild(div);
+      container.appendChild(wrapper);
+
+      createPlayer(div.id, videoId);
+    }
+  }
+
+  // 👉 Desplaça cap a dalt després de carregar
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
 
     window.onYouTubeIframeAPIReady = function () {
       document.getElementById("videoForm").addEventListener("submit", function (e) {
@@ -158,6 +162,17 @@
     document.getElementById("pauseAll").addEventListener("click", () => {
       players.forEach(p => p.pauseVideo());
     });
+
+    function resetViewportZoom() {
+  const viewport = document.querySelector("meta[name=viewport]");
+  if (viewport) {
+    // Forcem un reinici del viewport per treure el zoom actiu
+    viewport.content = "width=device-width, initial-scale=1.01";
+    setTimeout(() => {
+      viewport.content = "width=device-width, initial-scale=1";
+    }, 100);
+  }
+}
   </script>
 
   <script src="https://www.youtube.com/iframe_api"></script>
