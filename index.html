@@ -1,36 +1,58 @@
 <!DOCTYPE html>
 <html lang="ca">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Multi YouTube Viewer</title>
 
   <!-- PWA -->
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#000000">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
 
   <style>
-    body { font-family: sans-serif; text-align: center; padding: 20px; }
-    form { margin-bottom: 20px; }
-    input { margin: 5px; padding: 8px; width: 80%; max-width: 400px; }
-    iframe { width: 45%; height: 250px; margin: 10px; }
-    #video-container { display: flex; flex-wrap: wrap; justify-content: center; }
-    button { margin: 5px; padding: 10px 20px; font-size: 1em; }
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    form {
+      margin-bottom: 20px;
+    }
+    input {
+      margin: 5px;
+      padding: 8px;
+      width: 80%;
+      max-width: 400px;
+    }
+    iframe {
+      width: 45%;
+      height: 250px;
+      margin: 10px;
+    }
+    #video-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    button {
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 1em;
+    }
   </style>
 </head>
 <body>
-
   <h1>Veure 4 vídeos de YouTube a la vegada</h1>
 
   <form id="videoForm">
-    <input type="url" placeholder="URL vídeo 1" name="url1" required><br>
-    <input type="url" placeholder="URL vídeo 2" name="url2"><br>
-    <input type="url" placeholder="URL vídeo 3" name="url3"><br>
-    <input type="url" placeholder="URL vídeo 4" name="url4"><br><br>
+    <input type="url" placeholder="URL vídeo 1" name="url1" required /><br />
+    <input type="url" placeholder="URL vídeo 2" name="url2" /><br />
+    <input type="url" placeholder="URL vídeo 3" name="url3" /><br />
+    <input type="url" placeholder="URL vídeo 4" name="url4" /><br /><br />
     <button type="submit">Carregar vídeos</button>
   </form>
 
@@ -46,14 +68,20 @@
 
     function extractVideoID(url) {
       try {
+        // Reescrivim /live/ID?x a /watch?v=ID
+        if (url.includes("youtube.com/live/")) {
+          const videoId = url.split("/live/")[1].split("?")[0];
+          return videoId;
+        }
+
         const u = new URL(url);
 
-        if (u.hostname === 'youtu.be') {
+        if (u.hostname === "youtu.be") {
           return u.pathname.slice(1);
         }
 
-        if (u.hostname.includes('youtube.com')) {
-          return u.searchParams.get('v');
+        if (u.hostname.includes("youtube.com")) {
+          return u.searchParams.get("v");
         }
 
         return null;
@@ -63,68 +91,71 @@
     }
 
     function createPlayer(divId, videoId) {
-      const player = new YT.Player(divId, {
-        height: '250',
-        width: '100%',
+      new YT.Player(divId, {
+        height: "250",
+        width: "100%",
         videoId: videoId,
         playerVars: {
           autoplay: 0,
           mute: 1,
           playsinline: 1,
-          controls: 1
+          controls: 1,
         },
         events: {
-          onReady: e => players.push(e.target)
-        }
+          onReady: function (event) {
+            players.push(event.target);
+          },
+        },
       });
     }
 
     function onYouTubeIframeAPIReady() {
-      document.getElementById('videoForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const formData = new FormData(this);
-        const container = document.getElementById('video-container');
-        container.innerHTML = '';
-        players = [];
+      document
+        .getElementById("videoForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+          const formData = new FormData(this);
+          const container = document.getElementById("video-container");
+          container.innerHTML = "";
+          players = [];
 
-        for (let i = 1; i <= 4; i++) {
-          let url = formData.get('url' + i);
-          const inputField = document.querySelector(`[name="url${i}"]`);
+          for (let i = 1; i <= 4; i++) {
+            let url = formData.get("url" + i);
+            const inputField = document.querySelector(`[name="url${i}"]`);
 
-          // Si és una URL de tipus /live/, la convertim a /watch?v=
-          if (url && url.includes("youtube.com/live/")) {
-            const videoId = url.split("/live/")[1].split("?")[0];
-            url = `https://www.youtube.com/watch?v=${videoId}`;
-            inputField.value = url; // Actualitzem el camp
+            // Reescriu URL si és de tipus /live/
+            if (url && url.includes("youtube.com/live/")) {
+              const videoId = url.split("/live/")[1].split("?")[0];
+              url = `https://www.youtube.com/watch?v=${videoId}`;
+              inputField.value = url;
+            }
+
+            const videoId = extractVideoID(url);
+            if (videoId) {
+              const divId = "player" + i;
+              const div = document.createElement("div");
+              div.id = divId;
+              container.appendChild(div);
+              createPlayer(divId, videoId);
+            }
           }
-
-          const videoId = extractVideoID(url);
-          if (videoId) {
-            const divId = 'player' + i;
-            const div = document.createElement('div');
-            div.id = divId;
-            container.appendChild(div);
-            createPlayer(divId, videoId);
-          }
-        }
-      });
+        });
     }
 
-    document.getElementById('playAll').addEventListener('click', () => {
-      players.forEach(p => p.playVideo());
+    document.getElementById("playAll").addEventListener("click", () => {
+      players.forEach((p) => p.playVideo());
     });
 
-    document.getElementById('pauseAll').addEventListener('click', () => {
-      players.forEach(p => p.pauseVideo());
+    document.getElementById("pauseAll").addEventListener("click", () => {
+      players.forEach((p) => p.pauseVideo());
     });
 
-    // PWA Service Worker
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js')
-        .then(reg => console.log('Service Worker registrat'))
-        .catch(err => console.error('Error en SW:', err));
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("service-worker.js")
+        .then((reg) => console.log("Service Worker registrat"))
+        .catch((err) => console.error("Error en SW:", err));
     }
   </script>
-
 </body>
 </html>
