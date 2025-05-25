@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Multi YouTube Viewer</title>
 
-  <!-- PWA Meta -->
+  <!-- PWA -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#000000">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -92,17 +92,19 @@
             div.id = divId;
             container.appendChild(div);
 
-            const player = new YT.Player(divId, {
+            new YT.Player(divId, {
               height: '250',
               width: '100%',
               videoId: videoId,
               playerVars: {
                 autoplay: 0,
+                mute: 1,
+                playsinline: 1,
                 controls: 1
               },
               events: {
-                onReady: function(e) {
-                  players.push(e.target);
+                onReady: function (event) {
+                  players.push(event.target);
                 }
               }
             });
@@ -120,7 +122,7 @@
     });
   </script>
 
-  <!-- Service Worker Registration -->
+  <!-- PWA: Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js')
