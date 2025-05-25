@@ -132,10 +132,15 @@
           let url = formData.get("url" + i);
           if (!url) continue;
 
-          // 🧠 Converteix URL live/ a watch?v=
-          url = convertirLiveAWatch(url);
+          const inputField = document.querySelector(`[name="url${i}"]`);
+          const urlConvertida = convertirLiveAWatch(url);
 
-          const videoId = extractVideoID(url);
+          // 🔁 Actualitza el valor del formulari amb la nova URL
+          if (url !== urlConvertida) {
+            inputField.value = urlConvertida;
+          }
+
+          const videoId = extractVideoID(urlConvertida);
           if (videoId) {
             const wrapper = document.createElement("div");
             wrapper.className = "video-wrapper";
@@ -170,4 +175,3 @@
   <script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>
-
