@@ -71,36 +71,28 @@
   <script>
     let players = [];
 
-    function extractVideoID(url) {
-      const regex = /(?:youtube\.com.*(?:\?|&)v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
-      const match = url.match(regex);
-      return match ? match[1] : null;
+function extractVideoID(url) {
+  try {
+    const u = new URL(url);
+
+    if (u.hostname === 'youtu.be') {
+      return u.pathname.slice(1);
     }
 
-    document.getElementById('videoForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const formData = new FormData(this);
-      const container = document.getElementById('video-container');
-      container.innerHTML = '';
-      players = [];
+    if (u.pathname.startsWith('/watch')) {
+      return u.searchParams.get('v');
+    }
 
-      for (let i = 1; i <= 4; i++) {
-        const url = formData.get('url' + i);
-        const videoId = extractVideoID(url);
-        if (videoId) {
-          const divId = 'player' + i;
-          const div = document.createElement('div');
-          div.id = divId;
-          container.appendChild(div);
+    if (u.pathname.startsWith('/live/')) {
+      return u.pathname.split('/live/')[1].split('?')[0];
+    }
 
-          if (typeof YT !== 'undefined' && YT.Player) {
-            createPlayer(divId, videoId);
-          } else {
-            window.onYouTubeIframeAPIReady = () => createPlayer(divId, videoId);
-          }
-        }
-      }
-    });
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
 
     function createPlayer(containerId, videoId) {
       const player = new YT.Player(containerId, {
