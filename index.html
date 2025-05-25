@@ -18,29 +18,44 @@
       font-family: sans-serif;
       text-align: center;
       padding: 20px;
+      margin: 0;
     }
+
     form {
       margin-bottom: 20px;
     }
+
     input {
       margin: 5px;
       padding: 8px;
       width: 80%;
       max-width: 400px;
     }
-#video-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 16px;
-  justify-items: center;
-}
 
-iframe {
-  width: 100%;
-  max-width: 640px;
-  aspect-ratio: 16 / 9;
-  border: none;
-}
+    #video-container {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      padding: 0 10px;
+    }
+
+    .video-wrapper {
+      width: 100%;
+    }
+
+    iframe {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border: none;
+      display: block;
+    }
+
+    @media (min-width: 768px) {
+      #video-container {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
     button {
       margin: 5px;
       padding: 10px 20px;
@@ -67,11 +82,11 @@ iframe {
   <script>
     let players = [];
 
-function extractVideoID(url) {
-  const regex = /(?:youtube\.com.*[?&]v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
-  const match = url.match(regex);
-  return match ? match[1] : null;
-}
+    function extractVideoID(url) {
+      const regex = /(?:youtube\.com.*[?&]v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+      const match = url.match(regex);
+      return match ? match[1] : null;
+    }
 
     function createPlayer(divId, videoId) {
       new YT.Player(divId, {
@@ -82,85 +97,59 @@ function extractVideoID(url) {
           autoplay: 0,
           mute: 1,
           playsinline: 1,
-          controls: 1,
+          controls: 1
         },
         events: {
           onReady: function (event) {
             players.push(event.target);
-          },
-        },
+          }
+        }
       });
     }
 
     window.onYouTubeIframeAPIReady = function () {
-      console.log("YouTube API carregada");
+      document.getElementById("videoForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const container = document.getElementById("video-container");
+        container.innerHTML = "";
+        players = [];
 
-      document
-        .getElementById("videoForm")
-        .addEventListener("submit", function (e) {
-          e.preventDefault();
-          const formData = new FormData(this);
-          const container = document.getElementById("video-container");
-          container.innerHTML = "";
-          players = [];
+        for (let i = 1; i <= 4; i++) {
+          const url = formData.get("url" + i);
+          const videoId = extractVideoID(url);
+          if (videoId) {
+            const wrapper = document.createElement("div");
+            wrapper.className = "video-wrapper";
 
-          for (let i = 1; i <= 4; i++) {
-            let url = formData.get("url" + i);
-            const inputField = document.querySelector(`[name="url${i}"]`);
+            const div = document.createElement("div");
+            div.id = "player" + i;
+            wrapper.appendChild(div);
+            container.appendChild(wrapper);
 
-            if (url && url.includes("youtube.com/live/")) {
-              const videoId = url.split("/live/")[1].split("?")[0];
-              url = `https://www.youtube.com/watch?v=${videoId}`;
-              inputField.value = url;
-            }
-
-            const videoId = extractVideoID(url);
-            if (videoId) {
-              const divId = "player" + i;
-              const div = document.createElement("div");
-              div.id = divId;
-              container.appendChild(div);
-              createPlayer(divId, videoId);
-            }
+            createPlayer(div.id, videoId);
           }
-        });
-
-      // Carrega automàticament si hi ha paràmetres a la URL
-      carregarVideosDesDeURL();
+        }
+      });
     };
 
-    function carregarVideosDesDeURL() {
-      const params = new URLSearchParams(window.location.search);
-
-      for (let i = 1; i <= 4; i++) {
-        const url = params.get(`url${i}`);
-        const input = document.querySelector(`[name="url${i}"]`);
-        if (url && input) {
-          input.value = decodeURIComponent(url);
-        }
-      }
-
-      // Simula clic a "Carregar vídeos"
-      document.getElementById("videoForm").dispatchEvent(new Event("submit"));
-    }
-
     document.getElementById("playAll").addEventListener("click", () => {
-      players.forEach((p) => p.playVideo());
+      players.forEach(p => p.playVideo());
     });
 
     document.getElementById("pauseAll").addEventListener("click", () => {
-      players.forEach((p) => p.pauseVideo());
+      players.forEach(p => p.pauseVideo());
     });
 
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
         .register("service-worker.js")
-        .then((reg) => console.log("Service Worker registrat"))
-        .catch((err) => console.error("Error en SW:", err));
+        .then(reg => console.log("Service Worker registrat"))
+        .catch(err => console.error("Error en SW:", err));
     }
   </script>
 
-  <!-- API YouTube (ha d'anar després de definir la funció global) -->
   <script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>
+
