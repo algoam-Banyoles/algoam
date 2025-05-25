@@ -61,106 +61,120 @@
 
   <div id="video-container"></div>
 
-<script>
-  let players = [];
+  <script>
+    let players = [];
 
-  function extractVideoID(url) {
-    try {
-      if (url.includes("youtube.com/live/")) {
-        const videoId = url.split("/live/")[1].split("?")[0];
-        return videoId;
-      }
-
-      const u = new URL(url);
-
-      if (u.hostname === "youtu.be") {
-        return u.pathname.slice(1);
-      }
-
-      if (u.hostname.includes("youtube.com")) {
-        return u.searchParams.get("v");
-      }
-
-      return null;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  function createPlayer(divId, videoId) {
-    new YT.Player(divId, {
-      height: "250",
-      width: "100%",
-      videoId: videoId,
-      playerVars: {
-        autoplay: 0,
-        mute: 1,
-        playsinline: 1,
-        controls: 1,
-      },
-      events: {
-        onReady: function (event) {
-          players.push(event.target);
-        },
-      },
-    });
-  }
-
-  // 💥 Aquesta funció ha d'estar DEFINIDA ABANS que es carregui l'script de l'API
-  window.onYouTubeIframeAPIReady = function () {
-    console.log("API de YouTube carregada");
-
-    document
-      .getElementById("videoForm")
-      .addEventListener("submit", function (e) {
-        e.preventDefault();
-        const formData = new FormData(this);
-        const container = document.getElementById("video-container");
-        container.innerHTML = "";
-        players = [];
-
-        for (let i = 1; i <= 4; i++) {
-          let url = formData.get("url" + i);
-          const inputField = document.querySelector(`[name="url${i}"]`);
-
-          if (url && url.includes("youtube.com/live/")) {
-            const videoId = url.split("/live/")[1].split("?")[0];
-            url = `https://www.youtube.com/watch?v=${videoId}`;
-            inputField.value = url;
-          }
-
-          const videoId = extractVideoID(url);
-          if (videoId) {
-            const divId = "player" + i;
-            const div = document.createElement("div");
-            div.id = divId;
-            container.appendChild(div);
-            createPlayer(divId, videoId);
-          }
+    function extractVideoID(url) {
+      try {
+        if (url.includes("youtube.com/live/")) {
+          const videoId = url.split("/live/")[1].split("?")[0];
+          return videoId;
         }
+
+        const u = new URL(url);
+
+        if (u.hostname === "youtu.be") {
+          return u.pathname.slice(1);
+        }
+
+        if (u.hostname.includes("youtube.com")) {
+          return u.searchParams.get("v");
+        }
+
+        return null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function createPlayer(divId, videoId) {
+      new YT.Player(divId, {
+        height: "250",
+        width: "100%",
+        videoId: videoId,
+        playerVars: {
+          autoplay: 0,
+          mute: 1,
+          playsinline: 1,
+          controls: 1,
+        },
+        events: {
+          onReady: function (event) {
+            players.push(event.target);
+          },
+        },
       });
-  };
+    }
 
-  // Play i Pause
-  document.getElementById("playAll").addEventListener("click", () => {
-    players.forEach((p) => p.playVideo());
-  });
+    window.onYouTubeIframeAPIReady = function () {
+      console.log("YouTube API carregada");
 
-  document.getElementById("pauseAll").addEventListener("click", () => {
-    players.forEach((p) => p.pauseVideo());
-  });
+      document
+        .getElementById("videoForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+          const formData = new FormData(this);
+          const container = document.getElementById("video-container");
+          container.innerHTML = "";
+          players = [];
 
-  // Service Worker
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker
-      .register("service-worker.js")
-      .then((reg) => console.log("Service Worker registrat"))
-      .catch((err) => console.error("Error en SW:", err));
-  }
-</script>
+          for (let i = 1; i <= 4; i++) {
+            let url = formData.get("url" + i);
+            const inputField = document.querySelector(`[name="url${i}"]`);
 
-<!-- 🔥 IMPORTANT: això ha d'anar DESPRÉS de definir la funció -->
-<script src="https://www.youtube.com/iframe_api"></script>
+            if (url && url.includes("youtube.com/live/")) {
+              const videoId = url.split("/live/")[1].split("?")[0];
+              url = `https://www.youtube.com/watch?v=${videoId}`;
+              inputField.value = url;
+            }
 
+            const videoId = extractVideoID(url);
+            if (videoId) {
+              const divId = "player" + i;
+              const div = document.createElement("div");
+              div.id = divId;
+              container.appendChild(div);
+              createPlayer(divId, videoId);
+            }
+          }
+        });
+
+      // Carrega automàticament si hi ha paràmetres a la URL
+      carregarVideosDesDeURL();
+    };
+
+    function carregarVideosDesDeURL() {
+      const params = new URLSearchParams(window.location.search);
+
+      for (let i = 1; i <= 4; i++) {
+        const url = params.get(`url${i}`);
+        const input = document.querySelector(`[name="url${i}"]`);
+        if (url && input) {
+          input.value = decodeURIComponent(url);
+        }
+      }
+
+      // Simula clic a "Carregar vídeos"
+      document.getElementById("videoForm").dispatchEvent(new Event("submit"));
+    }
+
+    document.getElementById("playAll").addEventListener("click", () => {
+      players.forEach((p) => p.playVideo());
+    });
+
+    document.getElementById("pauseAll").addEventListener("click", () => {
+      players.forEach((p) => p.pauseVideo());
+    });
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("service-worker.js")
+        .then((reg) => console.log("Service Worker registrat"))
+        .catch((err) => console.error("Error en SW:", err));
+    }
+  </script>
+
+  <!-- API YouTube (ha d'anar després de definir la funció global) -->
+  <script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>
