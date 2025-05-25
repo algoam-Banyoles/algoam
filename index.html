@@ -45,27 +45,30 @@
     let players = [];
 
     // Nova funció millorada per extreure l’ID
-    function extractVideoID(url) {
-      try {
-        const u = new URL(url);
-
-        if (u.hostname === 'youtu.be') {
-          return u.pathname.slice(1);
-        }
-
-        if (u.pathname === '/watch') {
-          return u.searchParams.get('v');
-        }
-
-        if (u.pathname.startsWith('/live/')) {
-          return u.pathname.split('/live/')[1].split('?')[0];
-        }
-
-        return null;
-      } catch (e) {
-        return null;
-      }
+function extractVideoID(url) {
+  try {
+    // Si ve d'una URL de tipus /live/ID?feature=..., la convertim a watch?v=ID
+    if (url.includes("youtube.com/live/")) {
+      const videoId = url.split("/live/")[1].split("?")[0];
+      return videoId;
     }
+
+    const u = new URL(url);
+
+    if (u.hostname === 'youtu.be') {
+      return u.pathname.slice(1);
+    }
+
+    if (u.hostname.includes('youtube.com')) {
+      return u.searchParams.get('v');
+    }
+
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
 
     function createPlayer(divId, videoId) {
       const player = new YT.Player(divId, {
