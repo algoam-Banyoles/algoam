@@ -64,28 +64,11 @@
   <script>
     let players = [];
 
-    function extractVideoID(url) {
-      try {
-        if (url.includes("youtube.com/live/")) {
-          const videoId = url.split("/live/")[1].split("?")[0];
-          return videoId;
-        }
-
-        const u = new URL(url);
-
-        if (u.hostname === "youtu.be") {
-          return u.pathname.slice(1);
-        }
-
-        if (u.hostname.includes("youtube.com")) {
-          return u.searchParams.get("v");
-        }
-
-        return null;
-      } catch (e) {
-        return null;
-      }
-    }
+function extractVideoID(url) {
+  const regex = /(?:youtube\.com.*[?&]v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+  const match = url.match(regex);
+  return match ? match[1] : null;
+}
 
     function createPlayer(divId, videoId) {
       new YT.Player(divId, {
