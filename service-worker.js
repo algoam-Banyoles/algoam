@@ -19,7 +19,6 @@ self.addEventListener('install', event => {
 
 self.addEventListener('activate', event => {
   console.log('Service Worker: Actiu');
-
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
@@ -54,21 +53,6 @@ self.addEventListener('fetch', event => {
       })
     );
   }
-});
-
-self.addEventListener('install', (event) => {
-  console.log('Service Worker: Instal·lat');
-  self.skipWaiting(); // 🔁 activa la nova versió immediatament
-});
-
-self.addEventListener('activate', (event) => {
-  console.log('Service Worker: Actiu');
-  event.waitUntil(clients.claim()); // 🧠 força que totes les pàgines usin el nou SW
-});
-
-self.addEventListener('fetch', (event) => {
-  // No cachem res per ara, només passem la sol·licitud
-  event.respondWith(fetch(event.request));
 });
 
 
