@@ -15,10 +15,35 @@
 
   <style>
     body {
-      font-family: sans-serif;
+      font-family: system-ui, sans-serif;
+      background: #f5f6f7;
+      color: #333;
       text-align: center;
       padding: 20px;
       margin: 0;
+    }
+
+    .app {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    details {
+      margin-bottom: 20px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      padding: 10px;
+    }
+
+    summary {
+      font-weight: bold;
+      cursor: pointer;
+      padding: 10px;
+      border-radius: 6px;
+      background-color: #007bff;
+      color: #fff;
+      margin: -10px -10px 10px -10px;
     }
 
     form {
@@ -27,10 +52,12 @@
 
     input {
       margin: 5px;
-      padding: 8px;
+      padding: 10px;
       width: 80%;
       max-width: 400px;
-      font-size: 16px;
+      font-size: 1rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
     }
 
     #video-container {
@@ -42,6 +69,10 @@
 
     .video-wrapper {
       width: 100%;
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     }
 
     iframe {
@@ -61,24 +92,41 @@
       margin: 5px;
       padding: 10px 20px;
       font-size: 1em;
+      border: none;
+      border-radius: 6px;
+      background-color: #007bff;
+      color: #fff;
+      cursor: pointer;
     }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+    #updateApp { background-color: #28a745; }
   </style>
 </head>
 <body>
+  <div class="app">
   <h1>APP2 per Veure 4 vídeos de YouTube a la vegada</h1>
 
-  <form id="videoForm">
-    <input type="url" placeholder="URL vídeo 1" name="url1" required /><br />
-    <input type="url" placeholder="URL vídeo 2" name="url2" /><br />
-    <input type="url" placeholder="URL vídeo 3" name="url3" /><br />
-    <input type="url" placeholder="URL vídeo 4" name="url4" /><br /><br />
-    <button type="submit">Carregar vídeos</button>
-  </form>
+  <details id="urlSection" open>
+    <summary>Introduir URLs</summary>
+    <form id="videoForm">
+      <input type="url" placeholder="URL vídeo 1" name="url1" required /><br />
+      <input type="url" placeholder="URL vídeo 2" name="url2" /><br />
+      <input type="url" placeholder="URL vídeo 3" name="url3" /><br />
+      <input type="url" placeholder="URL vídeo 4" name="url4" /><br /><br />
+      <button type="submit">Carregar vídeos</button>
+    </form>
+  </details>
 
   <button id="playAll">▶️ Reproduir tots</button>
   <button id="pauseAll">⏸️ Pausar tots</button>
+  <button id="updateApp" style="display:none">🔄 Actualitza l'app</button>
 
   <div id="video-container"></div>
+
+  </div>
 
   <script>
     let players = [];
@@ -163,7 +211,9 @@
       }
 
       window.scrollTo({ top: 0, behavior: "smooth" });
-      resetViewportZoom(); // 👈 evita el zoom després d'escriure en inputs a iPhone
+      // 👈 evita el zoom després d'escriure en inputs a iPhone
+      resetViewportZoom();
+      document.getElementById("urlSection").open = false;
     }
 
     window.onYouTubeIframeAPIReady = function () {
@@ -185,8 +235,29 @@
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
         .register("service-worker.js")
-        .then(reg => console.log("✅ Service Worker registrat"))
+        .then(reg => {
+          console.log("✅ Service Worker registrat");
+          reg.addEventListener("updatefound", () => {
+            const newWorker = reg.installing;
+            newWorker.addEventListener("statechange", () => {
+              if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+                const btn = document.getElementById("updateApp");
+                if (btn) {
+                  btn.style.display = "inline-block";
+                  btn.onclick = () => {
+                    btn.style.display = "none";
+                    newWorker.postMessage("skipWaiting");
+                  };
+                }
+              }
+            });
+          });
+        })
         .catch(err => console.error("❌ Error en SW:", err));
+
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        window.location.reload();
+      });
     }
   </script>
 
