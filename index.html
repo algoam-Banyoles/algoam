@@ -152,36 +152,29 @@
 
     function createPlayer(divId, videoId) {
       new YT.Player(divId, {
-
-      for (let i = 1; i <= 4; i++) {
-        const input = document.querySelector(`[name="url${i}"]`);
-        if (!input || !input.value.trim()) continue;
-
-        const originalUrl = input.value.trim();
-        const convertedUrl = convertirLiveAWatch(originalUrl);
-
-        if (convertedUrl !== originalUrl) {
-          input.value = convertedUrl;
-        }
-
-        const videoId = extractVideoID(convertedUrl);
-        if (videoId) {
-          const wrapper = document.createElement("div");
-          wrapper.className = "video-wrapper";
-
-          const div = document.createElement("div");
-          div.id = "player" + i;
-          wrapper.appendChild(div);
-          container.appendChild(wrapper);
-
-          createPlayer(div.id, videoId);
-        }
-      }
-
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      // 👈 evita el zoom després d'escriure en inputs a iPhone
-      resetViewportZoom();
-      document.getElementById("urlSection").open = false;
+         for (let i = 1; i <= 4; i++) {
+            const input = document.querySelector(`[name="url${i}"]`);
+            if (!input || !input.value.trim()) continue;
+            const originalUrl = input.value.trim();
+            const convertedUrl = convertirLiveAWatch(originalUrl);
+            if (convertedUrl !== originalUrl) {
+              input.value = convertedUrl;
+            }
+            const videoId = extractVideoID(convertedUrl);
+            if (videoId) {
+              const wrapper = document.createElement("div");
+              wrapper.className = "video-wrapper";
+              const div = document.createElement("div");
+              div.id = "player" + i;
+              wrapper.appendChild(div);
+              container.appendChild(wrapper);
+              createPlayer(div.id, videoId);
+            }
+          }
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          // 👈 evita el zoom després d'escriure en inputs a iPhone
+          resetViewportZoom();
+          document.getElementById("urlSection").open = false;
     }
 
     window.onYouTubeIframeAPIReady = function () {
