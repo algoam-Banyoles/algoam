@@ -14,3 +14,9 @@ Multi YouTube Viewer is a progressive web app for watching up to four YouTube vi
 - Use **▶️ Reproduir tots** to play all videos and **⏸️ Pausar tots** to pause them.
 - Links using `youtube.com/live/...` are converted to regular watch URLs.
 
+## Live Stream Checking
+
+The **Check Live Streams** button queries the channels listed in `canals.json` to
+see if they are broadcasting. This feature requires a YouTube Data API key set
+in `canal.js`.
+
