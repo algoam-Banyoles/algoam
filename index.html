@@ -107,7 +107,7 @@
 </head>
 <body>
   <div class="app">
-  <h1>APP2 per Veure 4 vídeos de YouTube a la vegada</h1>
+  <h1>Multiview</h1>
 
   <details id="urlSection" open>
     <summary>Introduir URLs</summary>
@@ -152,7 +152,7 @@
 
     function createPlayer(divId, videoId) {
       new YT.Player(divId, {
-@@ -140,56 +188,79 @@
+
       for (let i = 1; i <= 4; i++) {
         const input = document.querySelector(`[name="url${i}"]`);
         if (!input || !input.value.trim()) continue;
