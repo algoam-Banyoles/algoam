@@ -1,23 +1,122 @@
 [
   {
-    "name": "Banyoles Billar 1",
+    "name": "CLUB BILLAR MONFORTE 1",
+    "channelId": "UCFfLvkS2hTIXop-r-wTlXcQ"
+  },
+  {
+    "name": "CLUB BILLAR MONFORTE 2",
+    "channelId": "UCTZhhkh0po7TgRmJ6qy7UUw"
+  },
+  {
+    "name": "CLUB BILLAR MONFORTE 3",
+    "channelId": "UCw4lTndxGlhu74xVbw8bkzg"
+  },
+  {
+    "name": "CLUB BILLAR MONFORTE 4",
+    "channelId": "UCSCI6PC7st_sIILtW3bdCvg"
+  },
+  {
+    "name": "CLUB BILLAR SANTS 1",
+    "channelId": "UCt1s0StHWo6oyawmmxmZASw"
+  },
+  {
+    "name": "CLUB BILLAR SANTS 2",
+    "channelId": "UCwLYL5CIFXXOqaS7kJly3gQ"
+  },
+  {
+    "name": "CLUB BILLAR SANTS 3",
+    "channelId": "UC5EMAWwvg_1gsVrqEWlpixw"
+  },
+  {
+    "name": "CLUB BILLAR SANTS 4",
+    "channelId": "UCOkHTGoB6MGivKS2DBcuTTQ"
+  },
+  {
+    "name": "CLUB BILLAR SANTS 5",
+    "channelId": "UCEy8Kt3skfnGx3rv6TU1iHg"
+  },
+  {
+    "name": "CLUB BILLAR SANTS 6",
+    "channelId": "UCIy2d7-zhSNrQiJISbzKfLw"
+  },
+  {
+    "name": "CLUB BILLAR TARRAGONA 1",
+    "channelId": "UCPqOow5DLA1eFcj2ji8nmyw"
+  },
+  {
+    "name": "CLUB BILLAR TARRAGONA 2",
+    "channelId": "UCUe403LWY9NGRUAglIM2Lug"
+  },
+  {
+    "name": "CLUB BILLAR TARRAGONA 3",
+    "channelId": "UCJk0IyN2gNficW43ZFFajxw"
+  },
+  {
+    "name": "CLUB BILLAR BANYOLES 1",
     "channelId": "UCIozKc9Toz66y2am4-nWxAA"
   },
   {
-    "name": "Banyoles Billar 2",
+    "name": "CLUB BILLAR BANYOLES 2",
     "channelId": "UCsbBBXU9y7vyZeZboSGuKvQ"
   },
   {
-    "name": "Banyoles Billar 3",
+    "name": "CLUB BILLAR BANYOLES 3",
     "channelId": "UC3UaoySxRFDKQPVjOiCTGpg"
   },
   {
-    "name": "Banyoles Billar 4",
+    "name": "CLUB BILLAR BANYOLES 4",
     "channelId": "UCrJ-OEolzEnigssxldd4l1g"
+  },
+  {
+    "name": "CLUB BILLAR MANRESA 1",
+    "channelId": "UCk9YLBgxJVhWrsjLcrn7qwA"
+  },
+  {
+    "name": "CLUB BILLAR MANRESA 2",
+    "channelId": "UCx17qHHbTj0yXWKqBqN6B2A"
+  },
+  {
+    "name": "CLUB BILLAR MANRESA 3",
+    "channelId": "UCoy0jInzaCfMTirQJTWRtlA"
+  },
+  {
+    "name": "CLUB BILLAR MANRESA 4",
+    "channelId": "UCV4n0mgnRWigOksGnxnHtPw"
+  },
+  {
+    "name": "CLUB BILLAR LLEIDA 1",
+    "channelId": "UC33EaGjvEA92-jcWpL06_XQ"
+  },
+  {
+    "name": "CLUB BILLAR LLEIDA 2",
+    "channelId": "UC6glMfOX3W3GzVDGenn-cfQ"
+  },
+  {
+    "name": "CLUB BILLAR LLEIDA 3",
+    "channelId": "UCNn1Tmh53ejJUXhfSDv3Hfg"
+  },
+  {
+    "name": "CLUB BILLAR LLEIDA 4",
+    "channelId": "UCOWby67o_7DONPFu1h9VgVg"
+  },
+  {
+    "name": "CLUB BILLAR SANT ADRIÀ 1",
+    "channelId": "UC8TiwIIzS1vNHd1W0Z1lpuQ"
+  },
+  {
+    "name": "CLUB BILLAR SANT ADRIÀ 2",
+    "channelId": "UC9xHdBNYXuj5CtbpXz28EiQ"
+  },
+  {
+    "name": "CLUB BILLAR SANT ADRIÀ 3",
+    "channelId": "UCnxFpglOqmIXLKPv6tf_q-g"
+  },
+  {
+    "name": "CLUB BILLAR SANT ADRIÀ 4",
+    "channelId": "UC4QKXDKnDqnQ31_YG5yvdDg"
   },
   {
     "id": "PBA",
     "channelId": "UC4n_ME6BVRofHr4fVoBTdNg"
   }
-
 ]
