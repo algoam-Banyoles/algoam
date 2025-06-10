@@ -16,9 +16,12 @@ Multi YouTube Viewer is a progressive web app for watching up to four YouTube vi
 
 ## Check live streams
 
-The **Check Live Streams** button queries the YouTube Data API to see which
-channels in `canals.json` are broadcasting live. To use it you must provide your
-own API key:
+The **Check Live Streams** button looks for live broadcasts among the channels
+listed in `canals.json`. If the `API_KEY` constant in `canal.js` is set the
+script uses the YouTube Data API. Otherwise it falls back to checking each
+channel's `/live` page through a CORS proxy.
+
+To use the Data API method you need your own key:
 
 1. Create a project in the Google Cloud Console and enable the *YouTube Data API v3*.
 2. Generate an API key and copy it into `canal.js` by editing the `API_KEY`

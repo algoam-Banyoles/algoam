@@ -1,4 +1,5 @@
-// Introduceix aquí la teva clau de l'API de YouTube Data
+// Introduceix aquí la teva clau de l'API de YouTube Data. Si es deixa en blanc,
+// es farà servir un mètode alternatiu que comprova la pàgina /live del canal.
 const API_KEY = '';
 
 async function getChannels() {
@@ -9,10 +10,6 @@ async function getChannels() {
 async function checkLiveStreams() {
   const results = document.getElementById('liveResults');
   results.textContent = 'Comprovant...';
-  if (!API_KEY) {
-    results.textContent = 'Cal definir API_KEY a canal.js';
-    return;
-  }
   const channels = await getChannels();
   results.innerHTML = '';
   for (const channel of channels) {
@@ -36,8 +33,6 @@ async function checkLiveStreams() {
         li.appendChild(a);
         results.appendChild(li);
       }
-    } catch (err) {
-      console.error('Error checking channel', channel.channelId, err);
     }
   }
   if (!results.hasChildNodes()) {
