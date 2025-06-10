@@ -1,3 +1,4 @@
+
 const CACHE_NAME = 'algoam-cache-v1';
 const ASSETS = [
   '/',
@@ -53,6 +54,7 @@ self.addEventListener('fetch', event => {
     );
   }
 });
+
 
 self.addEventListener('message', event => {
   if (event.data === 'skipWaiting') {
