@@ -1,0 +1,113 @@
+:root {
+  --primary: #e91e63;
+  --primary-dark: #c2185b;
+  --background-start: #f0f4f8;
+  --background-end: #d9e2ec;
+}
+
+body {
+  font-family: 'Roboto', sans-serif;
+  background: linear-gradient(to bottom right, var(--background-start), var(--background-end));
+  color: #333;
+  text-align: center;
+  padding: 20px;
+  margin: 0;
+}
+
+form {
+  margin-bottom: 20px;
+}
+
+input {
+  margin: 5px;
+  padding: 10px;
+  width: 80%;
+  max-width: 400px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+#video-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  padding: 0 10px;
+}
+
+.video-wrapper {
+  width: 100%;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  padding: 10px;
+}
+
+.controls {
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: none;
+  border-radius: 8px;
+  display: block;
+}
+
+@media (min-width: 768px) {
+  #video-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+button {
+  margin: 5px;
+  padding: 10px 20px;
+  font-size: 1em;
+  border: none;
+  border-radius: 4px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: background 0.3s, transform 0.2s;
+}
+
+button:hover {
+  transform: translateY(-2px);
+}
+
+details {
+  margin-bottom: 20px;
+}
+
+summary {
+  margin: 0 auto 10px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  width: fit-content;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: background 0.3s, transform 0.2s;
+}
+
+summary:hover {
+  transform: translateY(-2px);
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
+h1 {
+  font-size: 2em;
+  margin-bottom: 20px;
+  color: var(--primary);
+}
