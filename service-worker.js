@@ -18,3 +18,8 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(clients.claim()); // 🧠 força que totes les pàgines usin el nou SW
 });
+self.addEventListener('message', event => {
+  if (event.data === 'skipWaiting') {
+    self.skipWaiting();
+  }
+});
