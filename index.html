@@ -189,22 +189,30 @@
 
     // PWA: registre del service worker
     if ("serviceWorker" in navigator) {
+      let newWorker;
+      const btn = document.getElementById("updateApp");
       navigator.serviceWorker
         .register("service-worker.js")
         .then(reg => {
           console.log("✅ Service Worker registrat");
+
+          if (btn) {
+            btn.style.display = "inline-block";
+            btn.addEventListener("click", () => {
+              if (newWorker) {
+                btn.style.display = "none";
+                newWorker.postMessage("skipWaiting");
+              } else {
+                reg.update();
+              }
+            });
+          }
+
           reg.addEventListener("updatefound", () => {
-            const newWorker = reg.installing;
+            newWorker = reg.installing;
             newWorker.addEventListener("statechange", () => {
               if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-                const btn = document.getElementById("updateApp");
-                if (btn) {
-                  btn.style.display = "inline-block";
-                  btn.onclick = () => {
-                    btn.style.display = "none";
-                    newWorker.postMessage("skipWaiting");
-                  };
-                }
+                if (btn) btn.style.display = "inline-block";
               }
             });
           });
