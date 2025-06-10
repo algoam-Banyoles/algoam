@@ -37,6 +37,7 @@ self.addEventListener('message', event => {
 });
 
 
+
 self.addEventListener('install', (event) => {
   console.log('Service Worker: Instal·lat');
   self.skipWaiting(); // 🔁 activa la nova versió immediatament
@@ -57,4 +58,5 @@ self.addEventListener('message', event => {
     self.skipWaiting();
   }
 });
+
 
