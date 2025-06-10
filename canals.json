@@ -1,19 +1,19 @@
 [
   {
     "name": "Banyoles Billar 1",
-    "channeldId": "UCIozKc9Toz66y2am4-nWxAA"
+    "channelId": "UCIozKc9Toz66y2am4-nWxAA"
   },
     {
     "name": "Banyoles Billar 2",
-    "channeldId": "UCsbBBXU9y7vyZeZboSGuKvQ"
+    "channelId": "UCsbBBXU9y7vyZeZboSGuKvQ"
   },
     {
     "name": "Banyoles Billar 3",
-    "channeldId": "UC3UaoySxRFDKQPVjOiCTGpg"
+    "channelId": "UC3UaoySxRFDKQPVjOiCTGpg"
   },
   {
     "name": "Banyoles Billar 4",
-    "channeldId": "UCrJ-OEolzEnigssxldd4l1g"
-  },
+    "channelId": "UCrJ-OEolzEnigssxldd4l1g"
+  }
   
 ]
