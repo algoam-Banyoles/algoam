@@ -1,3 +1,6 @@
++145
+-74
+
 <!DOCTYPE html>
 <html lang="ca">
 <head>
@@ -13,7 +16,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="apple-touch-icon" href="icon-192.png" />
 
-   <style>
+  <style>
     body {
       font-family: system-ui, sans-serif;
       background: #f5f6f7;
@@ -102,11 +105,12 @@
     button:hover {
       background-color: #0056b3;
     }
+    #updateApp { background-color: #28a745; }
   </style>
 </head>
 <body>
   <div class="app">
-  <h1>Multiviewer youtube</h1>
+  <h1>APP2 per Veure 4 vídeos de YouTube a la vegada</h1>
 
   <details id="urlSection" open>
     <summary>Introduir URLs</summary>
@@ -121,6 +125,7 @@
 
   <button id="playAll">▶️ Reproduir tots</button>
   <button id="pauseAll">⏸️ Pausar tots</button>
+  <button id="updateApp" style="display:none">🔄 Actualitza l'app</button>
 
   <div id="video-container"></div>
 
@@ -150,39 +155,7 @@
 
     function createPlayer(divId, videoId) {
       new YT.Player(divId, {
-        height: "250",
-        width: "100%",
-        videoId: videoId,
-        playerVars: {
-          autoplay: 0,
-          mute: 1,
-          playsinline: 1,
-          controls: 1
-        },
-        events: {
-          onReady: function (event) {
-            players.push(event.target);
-          }
-        }
-      });
-    }
-
-    function resetViewportZoom() {
-      const viewport = document.querySelector("meta[name=viewport]");
-      if (viewport) {
-        viewport.content = "width=device-width, initial-scale=1.01";
-        setTimeout(() => {
-          viewport.content = "width=device-width, initial-scale=1";
-        }, 100);
-      }
-    }
-
-    function processForm() {
-      const formData = new FormData(document.getElementById("videoForm"));
-      const container = document.getElementById("video-container");
-      container.innerHTML = "";
-      players = [];
-
+@@ -140,56 +188,79 @@
       for (let i = 1; i <= 4; i++) {
         const input = document.querySelector(`[name="url${i}"]`);
         if (!input || !input.value.trim()) continue;
@@ -209,9 +182,11 @@
       }
 
       window.scrollTo({ top: 0, behavior: "smooth" });
-      resetViewportZoom(); // 👈 evita el zoom després d'escriure en inputs a iPhone
+      // 👈 evita el zoom després d'escriure en inputs a iPhone
+      resetViewportZoom();
       document.getElementById("urlSection").open = false;
     }
+
     window.onYouTubeIframeAPIReady = function () {
       document.getElementById("videoForm").addEventListener("submit", function (e) {
         e.preventDefault();
@@ -231,8 +206,29 @@
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
         .register("service-worker.js")
-        .then(reg => console.log("✅ Service Worker registrat"))
+        .then(reg => {
+          console.log("✅ Service Worker registrat");
+          reg.addEventListener("updatefound", () => {
+            const newWorker = reg.installing;
+            newWorker.addEventListener("statechange", () => {
+              if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+                const btn = document.getElementById("updateApp");
+                if (btn) {
+                  btn.style.display = "inline-block";
+                  btn.onclick = () => {
+                    btn.style.display = "none";
+                    newWorker.postMessage("skipWaiting");
+                  };
+                }
+              }
+            });
+          });
+        })
         .catch(err => console.error("❌ Error en SW:", err));
+
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        window.location.reload();
+      });
     }
   </script>
 
