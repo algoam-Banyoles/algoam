@@ -14,6 +14,4 @@ Multi YouTube Viewer is a progressive web app for watching up to four YouTube vi
 - Use **▶️ Reproduir tots** to play all videos and **⏸️ Pausar tots** to pause them.
 - Links using `youtube.com/live/...` are converted to regular watch URLs.
 
-## Updating the channel list
-
-Run `node scripts/fetch_channels.js` to download the current Federació Catalana de Billar streams. The script saves the resulting array of channels to `canals.json`.
+n
