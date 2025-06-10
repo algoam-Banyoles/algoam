@@ -1,4 +1,5 @@
 const fs = require('fs/promises');
+const cheerio = require('cheerio');
 
 const url = 'https://www.fcbillar.cat/ca/info/view/s/5/Federacio/i/11/fcbstreaming/c/0/0';
 
@@ -6,25 +7,25 @@ async function main() {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to fetch page: ${res.status}`);
   const html = await res.text();
-  const channelRegex = /UC[\w-]{22}/g;
-  const sections = html.split(/<iframe/); // crude splitting around iframes
-  const channels = [];
 
-  for (const section of sections) {
-    const idMatch = section.match(channelRegex);
-    if (!idMatch) continue;
-    const channelId = idMatch[0];
-    const before = section.split('>')[0];
-    const nameMatch = before.match(/title="([^"]+)"/i) || before.match(/alt="([^"]+)"/i);
-    let name = nameMatch ? nameMatch[1].trim() : '';
-    if (!name) {
-      // fallback: look for text content before iframe
-      const prevText = html.substring(html.lastIndexOf('</', html.indexOf(section)) - 100, html.lastIndexOf('<', html.indexOf(section))).replace(/<[^>]*>/g, '').trim();
-      if (prevText) name = prevText.split('\n').pop().trim();
-    }
-    if (!name) name = channelId;
-    channels.push({ name, channelId });
-  }
+  const $ = cheerio.load(html);
+  const channelMap = new Map();
+
+  $('a[href*="youtube.com"], iframe[src*="youtube.com"]').each((_, el) => {
+    const $el = $(el);
+    const href = $el.attr('href') || $el.attr('src') || '';
+
+    const idMatch = href.match(/(UC[\w-]{22})/);
+    if (!idMatch) return;
+    const channelId = idMatch[1];
+
+    let name = ($el.text() || '').trim();
+    if (!name) name = $el.attr('title') || $el.attr('alt') || channelId;
+
+    channelMap.set(channelId, name);
+  });
+
+  const channels = Array.from(channelMap.entries()).map(([channelId, name]) => ({ name, channelId }));
 
 
   if (channels.length === 0) {
