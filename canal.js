@@ -20,6 +20,12 @@ async function checkLiveStreams() {
     try {
       const res = await fetch(url);
       const data = await res.json();
+
+      if (!res.ok || data.error) {
+        console.error('API error', data.error || res.statusText);
+        continue;
+      }
+
       if (data.items && data.items.length > 0) {
         const videoId = data.items[0].id.videoId;
         const li = document.createElement('li');
