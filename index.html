@@ -15,35 +15,10 @@
 
   <style>
     body {
-      font-family: system-ui, sans-serif;
-      background: #f5f6f7;
-      color: #333;
+      font-family: sans-serif;
       text-align: center;
       padding: 20px;
       margin: 0;
-    }
-
-    .app {
-      max-width: 900px;
-      margin: 0 auto;
-    }
-
-    details {
-      margin-bottom: 20px;
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-      padding: 10px;
-    }
-
-    summary {
-      font-weight: bold;
-      cursor: pointer;
-      padding: 10px;
-      border-radius: 6px;
-      background-color: #007bff;
-      color: #fff;
-      margin: -10px -10px 10px -10px;
     }
 
     form {
@@ -52,12 +27,10 @@
 
     input {
       margin: 5px;
-      padding: 10px;
+      padding: 8px;
       width: 80%;
       max-width: 400px;
-      font-size: 1rem;
-      border-radius: 6px;
-      border: 1px solid #ccc;
+      font-size: 16px;
     }
 
     #video-container {
@@ -69,10 +42,6 @@
 
     .video-wrapper {
       width: 100%;
-      background: #fff;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     }
 
     iframe {
@@ -92,22 +61,11 @@
       margin: 5px;
       padding: 10px 20px;
       font-size: 1em;
-      border: none;
-      border-radius: 6px;
-      background-color: #007bff;
-      color: #fff;
-      cursor: pointer;
     }
-
-    button:hover {
-      background-color: #0056b3;
-    }
-    #updateApp { background-color: #28a745; }
   </style>
 </head>
 <body>
-  <div class="app">
-  <h1>Multiview</h1>
+  <h1>APP2 per Veure 4 vídeos de YouTube a la vegada</h1>
 
   <details id="urlSection" open>
     <summary>Introduir URLs</summary>
@@ -119,14 +77,10 @@
       <button type="submit">Carregar vídeos</button>
     </form>
   </details>
-
   <button id="playAll">▶️ Reproduir tots</button>
   <button id="pauseAll">⏸️ Pausar tots</button>
-  <button id="updateApp" style="display:none">🔄 Actualitza l'app</button>
 
   <div id="video-container"></div>
-
-  </div>
 
   <script>
     let players = [];
@@ -152,29 +106,66 @@
 
     function createPlayer(divId, videoId) {
       new YT.Player(divId, {
-         for (let i = 1; i <= 4; i++) {
-            const input = document.querySelector(`[name="url${i}"]`);
-            if (!input || !input.value.trim()) continue;
-            const originalUrl = input.value.trim();
-            const convertedUrl = convertirLiveAWatch(originalUrl);
-            if (convertedUrl !== originalUrl) {
-              input.value = convertedUrl;
-            }
-            const videoId = extractVideoID(convertedUrl);
-            if (videoId) {
-              const wrapper = document.createElement("div");
-              wrapper.className = "video-wrapper";
-              const div = document.createElement("div");
-              div.id = "player" + i;
-              wrapper.appendChild(div);
-              container.appendChild(wrapper);
-              createPlayer(div.id, videoId);
-            }
+        height: "250",
+        width: "100%",
+        videoId: videoId,
+        playerVars: {
+          autoplay: 0,
+          mute: 1,
+          playsinline: 1,
+          controls: 1
+        },
+        events: {
+          onReady: function (event) {
+            players.push(event.target);
           }
-          window.scrollTo({ top: 0, behavior: "smooth" });
-          // 👈 evita el zoom després d'escriure en inputs a iPhone
-          resetViewportZoom();
-          document.getElementById("urlSection").open = false;
+        }
+      });
+    }
+
+    function resetViewportZoom() {
+      const viewport = document.querySelector("meta[name=viewport]");
+      if (viewport) {
+        viewport.content = "width=device-width, initial-scale=1.01";
+        setTimeout(() => {
+          viewport.content = "width=device-width, initial-scale=1";
+        }, 100);
+      }
+    }
+
+    function processForm() {
+      const formData = new FormData(document.getElementById("videoForm"));
+      const container = document.getElementById("video-container");
+      container.innerHTML = "";
+      players = [];
+
+      for (let i = 1; i <= 4; i++) {
+        const input = document.querySelector(`[name="url${i}"]`);
+        if (!input || !input.value.trim()) continue;
+
+        const originalUrl = input.value.trim();
+        const convertedUrl = convertirLiveAWatch(originalUrl);
+
+        if (convertedUrl !== originalUrl) {
+          input.value = convertedUrl;
+        }
+
+        const videoId = extractVideoID(convertedUrl);
+        if (videoId) {
+          const wrapper = document.createElement("div");
+          wrapper.className = "video-wrapper";
+
+          const div = document.createElement("div");
+          div.id = "player" + i;
+          wrapper.appendChild(div);
+          container.appendChild(wrapper);
+
+          createPlayer(div.id, videoId);
+        }
+      }
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      resetViewportZoom(); // 👈 evita el zoom després d'escriure en inputs a iPhone
     }
 
     window.onYouTubeIframeAPIReady = function () {
@@ -194,39 +185,10 @@
 
     // PWA: registre del service worker
     if ("serviceWorker" in navigator) {
-      let newWorker;
-      const btn = document.getElementById("updateApp");
       navigator.serviceWorker
         .register("service-worker.js")
-        .then(reg => {
-          console.log("✅ Service Worker registrat");
-
-          if (btn) {
-            btn.style.display = "inline-block";
-            btn.addEventListener("click", () => {
-              if (newWorker) {
-                btn.style.display = "none";
-                newWorker.postMessage("skipWaiting");
-              } else {
-                reg.update();
-              }
-            });
-          }
-
-          reg.addEventListener("updatefound", () => {
-            newWorker = reg.installing;
-            newWorker.addEventListener("statechange", () => {
-              if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-                if (btn) btn.style.display = "inline-block";
-              }
-            });
-          });
-        })
+        .then(reg => console.log("✅ Service Worker registrat"))
         .catch(err => console.error("❌ Error en SW:", err));
-
-      navigator.serviceWorker.addEventListener("controllerchange", () => {
-        window.location.reload();
-      });
     }
   </script>
 
