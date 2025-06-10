@@ -1,11 +1,11 @@
 const fs = require('fs/promises');
+
 const url = 'https://www.fcbillar.cat/ca/info/view/s/5/Federacio/i/11/fcbstreaming/c/0/0';
 
 async function main() {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to fetch page: ${res.status}`);
   const html = await res.text();
-
   const channelRegex = /UC[\w-]{22}/g;
   const sections = html.split(/<iframe/); // crude splitting around iframes
   const channels = [];
@@ -25,6 +25,7 @@ async function main() {
     if (!name) name = channelId;
     channels.push({ name, channelId });
   }
+
 
   if (channels.length === 0) {
     console.warn('No channels found. The page structure may have changed.');

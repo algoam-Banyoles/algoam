@@ -13,3 +13,4 @@ Multi YouTube Viewer is a progressive web app for watching up to four YouTube vi
 - Enter up to four YouTube URLs and press **Carregar vídeos** to load them.
 - Use **▶️ Reproduir tots** to play all videos and **⏸️ Pausar tots** to pause them.
 - Links using `youtube.com/live/...` are converted to regular watch URLs.
+
