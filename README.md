@@ -14,3 +14,28 @@ Multi YouTube Viewer is a progressive web app for watching up to four YouTube vi
 - Use **▶️ Reproduir tots** to play all videos and **⏸️ Pausar tots** to pause them.
 - Links using `youtube.com/live/...` are converted to regular watch URLs.
 
+## Installing dependencies
+
+This project uses a small Node script to retrieve channel data. Run `npm install`
+from the repository root to install the required packages before executing any
+scripts.
+
+## Running `scripts/fetch_channels.js`
+
+The channel fetcher checks the configured channels for live streams. Execute it
+with Node:
+
+```bash
+node scripts/fetch_channels.js
+```
+
+The script expects a **YouTube API key** available through the `YOUTUBE_API_KEY`
+environment variable. The key is necessary for the live-check feature described
+below.
+
+## Live-check feature
+
+The app can display which channels are currently live. Provide your YouTube API
+key (as `YOUTUBE_API_KEY`) so the script can determine each channel's status
+before loading the player.
+
