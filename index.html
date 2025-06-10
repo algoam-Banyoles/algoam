@@ -32,7 +32,11 @@
   <div class="controls">
     <button id="playAll">▶️ Reproduir tots</button>
     <button id="pauseAll">⏸️ Pausar tots</button>
+    <button id="checkLive">Check Live Streams</button>
   </div>
+
+  <ul id="liveResults"></ul>
+
 
   <div id="video-container"></div>
 
@@ -142,11 +146,20 @@
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
         .register("service-worker.js")
-        .then(reg => console.log("✅ Service Worker registrat"))
+        .then(reg => {
+          console.log("✅ Service Worker registrat");
+          reg.update(); // 🔄 comprova si hi ha una versió nova
+        })
         .catch(err => console.error("❌ Error en SW:", err));
+
+      // 🔁 recarrega quan el SW nou pren el control
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        window.location.reload();
+      });
     }
   </script>
 
   <script src="https://www.youtube.com/iframe_api"></script>
+  <script src="canal.js"></script>
 </body>
 </html>
