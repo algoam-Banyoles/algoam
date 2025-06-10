@@ -14,3 +14,8 @@ Multi YouTube Viewer is a progressive web app for watching up to four YouTube vi
 - Use **▶️ Reproduir tots** to play all videos and **⏸️ Pausar tots** to pause them.
 - Links using `youtube.com/live/...` are converted to regular watch URLs.
 
+## Updating channel list
+
+1. Install dependencies with `npm install`.
+2. Run `npm run fetch-channels` to scrape the YouTube channel IDs and update `canals.json`.
+
