@@ -13,25 +13,52 @@ async function checkLiveStreams() {
   const channels = await getChannels();
   results.innerHTML = '';
   for (const channel of channels) {
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channel.channelId}&eventType=live&type=video&key=${API_KEY}`;
-    try {
-      const res = await fetch(url);
-      const data = await res.json();
+    if (API_KEY) {
+      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channel.channelId}&eventType=live&type=video&key=${API_KEY}`;
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
 
-      if (!res.ok || data.error) {
-        console.error('API error', data.error || res.statusText);
-        continue;
+        if (!res.ok || data.error) {
+          console.error('API error', data.error || res.statusText);
+          continue;
+        }
+
+        if (data.items && data.items.length > 0) {
+          const videoId = data.items[0].id.videoId;
+          const li = document.createElement('li');
+          const a = document.createElement('a');
+          a.href = `https://www.youtube.com/watch?v=${videoId}`;
+          a.textContent = channel.name;
+          a.target = '_blank';
+          li.appendChild(a);
+          results.appendChild(li);
+        }
+      } catch (err) {
+        console.error('Error checking channel', channel.channelId, err);
       }
-
-      if (data.items && data.items.length > 0) {
-        const videoId = data.items[0].id.videoId;
-        const li = document.createElement('li');
-        const a = document.createElement('a');
-        a.href = `https://www.youtube.com/watch?v=${videoId}`;
-        a.textContent = channel.name;
-        a.target = '_blank';
-        li.appendChild(a);
-        results.appendChild(li);
+    } else {
+      try {
+        const proxyUrl = `https://corsproxy.io/?https://www.youtube.com/channel/${channel.channelId}/live`;
+        const res = await fetch(proxyUrl, { redirect: 'follow' });
+        if (!res.ok) {
+          console.error('Fallback fetch error', res.statusText);
+          continue;
+        }
+        const finalUrl = decodeURIComponent(res.url.replace('https://corsproxy.io/?', ''));
+        const match = finalUrl.match(/[?&]v=([^&]+)/);
+        if (match) {
+          const videoId = match[1];
+          const li = document.createElement('li');
+          const a = document.createElement('a');
+          a.href = `https://www.youtube.com/watch?v=${videoId}`;
+          a.textContent = channel.name;
+          a.target = '_blank';
+          li.appendChild(a);
+          results.appendChild(li);
+        }
+      } catch (err) {
+        console.error('Error checking channel without API', channel.channelId, err);
       }
     }
   }
