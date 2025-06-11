@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Multi YouTube Viewer PWA",
   "scripts": {
-    "fetch-channels": "node scripts/fetch_channels.js"
+    "fetch-channels": "node scripts/fetch_channels.js",
+    "check-live": "node scripts/check_live.js"
   },
   "dependencies": {
     "cheerio": "^1.0.0-rc.12"

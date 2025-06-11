@@ -31,6 +31,17 @@ To use the Data API method you need your own key:
 Only public live streams will be returned; unlisted broadcasts won't appear in
 the results.
 
+### Command line usage
+
+You can also check live streams from the terminal. Run
+`npm run check-live` and the script will print the watch URLs of any channels
+currently broadcasting live. Set the `API_KEY` environment variable if you want
+to use the YouTube Data API:
+
+```bash
+API_KEY=YOUR_KEY npm run check-live
+```
+
 ## Updating channel list
 
 1. Install dependencies with `npm install`.
