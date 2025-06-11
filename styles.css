@@ -89,12 +89,12 @@ button:hover {
 }
 
 details {
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 summary {
-  margin: 0 auto 10px;
-  padding: 10px 20px;
+  margin: 0 auto 8px;
+  padding: 8px 16px;
   background: linear-gradient(135deg, var(--primary), var(--primary-dark));
   color: #fff;
   border-radius: 4px;
@@ -102,6 +102,7 @@ summary {
   width: fit-content;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   transition: background 0.3s, transform 0.2s;
+  font-size: 0.9em;
 }
 
 summary:hover {
@@ -113,8 +114,7 @@ summary::-webkit-details-marker {
 }
 
 h1 {
-  font-size: 2em;
-  margin-bottom: 20px;
+  font-size: 1.5em;
+  margin-bottom: 10px;
   color: var(--primary);
-
 }
