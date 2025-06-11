@@ -39,13 +39,13 @@ async function checkLiveStreams() {
       }
     } else {
       try {
-        const proxyUrl = `https://corsproxy.io/?https://www.youtube.com/channel/${channel.channelId}/live`;
+        const proxyUrl = `https://www.youtube.com/channel/${channel.channelId}/live`;
         const res = await fetch(proxyUrl, { redirect: 'follow' });
         if (!res.ok) {
           console.error('Fallback fetch error', res.statusText);
           continue;
         }
-        const finalUrl = decodeURIComponent(res.url.replace('https://corsproxy.io/?', ''));
+        const finalUrl = proxyUrl;
         const match = finalUrl.match(/[?&]v=([^&]+)/);
         if (match) {
           const videoId = match[1];
