@@ -257,5 +257,20 @@
     "name": "PBA",
     "channelId": "UC4n_ME6BVRofHr4fVoBTdNg",
     "handle": "@billiards-pbatv"
+  },
+  {
+    "name": "Federació Valenciana Billar",
+    "channelId": "UCdYu6HdiSdmnMutvyRV-tSA",
+    "handle": "@federaciondebillarcomunida5284"
+  },
+  {
+    "name": "Kozoom",
+    "channelId": "UCOwcct1FjXWzlvmQxaR4Y8Q",
+    "handle": "@KozoomTV"
+  },
+  {
+    "name": "Federació Espanyola Billar",
+    "channelId": "UCBHlmC1BslTR5tOTycMBO1Q",
+    "handle": "@realfederacionespanoladebi1020"
   }
 ]
