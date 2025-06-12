@@ -16,7 +16,7 @@ Multi YouTube Viewer is a progressive web app for watching up to four YouTube vi
 
 ## Check live streams
 
-The **Check Live Streams** button looks for live broadcasts among the channels
+The **Check Live Streams** button (handled by `canal.js`) looks for live broadcasts among the channels
 
 listed in `canals.json`. Each channel entry now includes a `handle` (e.g.
 `@mychannel`) in addition to its `channelId`. If the `API_KEY` constant in
