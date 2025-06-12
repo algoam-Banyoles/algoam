@@ -42,10 +42,13 @@ async function main() {
     try {
       const url = await checkChannelLive(channel);
       if (url) {
-        console.log(`${channel.name}: ${url}`);
+        console.log(`OK ${channel.name} en emissió: ${url}`);
+      } else {
+        console.log(`KO ${channel.name} sense emissió`);
       }
     } catch (err) {
       console.error('Error checking', channel.channelId, err.message);
+      console.log(`KO ${channel.name} sense emissió`);
     }
   }
 }

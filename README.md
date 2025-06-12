@@ -44,8 +44,15 @@ the results.
 This project requires **Node.js 18** or newer to run the command line scripts.
 
 You can also check live streams from the terminal. Run
-`npm run check-live` and the script will print the watch URLs of any channels
-currently broadcasting live. Set the `API_KEY` environment variable if you want
+`npm run check-live` and the script will print a status line for each channel,
+for example:
+
+```
+OK MyChannel en emissió: https://www.youtube.com/watch?v=abc123defgh
+KO OtherChannel sense emissió
+```
+
+Set the `API_KEY` environment variable if you want
 to use the YouTube Data API:
 
 ```bash
