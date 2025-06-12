@@ -24,69 +24,37 @@ async function checkLiveStreams() {
   const channels = await getChannels();
   let cleared = false;
   for (const channel of channels) {
-    if (API_KEY) {
-      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channel.channelId}&eventType=live&type=video&key=${API_KEY}`;
-      try {
-        const res = await fetch(url);
-        const data = await res.json();
+    try {
+      const livePath = channel.handle
+        ? `https://www.youtube.com/${channel.handle}/live`
+        : `https://www.youtube.com/channel/${channel.channelId}/live`;
+      const proxyUrl = `https://corsproxy.io/?${livePath}`;
 
-        if (!res.ok || data.error) {
-          console.error('API error', data.error || res.statusText);
-          continue;
-        }
-
-        if (data.items && data.items.length > 0) {
-          if (!cleared) {
-            results.innerHTML = '';
-            cleared = true;
-          }
-          const videoId = data.items[0].id.videoId;
-          const li = document.createElement('li');
-          const a = document.createElement('a');
-          a.href = `https://www.youtube.com/watch?v=${videoId}`;
-          a.textContent = channel.name;
-          a.target = '_blank';
-          const copyBtn = document.createElement('button');
-          copyBtn.textContent = 'Copiar';
-          copyBtn.addEventListener('click', () => {
-            fillNextInput(`https://www.youtube.com/watch?v=${videoId}`);
-          });
-          li.appendChild(a);
-          li.appendChild(copyBtn);
-          results.appendChild(li);
-        }
-      } catch (err) {
-        console.error('Error checking channel', channel.channelId, err);
-      }
-    } else {
-      try {
-        const livePath = channel.handle
-          ? `https://www.youtube.com/${channel.handle}/live`
-          : `https://www.youtube.com/channel/${channel.channelId}/live`;
-        const proxyUrl = `https://corsproxy.io/?${livePath}`;
-        const res = await fetch(proxyUrl, { redirect: 'follow' });
-        if (!res.ok) {
-          console.error('Fallback fetch error', res.statusText);
-          continue;
-        }
-        const finalUrl = decodeURIComponent(
-          res.url.replace('https://corsproxy.io/?', '')
-        );
-        let match = finalUrl.match(/(?:[?&]v=|\/live\/)([^&/?]+)/);
-        if (!match) {
-          const html = await res.text();
-          match = html.match(/"(?:watch\?v=|videoId\":\")([\w-]{11})/);
-        }
+      const res = await fetch(proxyUrl, { method: 'HEAD', redirect: 'manual' });
+      if (res.status >= 300 && res.status < 400) {
+        const location = res.headers.get('Location') || res.headers.get('location');
+        const match = location && location.match(/v=([\w-]{11})/);
         if (match) {
+          const videoId = match[1];
+          let title = channel.name;
+          if (API_KEY) {
+            const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails&id=${videoId}&key=${API_KEY}`;
+            const apiRes = await fetch(apiUrl);
+            const data = await apiRes.json();
+            if (apiRes.ok && data.items && data.items.length > 0) {
+              title = data.items[0].snippet.title;
+            } else if (data.error) {
+              console.error('API error', data.error);
+            }
+          }
           if (!cleared) {
             results.innerHTML = '';
             cleared = true;
           }
-          const videoId = match[1];
           const li = document.createElement('li');
           const a = document.createElement('a');
           a.href = `https://www.youtube.com/watch?v=${videoId}`;
-          a.textContent = channel.name;
+          a.textContent = title;
           a.target = '_blank';
           const copyBtn = document.createElement('button');
           copyBtn.textContent = 'Copiar';
@@ -97,13 +65,9 @@ async function checkLiveStreams() {
           li.appendChild(copyBtn);
           results.appendChild(li);
         }
-      } catch (err) {
-        console.error(
-          'Error checking channel without API',
-          channel.channelId,
-          err
-        );
       }
+    } catch (err) {
+      console.error('Error checking channel', channel.channelId, err);
     }
   }
   if (!cleared) {
