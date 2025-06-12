@@ -53,7 +53,7 @@ async function checkLiveStreams() {
         const finalUrl = decodeURIComponent(
           res.url.replace('https://corsproxy.io/?', '')
         );
-        const match = finalUrl.match(/[?&]v=([^&]+)/);
+        const match = finalUrl.match(/(?:[?&]v=|\/live\/)([^&/]+)/);
         if (match) {
           if (!cleared) {
             results.innerHTML = '';
