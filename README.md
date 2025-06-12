@@ -75,13 +75,6 @@ CHANNEL_ID=UC... API_KEY=YOUR_KEY CALLBACK_URL=https://example.com/websub \
   node websub_server.js
 ```
 
-Or run it through npm with:
-
-```bash
-CHANNEL_ID=UC... API_KEY=YOUR_KEY CALLBACK_URL=https://example.com/websub \
-  npm run websub-server
-```
-
 The script listens on `PORT` (default `3000`) and automatically subscribes to
 the YouTube hub. Whenever a notification arrives it checks the video ID through
 the YouTube Data API and prints a line if the broadcast is live.
