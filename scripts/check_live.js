@@ -25,7 +25,11 @@ async function checkChannelLive(channel) {
   const res = await fetch(proxyUrl, { redirect: 'follow' });
   if (!res.ok) return null;
   const finalUrl = decodeURIComponent(res.url.replace('https://corsproxy.io/?', ''));
-  const match = finalUrl.match(/(?:[?&]v=|\/live\/)([^&/]+)/);
+  let match = finalUrl.match(/(?:[?&]v=|\/live\/)([^&/?]+)/);
+  if (!match) {
+    const html = await res.text();
+    match = html.match(/"(?:watch\?v=|videoId\":\")([\w-]{11})/);
+  }
   if (match) {
     return `https://www.youtube.com/watch?v=${match[1]}`;
   }
@@ -38,10 +42,13 @@ async function main() {
     try {
       const url = await checkChannelLive(channel);
       if (url) {
-        console.log(`${channel.name}: ${url}`);
+        console.log(`OK ${channel.name} en emissió: ${url}`);
+      } else {
+        console.log(`KO ${channel.name} sense emissió`);
       }
     } catch (err) {
       console.error('Error checking', channel.channelId, err.message);
+      console.log(`KO ${channel.name} sense emissió`);
     }
   }
 }

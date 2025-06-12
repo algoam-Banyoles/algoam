@@ -24,6 +24,10 @@ listed in `canals.json`. Each channel entry now includes a `handle` (e.g.
 to checking each channel's `/live` page—preferring the handle when available—
 through a CORS proxy.
 
+When a live stream is found it appears in a list under the button. Each result
+includes a **Copiar** button that places the live URL into the first empty video
+field of the form so you can easily load it.
+
 
 To use the Data API method you need your own key:
 
@@ -40,8 +44,15 @@ the results.
 This project requires **Node.js 18** or newer to run the command line scripts.
 
 You can also check live streams from the terminal. Run
-`npm run check-live` and the script will print the watch URLs of any channels
-currently broadcasting live. Set the `API_KEY` environment variable if you want
+`npm run check-live` and the script will print a status line for each channel,
+for example:
+
+```
+OK MyChannel en emissió: https://www.youtube.com/watch?v=abc123defgh
+KO OtherChannel sense emissió
+```
+
+Set the `API_KEY` environment variable if you want
 to use the YouTube Data API:
 
 ```bash
