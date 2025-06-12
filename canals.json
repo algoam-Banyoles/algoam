@@ -1,130 +1,162 @@
 [
   {
     "name": "Montpetitbillar",
-    "channelId": "UCoTdUYscGMAB5zrhmTbi3Ug"
-  },    
+    "channelId": "UCoTdUYscGMAB5zrhmTbi3Ug",
+    "handle": "@montpetitbillar"
+  },
   {
     "name": "PBA_1",
-    "channelId": "UCuXTHFVxa6tPC_jmqwpyOUA"
+    "channelId": "UCuXTHFVxa6tPC_jmqwpyOUA",
+    "handle": "@pba1"
   },
   {
     "name": "CLUB BILLAR MONFORTE 1",
-    "channelId": "UCFfLvkS2hTIXop-r-wTlXcQ"
+    "channelId": "UCFfLvkS2hTIXop-r-wTlXcQ",
+    "handle": "@clubbillarmonforte1"
   },
   {
     "name": "CLUB BILLAR MONFORTE 2",
-    "channelId": "UCTZhhkh0po7TgRmJ6qy7UUw"
+    "channelId": "UCTZhhkh0po7TgRmJ6qy7UUw",
+    "handle": "@clubbillarmonforte2"
   },
   {
     "name": "CLUB BILLAR MONFORTE 3",
-    "channelId": "UCw4lTndxGlhu74xVbw8bkzg"
+    "channelId": "UCw4lTndxGlhu74xVbw8bkzg",
+    "handle": "@clubbillarmonforte3"
   },
   {
     "name": "CLUB BILLAR MONFORTE 4",
-    "channelId": "UCSCI6PC7st_sIILtW3bdCvg"
+    "channelId": "UCSCI6PC7st_sIILtW3bdCvg",
+    "handle": "@clubbillarmonforte4"
   },
   {
     "name": "CLUB BILLAR SANTS 1",
-    "channelId": "UCt1s0StHWo6oyawmmxmZASw"
+    "channelId": "UCt1s0StHWo6oyawmmxmZASw",
+    "handle": "@clubbillarsants1"
   },
   {
     "name": "CLUB BILLAR SANTS 2",
-    "channelId": "UCwLYL5CIFXXOqaS7kJly3gQ"
+    "channelId": "UCwLYL5CIFXXOqaS7kJly3gQ",
+    "handle": "@clubbillarsants2"
   },
   {
     "name": "CLUB BILLAR SANTS 3",
-    "channelId": "UC5EMAWwvg_1gsVrqEWlpixw"
+    "channelId": "UC5EMAWwvg_1gsVrqEWlpixw",
+    "handle": "@clubbillarsants3"
   },
   {
     "name": "CLUB BILLAR SANTS 4",
-    "channelId": "UCOkHTGoB6MGivKS2DBcuTTQ"
+    "channelId": "UCOkHTGoB6MGivKS2DBcuTTQ",
+    "handle": "@clubbillarsants4"
   },
   {
     "name": "CLUB BILLAR SANTS 5",
-    "channelId": "UCEy8Kt3skfnGx3rv6TU1iHg"
+    "channelId": "UCEy8Kt3skfnGx3rv6TU1iHg",
+    "handle": "@clubbillarsants5"
   },
   {
     "name": "CLUB BILLAR SANTS 6",
-    "channelId": "UCIy2d7-zhSNrQiJISbzKfLw"
+    "channelId": "UCIy2d7-zhSNrQiJISbzKfLw",
+    "handle": "@clubbillarsants6"
   },
   {
     "name": "CLUB BILLAR TARRAGONA 1",
-    "channelId": "UCPqOow5DLA1eFcj2ji8nmyw"
+    "channelId": "UCPqOow5DLA1eFcj2ji8nmyw",
+    "handle": "@clubbillartarragona1"
   },
   {
     "name": "CLUB BILLAR TARRAGONA 2",
-    "channelId": "UCUe403LWY9NGRUAglIM2Lug"
+    "channelId": "UCUe403LWY9NGRUAglIM2Lug",
+    "handle": "@clubbillartarragona2"
   },
   {
     "name": "CLUB BILLAR TARRAGONA 3",
-    "channelId": "UCJk0IyN2gNficW43ZFFajxw"
+    "channelId": "UCJk0IyN2gNficW43ZFFajxw",
+    "handle": "@clubbillartarragona3"
   },
   {
     "name": "CLUB BILLAR BANYOLES 1",
-    "channelId": "UCIozKc9Toz66y2am4-nWxAA"
+    "channelId": "UCIozKc9Toz66y2am4-nWxAA",
+    "handle": "@clubbillarbanyoles1"
   },
   {
     "name": "CLUB BILLAR BANYOLES 2",
-    "channelId": "UCsbBBXU9y7vyZeZboSGuKvQ"
+    "channelId": "UCsbBBXU9y7vyZeZboSGuKvQ",
+    "handle": "@clubbillarbanyoles2"
   },
   {
     "name": "CLUB BILLAR BANYOLES 3",
-    "channelId": "UC3UaoySxRFDKQPVjOiCTGpg"
+    "channelId": "UC3UaoySxRFDKQPVjOiCTGpg",
+    "handle": "@clubbillarbanyoles3"
   },
   {
     "name": "CLUB BILLAR BANYOLES 4",
-    "channelId": "UCrJ-OEolzEnigssxldd4l1g"
+    "channelId": "UCrJ-OEolzEnigssxldd4l1g",
+    "handle": "@clubbillarbanyoles4"
   },
   {
     "name": "CLUB BILLAR MANRESA 1",
-    "channelId": "UCk9YLBgxJVhWrsjLcrn7qwA"
+    "channelId": "UCk9YLBgxJVhWrsjLcrn7qwA",
+    "handle": "@clubbillarmanresa1"
   },
   {
     "name": "CLUB BILLAR MANRESA 2",
-    "channelId": "UCx17qHHbTj0yXWKqBqN6B2A"
+    "channelId": "UCx17qHHbTj0yXWKqBqN6B2A",
+    "handle": "@clubbillarmanresa2"
   },
   {
     "name": "CLUB BILLAR MANRESA 3",
-    "channelId": "UCoy0jInzaCfMTirQJTWRtlA"
+    "channelId": "UCoy0jInzaCfMTirQJTWRtlA",
+    "handle": "@clubbillarmanresa3"
   },
   {
     "name": "CLUB BILLAR MANRESA 4",
-    "channelId": "UCV4n0mgnRWigOksGnxnHtPw"
+    "channelId": "UCV4n0mgnRWigOksGnxnHtPw",
+    "handle": "@clubbillarmanresa4"
   },
   {
     "name": "CLUB BILLAR LLEIDA 1",
-    "channelId": "UC33EaGjvEA92-jcWpL06_XQ"
+    "channelId": "UC33EaGjvEA92-jcWpL06_XQ",
+    "handle": "@clubbillarlleida1"
   },
   {
     "name": "CLUB BILLAR LLEIDA 2",
-    "channelId": "UC6glMfOX3W3GzVDGenn-cfQ"
+    "channelId": "UC6glMfOX3W3GzVDGenn-cfQ",
+    "handle": "@clubbillarlleida2"
   },
   {
     "name": "CLUB BILLAR LLEIDA 3",
-    "channelId": "UCNn1Tmh53ejJUXhfSDv3Hfg"
+    "channelId": "UCNn1Tmh53ejJUXhfSDv3Hfg",
+    "handle": "@clubbillarlleida3"
   },
   {
     "name": "CLUB BILLAR LLEIDA 4",
-    "channelId": "UCOWby67o_7DONPFu1h9VgVg"
+    "channelId": "UCOWby67o_7DONPFu1h9VgVg",
+    "handle": "@clubbillarlleida4"
   },
   {
-    "name": "CLUB BILLAR SANT ADRIÀ 1",
-    "channelId": "UC8TiwIIzS1vNHd1W0Z1lpuQ"
+    "name": "CLUB BILLAR SANT ADRI\u00c0 1",
+    "channelId": "UC8TiwIIzS1vNHd1W0Z1lpuQ",
+    "handle": "@clubbillarsantadri1"
   },
   {
-    "name": "CLUB BILLAR SANT ADRIÀ 2",
-    "channelId": "UC9xHdBNYXuj5CtbpXz28EiQ"
+    "name": "CLUB BILLAR SANT ADRI\u00c0 2",
+    "channelId": "UC9xHdBNYXuj5CtbpXz28EiQ",
+    "handle": "@clubbillarsantadri2"
   },
   {
-    "name": "CLUB BILLAR SANT ADRIÀ 3",
-    "channelId": "UCnxFpglOqmIXLKPv6tf_q-g"
+    "name": "CLUB BILLAR SANT ADRI\u00c0 3",
+    "channelId": "UCnxFpglOqmIXLKPv6tf_q-g",
+    "handle": "@clubbillarsantadri3"
   },
   {
-    "name": "CLUB BILLAR SANT ADRIÀ 4",
-    "channelId": "UC4QKXDKnDqnQ31_YG5yvdDg"
+    "name": "CLUB BILLAR SANT ADRI\u00c0 4",
+    "channelId": "UC4QKXDKnDqnQ31_YG5yvdDg",
+    "handle": "@clubbillarsantadri4"
   },
   {
     "name": "PBA",
-    "channelId": "UC4n_ME6BVRofHr4fVoBTdNg"
+    "channelId": "UC4n_ME6BVRofHr4fVoBTdNg",
+    "handle": "@pba"
   }
 ]
