@@ -7,6 +7,16 @@ async function getChannels() {
   return response.json();
 }
 
+function fillNextInput(url) {
+  for (let i = 1; i <= 4; i++) {
+    const input = document.querySelector(`[name="url${i}"]`);
+    if (input && !input.value.trim()) {
+      input.value = url;
+      break;
+    }
+  }
+}
+
 async function checkLiveStreams() {
   const results = document.getElementById('liveResults');
   results.textContent = 'Comprovant...';
@@ -35,7 +45,13 @@ async function checkLiveStreams() {
           a.href = `https://www.youtube.com/watch?v=${videoId}`;
           a.textContent = channel.name;
           a.target = '_blank';
+          const copyBtn = document.createElement('button');
+          copyBtn.textContent = 'Copiar';
+          copyBtn.addEventListener('click', () => {
+            fillNextInput(`https://www.youtube.com/watch?v=${videoId}`);
+          });
           li.appendChild(a);
+          li.appendChild(copyBtn);
           results.appendChild(li);
         }
       } catch (err) {
@@ -43,8 +59,10 @@ async function checkLiveStreams() {
       }
     } else {
       try {
-        const proxyUrl =
-          `https://corsproxy.io/?https://www.youtube.com/channel/${channel.channelId}/live`;
+        const livePath = channel.handle
+          ? `https://www.youtube.com/${channel.handle}/live`
+          : `https://www.youtube.com/channel/${channel.channelId}/live`;
+        const proxyUrl = `https://corsproxy.io/?${livePath}`;
         const res = await fetch(proxyUrl, { redirect: 'follow' });
         if (!res.ok) {
           console.error('Fallback fetch error', res.statusText);
@@ -65,7 +83,13 @@ async function checkLiveStreams() {
           a.href = `https://www.youtube.com/watch?v=${videoId}`;
           a.textContent = channel.name;
           a.target = '_blank';
+          const copyBtn = document.createElement('button');
+          copyBtn.textContent = 'Copiar';
+          copyBtn.addEventListener('click', () => {
+            fillNextInput(`https://www.youtube.com/watch?v=${videoId}`);
+          });
           li.appendChild(a);
+          li.appendChild(copyBtn);
           results.appendChild(li);
         }
       } catch (err) {
