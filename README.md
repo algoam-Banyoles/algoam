@@ -24,6 +24,10 @@ listed in `canals.json`. Each channel entry now includes a `handle` (e.g.
 to checking each channel's `/live` page—preferring the handle when available—
 through a CORS proxy.
 
+When a live stream is found it appears in a list under the button. Each result
+includes a **Copiar** button that places the live URL into the first empty video
+field of the form so you can easily load it.
+
 
 To use the Data API method you need your own key:
 
