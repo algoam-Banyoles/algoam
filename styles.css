@@ -3,6 +3,7 @@
   --primary-dark: #c2185b;
   --background-start: #f0f4f8;
   --background-end: #d9e2ec;
+  --video-height: 250px;
 }
 
 * {
@@ -79,7 +80,8 @@ input {
 }
 
 iframe {
-  width: 100%;
+  width: min(100%, calc(var(--video-height) * 16 / 9));
+  height: auto;
   aspect-ratio: 16 / 9;
   border: none;
   border-radius: 8px;
