@@ -94,6 +94,7 @@
       const container = document.getElementById("video-container");
       container.innerHTML = "";
       players = [];
+      let loadedCount = 0;
 
       for (let i = 1; i <= 4; i++) {
         const input = document.querySelector(`[name="url${i}"]`);
@@ -116,9 +117,12 @@
           wrapper.appendChild(div);
           container.appendChild(wrapper);
 
+          loadedCount++;
           createPlayer(div.id, videoId);
         }
       }
+
+      container.className = `count-${loadedCount}`;
 
       window.scrollTo({ top: 0, behavior: "smooth" });
       resetViewportZoom(); // 👈 evita el zoom després d'escriure en inputs a iPhone

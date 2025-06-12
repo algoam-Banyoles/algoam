@@ -41,6 +41,22 @@ input {
   padding: 0 10px;
 }
 
+#video-container.count-1 {
+  grid-template-columns: 1fr;
+}
+
+#video-container.count-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+#video-container.count-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+#video-container.count-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
 .video-wrapper {
   width: 100%;
   background: #fff;
