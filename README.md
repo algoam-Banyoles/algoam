@@ -16,7 +16,7 @@ Multi YouTube Viewer is a progressive web app for watching up to four YouTube vi
 
 ## Check live streams
 
-The **Check Live Streams** button looks for live broadcasts among the channels
+The **Check Live Streams** button (handled by `canal.js`) looks for live broadcasts among the channels
 
 listed in `canals.json`. Each channel entry now includes a `handle` (e.g.
 `@mychannel`) in addition to its `channelId`. If the `API_KEY` constant in
@@ -63,5 +63,27 @@ API_KEY=YOUR_KEY npm run check-live
 
 1. Install dependencies with `npm install`.
 2. Run `npm run fetch-channels` to scrape YouTube channels and update `canals.json` with their IDs and handles.
+
+## WebSub listener
+
+The `websub_server.js` script subscribes to a channel's WebSub feed and logs a
+message whenever a live stream starts. Set the environment variables
+`CHANNEL_ID`, `API_KEY` and `CALLBACK_URL` before running it:
+
+```bash
+CHANNEL_ID=UC... API_KEY=YOUR_KEY CALLBACK_URL=https://example.com/websub \
+  node websub_server.js
+```
+
+Or run it through npm with:
+
+```bash
+CHANNEL_ID=UC... API_KEY=YOUR_KEY CALLBACK_URL=https://example.com/websub \
+  npm run websub-server
+```
+
+The script listens on `PORT` (default `3000`) and automatically subscribes to
+the YouTube hub. Whenever a notification arrives it checks the video ID through
+the YouTube Data API and prints a line if the broadcast is live.
 
 
