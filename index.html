@@ -24,16 +24,15 @@
       <input type="url" placeholder="URL vídeo 1" name="url1" required /><br />
       <input type="url" placeholder="URL vídeo 2" name="url2" /><br />
       <input type="url" placeholder="URL vídeo 3" name="url3" /><br />
-      <input type="url" placeholder="URL vídeo 4" name="url4" /><br /><br />
-      <button type="submit">Carregar vídeos</button>
+      <input type="url" placeholder="URL vídeo 4" name="url4" /><br />
+      <div class="controls">
+        <button type="submit">Carregar vídeos</button>
+        <button type="button" id="playAll">▶️ Reproduir tots</button>
+        <button type="button" id="pauseAll">⏸️ Pausar tots</button>
+        <button type="button" id="checkLive">Check Live Streams</button>
+      </div>
     </form>
   </details>
-
-  <div class="controls">
-    <button id="playAll">▶️ Reproduir tots</button>
-    <button id="pauseAll">⏸️ Pausar tots</button>
-    <button id="checkLive">Check Live Streams</button>
-  </div>
 
   <ul id="liveResults"></ul>
 
