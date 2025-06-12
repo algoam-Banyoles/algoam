@@ -53,8 +53,13 @@ input {
   margin-top: 10px;
   display: flex;
   justify-content: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 10px;
+}
+
+.controls button {
+  padding: 6px 12px;
+  font-size: 0.8em;
 }
 
 iframe {
