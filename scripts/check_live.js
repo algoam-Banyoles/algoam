@@ -18,7 +18,10 @@ async function checkChannelLive(channel) {
     return null;
   }
 
-  const proxyUrl = `https://corsproxy.io/?https://www.youtube.com/channel/${channel.channelId}/live`;
+  const livePath = channel.handle
+    ? `https://www.youtube.com/${channel.handle}/live`
+    : `https://www.youtube.com/channel/${channel.channelId}/live`;
+  const proxyUrl = `https://corsproxy.io/?${livePath}`;
   const res = await fetch(proxyUrl, { redirect: 'follow' });
   if (!res.ok) return null;
   const finalUrl = decodeURIComponent(res.url.replace('https://corsproxy.io/?', ''));

@@ -16,16 +16,20 @@ async function main() {
     const href = $el.attr('href') || $el.attr('src') || '';
 
     const idMatch = href.match(/(UC[\w-]{22})/);
-    if (!idMatch) return;
-    const channelId = idMatch[1];
+    const handleMatch = href.match(/youtube\.com\/(@[\w-]+)/);
+    if (!idMatch && !handleMatch) return;
+    const channelId = idMatch ? idMatch[1] : null;
+    const handle = handleMatch ? handleMatch[1] : null;
 
     let name = ($el.text() || '').trim();
-    if (!name) name = $el.attr('title') || $el.attr('alt') || channelId;
+    if (!name) name = $el.attr('title') || $el.attr('alt') || channelId || handle;
 
-    channelMap.set(channelId, name);
+    const key = channelId || handle;
+    const current = channelMap.get(key) || {};
+    channelMap.set(key, { name, channelId: channelId || current.channelId, handle: handle || current.handle });
   });
 
-  const channels = Array.from(channelMap.entries()).map(([channelId, name]) => ({ name, channelId }));
+  const channels = Array.from(channelMap.values());
 
 
   if (channels.length === 0) {
