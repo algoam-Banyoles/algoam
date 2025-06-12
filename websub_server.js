@@ -10,14 +10,17 @@ if (!CHANNEL_ID) {
   console.error('Missing CHANNEL_ID environment variable');
   process.exit(1);
 }
+
 if (!API_KEY) {
   console.error('Missing API_KEY environment variable');
   process.exit(1);
 }
 
+
 async function subscribe() {
   const hubUrl = 'https://pubsubhubbub.appspot.com/subscribe';
   const topic = `https://www.youtube.com/xml/feeds/videos.xml?channel_id=${CHANNEL_ID}`;
+
   const params = new URLSearchParams({
     'hub.mode': 'subscribe',
     'hub.topic': topic,
@@ -30,9 +33,11 @@ async function subscribe() {
     body: params.toString()
   });
   if (res.ok) {
+
     console.log('Subscribed to WebSub hub');
   } else {
     console.error('Failed to subscribe', res.status, await res.text());
+
   }
 }
 
@@ -67,6 +72,7 @@ const server = http.createServer((req, res) => {
       let body = '';
       req.on('data', chunk => body += chunk);
       req.on('end', async () => {
+
         const match = body.match(/<yt:videoId>([^<]+)<\/yt:videoId>/);
         if (match) {
           const id = match[1];
@@ -76,6 +82,7 @@ const server = http.createServer((req, res) => {
               console.log('Live stream detected:', `https://www.youtube.com/watch?v=${id}`);
             } else {
               console.log('New video but not live:', id);
+
             }
           } catch (err) {
             console.error('Error verifying video', err);
@@ -96,5 +103,7 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log(`Listening on port ${PORT}`);
+
   subscribe().catch(err => console.error('Subscription failed', err));
+
 });
