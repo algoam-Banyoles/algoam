@@ -33,6 +33,8 @@ the results.
 
 ### Command line usage
 
+This project requires **Node.js 18** or newer to run the command line scripts.
+
 You can also check live streams from the terminal. Run
 `npm run check-live` and the script will print the watch URLs of any channels
 currently broadcasting live. Set the `API_KEY` environment variable if you want
