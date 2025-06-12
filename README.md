@@ -52,8 +52,8 @@ OK MyChannel en emissió: https://www.youtube.com/watch?v=abc123defgh
 KO OtherChannel sense emissió
 ```
 
-Set the `API_KEY` environment variable if you want
-to use the YouTube Data API:
+An API key is bundled in the project. You can override it by setting the
+`API_KEY` environment variable if desired:
 
 ```bash
 API_KEY=YOUR_KEY npm run check-live
@@ -78,6 +78,7 @@ CHANNEL_ID=UC... API_KEY=YOUR_KEY CALLBACK_URL=https://example.com/websub \
 The script listens on `PORT` (default `3000`) and automatically subscribes to
 the YouTube hub. Whenever a notification arrives it checks the video ID through
 the YouTube Data API and prints a line if the broadcast is live.
+
 
 
 

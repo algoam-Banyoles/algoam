@@ -1,5 +1,6 @@
-// Introduceix aquí la teva clau de l'API de YouTube Data. Si es deixa en blanc,
-// es farà servir un mètode alternatiu que comprova la pàgina /live del canal.
+// Clau de l'API de YouTube Data a utilitzar per defecte. Pots canviar-la o
+// deixar-la buida si prefereixes emprar el mètode alternatiu que comprova la
+// pàgina /live del canal.
 const API_KEY = 'AIzaSyBbSKKTu-PNoWZ_MPwNnTi5iaFZmsk3dQw';
 
 async function getChannels() {
