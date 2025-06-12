@@ -18,11 +18,13 @@ Multi YouTube Viewer is a progressive web app for watching up to four YouTube vi
 
 The **Check Live Streams** button (handled by `canal.js`) looks for live broadcasts among the channels
 
-listed in `canals.json`. Each channel entry now includes a `handle` (e.g.
-`@mychannel`) in addition to its `channelId`. If the `API_KEY` constant in
-`canal.js` is set the script uses the YouTube Data API. Otherwise it falls back
-to checking each channel's `/live` page—preferring the handle when available—
-through a CORS proxy.
+listed in `canals.json`. Each channel entry includes a `handle` (e.g.
+`@mychannel`) in addition to its `channelId`. The script first issues a light
+`HEAD` request to each channel's `/live` page using the handle when available.
+If the response redirects to `/watch?v=VIDEO_ID` the channel is considered live
+and, when an `API_KEY` is configured, a `videos.list` call retrieves the stream
+details. Channels that are not live do not trigger any API request, minimising
+quota usage.
 
 When a live stream is found it appears in a list under the button. Each result
 includes a **Copiar** button that places the live URL into the first empty video
@@ -43,9 +45,10 @@ the results.
 
 This project requires **Node.js 18** or newer to run the command line scripts.
 
-You can also check live streams from the terminal. Run
-`npm run check-live` and the script will print a status line for each channel,
-for example:
+You can also check live streams from the terminal. The command
+`npm run check-live` applies the same logic: it issues a `HEAD` request to each
+`/live` page and only consults the Data API when a redirect reveals an active
+stream. It prints a status line for each channel, for example:
 
 ```
 OK MyChannel en emissió: https://www.youtube.com/watch?v=abc123defgh

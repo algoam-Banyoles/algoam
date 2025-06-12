@@ -9,31 +9,30 @@ async function loadChannels() {
 }
 
 async function checkChannelLive(channel) {
-  if (API_KEY) {
-    const apiUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channel.channelId}&eventType=live&type=video&key=${API_KEY}`;
-    const res = await fetch(apiUrl);
-    const data = await res.json();
-    if (res.ok && data.items && data.items.length > 0) {
-      return `https://www.youtube.com/watch?v=${data.items[0].id.videoId}`;
-    }
-    return null;
-  }
-
   const livePath = channel.handle
     ? `https://www.youtube.com/${channel.handle}/live`
     : `https://www.youtube.com/channel/${channel.channelId}/live`;
-  const proxyUrl = `https://corsproxy.io/?${livePath}`;
-  const res = await fetch(proxyUrl, { redirect: 'follow' });
-  if (!res.ok) return null;
-  const finalUrl = decodeURIComponent(res.url.replace('https://corsproxy.io/?', ''));
-  let match = finalUrl.match(/(?:[?&]v=|\/live\/)([^&/?]+)/);
-  if (!match) {
-    const html = await res.text();
-    match = html.match(/"(?:watch\?v=|videoId\":\")([\w-]{11})/);
+
+  const res = await fetch(livePath, { method: 'HEAD', redirect: 'manual' });
+  if (res.status >= 300 && res.status < 400) {
+    const location = res.headers.get('location');
+    const match = location && location.match(/v=([\w-]{11})/);
+    if (match) {
+      const videoId = match[1];
+      let meta = null;
+      if (API_KEY) {
+        const apiUrl =
+          `https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails&id=${videoId}&key=${API_KEY}`;
+        const apiRes = await fetch(apiUrl);
+        const data = await apiRes.json();
+        if (apiRes.ok && data.items && data.items.length > 0) {
+          meta = data.items[0];
+        }
+      }
+      return { url: `https://www.youtube.com/watch?v=${videoId}`, meta };
+    }
   }
-  if (match) {
-    return `https://www.youtube.com/watch?v=${match[1]}`;
-  }
+
   return null;
 }
 
@@ -41,9 +40,14 @@ async function main() {
   const channels = await loadChannels();
   for (const channel of channels) {
     try {
-      const url = await checkChannelLive(channel);
-      if (url) {
-        console.log(`OK ${channel.name} en emissió: ${url}`);
+      const info = await checkChannelLive(channel);
+      if (info) {
+        let message = `OK ${channel.name} en emissió: ${info.url}`;
+        const viewers = info.meta?.liveStreamingDetails?.concurrentViewers;
+        if (viewers) {
+          message += ` (${viewers} espectadors)`;
+        }
+        console.log(message);
       } else {
         console.log(`KO ${channel.name} sense emissió`);
       }
