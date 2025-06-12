@@ -49,7 +49,7 @@ async function checkLiveStreams() {
         const finalUrl = decodeURIComponent(
           res.url.replace('https://corsproxy.io/?', '')
         );
-        const match = finalUrl.match(/[?&]v=([^&]+)/);
+        const match = finalUrl.match(/(?:[?&]v=|\/live\/)([^&/]+)/);
         if (match) {
           const videoId = match[1];
           const li = document.createElement('li');

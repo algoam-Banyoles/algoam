@@ -22,7 +22,7 @@ async function checkChannelLive(channel) {
   const res = await fetch(proxyUrl, { redirect: 'follow' });
   if (!res.ok) return null;
   const finalUrl = decodeURIComponent(res.url.replace('https://corsproxy.io/?', ''));
-  const match = finalUrl.match(/[?&]v=([^&]+)/);
+  const match = finalUrl.match(/(?:[?&]v=|\/live\/)([^&/]+)/);
   if (match) {
     return `https://www.youtube.com/watch?v=${match[1]}`;
   }
