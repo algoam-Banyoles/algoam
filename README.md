@@ -17,11 +17,12 @@ Multi YouTube Viewer is a progressive web app for watching up to four YouTube vi
 ## Check live streams
 
 The **Check Live Streams** button looks for live broadcasts among the channels
-listed in `canals.json`. Each channel entry now includes a `handle` (e.g.
-`@mychannel`) in addition to its `channelId`. If the `API_KEY` constant in
-`canal.js` is set the script uses the YouTube Data API. Otherwise it falls back
-to checking each channel's `/live` page—preferring the handle when available—
-through a CORS proxy.
+listed in `canals.json`. Each entry must specify its YouTube `@handle` in
+addition to the `channelId`; the fallback detection relies on visiting
+`youtube.com/@handle/live`. If the `API_KEY` constant in `canal.js` is set the
+script uses the YouTube Data API. Otherwise it falls back to checking each
+channel's `/live` page—preferring the handle when available—through a CORS
+proxy.
 
 To use the Data API method you need your own key:
 
@@ -47,5 +48,7 @@ API_KEY=YOUR_KEY npm run check-live
 ## Updating channel list
 
 1. Install dependencies with `npm install`.
-2. Run `npm run fetch-channels` to scrape YouTube channels and update `canals.json` with their IDs and handles.
+2. Run `npm run fetch-channels` to scrape YouTube channels and update
+   `canals.json` with their IDs and handles. The script fetches each channel's
+   page when necessary to ensure every entry includes a handle.
 
