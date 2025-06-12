@@ -123,3 +123,29 @@ h1 {
   margin-bottom: 10px;
   color: var(--primary);
 }
+
+/* Style the list of live streams */
+#liveResults {
+  list-style: none;
+  padding: 0;
+  margin: 10px auto;
+  max-width: 500px;
+}
+
+#liveResults li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+#liveResults li a {
+  flex-grow: 1;
+  text-align: left;
+}
+
+#liveResults li button {
+  margin: 0;
+  padding: 6px 12px;
+  font-size: 0.8em;
+}
