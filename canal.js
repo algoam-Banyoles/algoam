@@ -21,7 +21,7 @@ async function checkLiveStreams() {
   const results = document.getElementById('liveResults');
   results.textContent = 'Comprovant...';
   const channels = await getChannels();
-  results.innerHTML = '';
+  let cleared = false;
   for (const channel of channels) {
     if (API_KEY) {
       const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channel.channelId}&eventType=live&type=video&key=${API_KEY}`;
@@ -35,6 +35,10 @@ async function checkLiveStreams() {
         }
 
         if (data.items && data.items.length > 0) {
+          if (!cleared) {
+            results.innerHTML = '';
+            cleared = true;
+          }
           const videoId = data.items[0].id.videoId;
           const li = document.createElement('li');
           const a = document.createElement('a');
@@ -67,8 +71,12 @@ async function checkLiveStreams() {
         const finalUrl = decodeURIComponent(
           res.url.replace('https://corsproxy.io/?', '')
         );
-        const match = finalUrl.match(/[?&]v=([^&]+)/);
+        const match = finalUrl.match(/(?:[?&]v=|\/live\/)([^&/]+)/);
         if (match) {
+          if (!cleared) {
+            results.innerHTML = '';
+            cleared = true;
+          }
           const videoId = match[1];
           const li = document.createElement('li');
           const a = document.createElement('a');
@@ -93,7 +101,7 @@ async function checkLiveStreams() {
       }
     }
   }
-  if (!results.hasChildNodes()) {
+  if (!cleared) {
     results.textContent = 'No hi ha transmissions en directe ara mateix.';
   }
 }

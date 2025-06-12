@@ -26,34 +26,8 @@ async function main() {
 
     const key = channelId || handle;
     const current = channelMap.get(key) || {};
-    channelMap.set(key, {
-      name,
-      channelId: channelId || current.channelId,
-      handle: handle || current.handle,
-    });
+    channelMap.set(key, { name, channelId: channelId || current.channelId, handle: handle || current.handle });
   });
-
-  async function fetchHandle(channelId) {
-    const res = await fetch(`https://www.youtube.com/channel/${channelId}`);
-    if (!res.ok) {
-      throw new Error(`Failed to fetch channel page: ${res.status}`);
-    }
-    const page = await res.text();
-    const match = page.match(/"canonicalUrl":"https:\/\/www\.youtube\.com\/(@[^"]+)"/);
-    if (match) return match[1];
-    const match2 = page.match(/<link rel="canonical" href="https:\/\/www\.youtube\.com\/(@[^"]+)"/);
-    return match2 ? match2[1] : null;
-  }
-
-  for (const ch of channelMap.values()) {
-    if (!ch.handle && ch.channelId) {
-      try {
-        ch.handle = await fetchHandle(ch.channelId);
-      } catch (err) {
-        console.warn(`Could not resolve handle for ${ch.channelId}: ${err.message}`);
-      }
-    }
-  }
 
   const channels = Array.from(channelMap.values());
 
