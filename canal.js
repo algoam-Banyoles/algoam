@@ -37,8 +37,10 @@ async function checkLiveStreams() {
         const proxyUrl = `https://corsproxy.io/?${livePath}`;
 
         let res = await fetch(proxyUrl, { method: 'HEAD', redirect: 'manual' });
+        const headLocation = res.headers.get('Location') || res.headers.get('location');
+        console.log(`[HEAD] ${livePath} -> ${res.status}${headLocation ? ` ${headLocation}` : ''}`);
         if (res.status >= 300 && res.status < 400) {
-          const location = res.headers.get('Location') || res.headers.get('location');
+          const location = headLocation;
           const match = location && location.match(/v=([\w-]{11})/);
           if (match) {
             videoId = match[1];
