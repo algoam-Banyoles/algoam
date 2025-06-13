@@ -18,22 +18,26 @@ async function checkChannelLive(channel) {
   }
 
   let videoId = null;
-  let res = await fetch(livePath, { method: 'HEAD', redirect: 'manual' });
-  if (res.status >= 300 && res.status < 400) {
-    const location = res.headers.get('location');
-    const match = location && location.match(/v=([\w-]{11})/);
-    if (match) videoId = match[1];
-  }
-
-  if (!videoId) {
-    res = await fetch(livePath, { redirect: 'follow' });
-    const finalUrl = res.url;
-    let match = finalUrl.match(/[?&]v=([\w-]{11})/);
-    if (!match && res.ok) {
-      const html = await res.text();
-      match = html.match(/"(?:watch\?v=|videoId\":\")([\w-]{11})/);
+  for (const livePath of paths) {
+    let res = await fetch(livePath, { method: 'HEAD', redirect: 'manual' });
+    if (res.status >= 300 && res.status < 400) {
+      const location = res.headers.get('location');
+      const match = location && location.match(/v=([\w-]{11})/);
+      if (match) videoId = match[1];
     }
-    if (match) videoId = match[1];
+
+    if (!videoId) {
+      res = await fetch(livePath, { redirect: 'follow' });
+      const finalUrl = res.url;
+      let match = finalUrl.match(/[?&]v=([\w-]{11})/);
+      if (!match && res.ok) {
+        const html = await res.text();
+        match = html.match(/"(?:watch\?v=|videoId\":\")([\w-]{11})/);
+      }
+      if (match) videoId = match[1];
+    }
+
+    if (videoId) break;
   }
 
   if (videoId) {

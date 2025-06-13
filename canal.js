@@ -45,23 +45,18 @@ async function checkLiveStreams() {
           }
         }
 
-      let videoId = null;
-      let res = await fetch(proxyUrl, { method: 'HEAD', redirect: 'manual' });
-      if (res.status >= 300 && res.status < 400) {
-        const location = res.headers.get('Location') || res.headers.get('location');
-        const match = location && location.match(/v=([\w-]{11})/);
-        if (match) videoId = match[1];
-      }
-
-      if (!videoId) {
-        res = await fetch(proxyUrl, { redirect: 'follow' });
-        const finalUrl = decodeURIComponent(res.url.replace('https://corsproxy.io/?', ''));
-        let match = finalUrl.match(/[?&]v=([\w-]{11})/);
-        if (!match) {
-          const html = await res.text();
-          match = html.match(/"(?:watch\?v=|videoId\":\")([\w-]{11})/);
+        if (!videoId) {
+          res = await fetch(proxyUrl, { redirect: 'follow' });
+          const finalUrl = decodeURIComponent(res.url.replace('https://corsproxy.io/?', ''));
+          let match = finalUrl.match(/[?&]v=([\w-]{11})/);
+          if (!match) {
+            const html = await res.text();
+            match = html.match(/"(?:watch\?v=|videoId\":\")([\w-]{11})/);
+          }
+          if (match) videoId = match[1];
         }
-        if (match) videoId = match[1];
+
+        if (videoId) break;
       }
 
       if (videoId) {
