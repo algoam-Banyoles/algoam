@@ -4,7 +4,9 @@
 const API_KEY = 'AIzaSyAgQNSOrxd5EQYZTbLpY63mcafFOP519Jo';
 
 // Quant de temps (ms) es manté a la memòria cau el resultat d'un canal
+
 const CACHE_TTL = 5 * 60 * 1000; // 5 minuts
+
 const CACHE_KEY = 'liveCache';
 
 // Si és `true` cada vídeo detectat es validarà amb l'API; en cas contrari només
