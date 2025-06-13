@@ -3,6 +3,26 @@
 // pàgina /live del canal.
 const API_KEY = 'AIzaSyAgQNSOrxd5EQYZTbLpY63mcafFOP519Jo';
 
+// Quant de temps (ms) es manté a la memòria cau el resultat d'un canal
+const CACHE_TTL = 30 * 60 * 1000; // 30 minuts
+const CACHE_KEY = 'liveCache';
+
+// Si és `true` cada vídeo detectat es validarà amb l'API; en cas contrari només
+// s'emprarà la redirecció/HTML per deduir que és en directe.
+const VERIFY_WITH_API = true;
+
+function loadCache() {
+  try {
+    return JSON.parse(localStorage.getItem(CACHE_KEY)) || {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function saveCache(cache) {
+  localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+}
+
 async function getChannels() {
   const response = await fetch('canals.json');
   return response.json();
@@ -42,8 +62,35 @@ async function checkLiveStreams() {
   results.textContent = 'Comprovant...';
   const channels = await getChannels();
   let cleared = false;
+  const cache = loadCache();
+  const now = Date.now();
   for (const channel of channels) {
     try {
+      const key = channel.channelId || channel.handle;
+      const cached = cache[key];
+      if (cached && now - cached.ts < CACHE_TTL) {
+        if (cached.videoId) {
+          if (!cleared) {
+            results.innerHTML = '';
+            cleared = true;
+          }
+          const li = document.createElement('li');
+          const a = document.createElement('a');
+          a.href = `https://www.youtube.com/watch?v=${cached.videoId}`;
+          a.textContent = channel.name;
+          if (cached.title) a.title = cached.title;
+          a.target = '_blank';
+          const copyBtn = document.createElement('button');
+          copyBtn.textContent = 'Copiar';
+          copyBtn.addEventListener('click', () => {
+            fillNextInput(`https://www.youtube.com/watch?v=${cached.videoId}`);
+          });
+          li.appendChild(a);
+          li.appendChild(copyBtn);
+          results.appendChild(li);
+        }
+        continue;
+      }
       const paths = [];
       if (channel.handle) {
         paths.push(`https://www.youtube.com/${channel.handle}/live`);
@@ -87,7 +134,7 @@ async function checkLiveStreams() {
       if (videoId) {
         let videoTitle = '';
         let isLive = true;
-        if (API_KEY) {
+        if (VERIFY_WITH_API && API_KEY) {
           const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails&id=${videoId}&key=${API_KEY}`;
           const apiRes = await fetch(apiUrl);
           const data = await apiRes.json();
@@ -103,8 +150,10 @@ async function checkLiveStreams() {
           }
         }
         if (!isLive) {
+          cache[key] = { ts: now, videoId: null };
           continue;
         }
+        cache[key] = { ts: now, videoId, title: videoTitle };
         if (!cleared) {
           results.innerHTML = '';
           cleared = true;
@@ -123,6 +172,8 @@ async function checkLiveStreams() {
         li.appendChild(a);
         li.appendChild(copyBtn);
         results.appendChild(li);
+      } else {
+        cache[key] = { ts: now, videoId: null };
       }
     } catch (err) {
       console.error('Error checking channel', channel.channelId, err);
@@ -131,6 +182,7 @@ async function checkLiveStreams() {
   if (!cleared) {
     results.textContent = 'No hi ha transmissions en directe ara mateix.';
   }
+  saveCache(cache);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
