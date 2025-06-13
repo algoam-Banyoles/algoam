@@ -85,7 +85,7 @@ async function checkLiveStreams() {
       }
 
       if (videoId) {
-        let title = channel.name;
+        let videoTitle = '';
         let isLive = true;
         if (API_KEY) {
           const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails&id=${videoId}&key=${API_KEY}`;
@@ -93,7 +93,7 @@ async function checkLiveStreams() {
           const data = await apiRes.json();
           if (apiRes.ok && data.items && data.items.length > 0) {
             const item = data.items[0];
-            title = item.snippet.title;
+            videoTitle = item.snippet.title;
             isLive = item.snippet.liveBroadcastContent === 'live' ||
               (item.liveStreamingDetails &&
                item.liveStreamingDetails.actualStartTime &&
@@ -112,7 +112,8 @@ async function checkLiveStreams() {
         const li = document.createElement('li');
         const a = document.createElement('a');
         a.href = `https://www.youtube.com/watch?v=${videoId}`;
-        a.textContent = title;
+        a.textContent = channel.name;
+        if (videoTitle) a.title = videoTitle;
         a.target = '_blank';
         const copyBtn = document.createElement('button');
         copyBtn.textContent = 'Copiar';

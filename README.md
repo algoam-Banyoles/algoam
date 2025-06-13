@@ -33,7 +33,8 @@ listed in `canals.json`. Each channel entry includes a `handle` (e.g.
 
 When a live stream is found it appears in a list under the button. Each result
 includes a **Copiar** button that places the live URL into the first empty video
-field of the form so you can easily load it.
+field of the form so you can easily load it. The link text shows the channel
+name from `canals.json` so you know which channel is live at a glance.
 
 
 To use the Data API method you need your own key:
