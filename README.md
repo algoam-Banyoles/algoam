@@ -30,7 +30,7 @@ listed in `canals.json`. Each channel entry includes a `handle` (e.g.
   now falls back to the YouTube Data API search endpoint to look for ongoing
   streams on that channel.
 
-The results of each check are cached for thirty minutes in `localStorage` so the
+The results of each check are cached for five minutes in `localStorage` so the
 same channel isn't queried repeatedly. You can adjust this duration by editing
 the `CACHE_TTL` constant in `canal.js`. Verification with the Data API can be
 disabled by setting `VERIFY_WITH_API` to `false`.
