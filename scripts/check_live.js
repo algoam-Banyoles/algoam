@@ -1,7 +1,7 @@
 const fs = require('fs/promises');
 
 // Default API key if not provided via environment
-const API_KEY = process.env.API_KEY || 'AIzaSyBbSKKTu-PNoWZ_MPwNnTi5iaFZmsk3dQw';
+const API_KEY = process.env.API_KEY || 'AIzaSyAgQNSOrxd5EQYZTbLpY63mcafFOP519Jo';
 
 async function loadChannels() {
   const data = await fs.readFile('canals.json', 'utf8');
