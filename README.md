@@ -27,6 +27,7 @@ extracted from the final URL or HTML. When an `API_KEY` is configured a
 `videos.list` call retrieves the stream details. Channels that are not live do
 not trigger any API request, minimising quota usage.
 
+
 When a live stream is found it appears in a list under the button. Each result
 includes a **Copiar** button that places the live URL into the first empty video
 field of the form so you can easily load it.

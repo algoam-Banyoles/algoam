@@ -25,10 +25,25 @@ async function checkLiveStreams() {
   let cleared = false;
   for (const channel of channels) {
     try {
-      const livePath = channel.handle
-        ? `https://www.youtube.com/${channel.handle}/live`
-        : `https://www.youtube.com/channel/${channel.channelId}/live`;
-      const proxyUrl = `https://corsproxy.io/?${livePath}`;
+      const paths = [];
+      if (channel.handle) {
+        paths.push(`https://www.youtube.com/${channel.handle}/live`);
+      }
+      if (channel.channelId) {
+        paths.push(`https://www.youtube.com/channel/${channel.channelId}/live`);
+      }
+      let videoId = null;
+      for (const livePath of paths) {
+        const proxyUrl = `https://corsproxy.io/?${livePath}`;
+
+        let res = await fetch(proxyUrl, { method: 'HEAD', redirect: 'manual' });
+        if (res.status >= 300 && res.status < 400) {
+          const location = res.headers.get('Location') || res.headers.get('location');
+          const match = location && location.match(/v=([\w-]{11})/);
+          if (match) {
+            videoId = match[1];
+          }
+        }
 
       let videoId = null;
       let res = await fetch(proxyUrl, { method: 'HEAD', redirect: 'manual' });

@@ -9,9 +9,13 @@ async function loadChannels() {
 }
 
 async function checkChannelLive(channel) {
-  const livePath = channel.handle
-    ? `https://www.youtube.com/${channel.handle}/live`
-    : `https://www.youtube.com/channel/${channel.channelId}/live`;
+  const paths = [];
+  if (channel.handle) {
+    paths.push(`https://www.youtube.com/${channel.handle}/live`);
+  }
+  if (channel.channelId) {
+    paths.push(`https://www.youtube.com/channel/${channel.channelId}/live`);
+  }
 
   let videoId = null;
   let res = await fetch(livePath, { method: 'HEAD', redirect: 'manual' });
