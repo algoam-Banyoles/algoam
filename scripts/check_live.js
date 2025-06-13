@@ -20,8 +20,10 @@ async function checkChannelLive(channel) {
   let videoId = null;
   for (const livePath of paths) {
     let res = await fetch(livePath, { method: 'HEAD', redirect: 'manual' });
+    const headLocation = res.headers.get('location');
+    console.log(`[HEAD] ${livePath} -> ${res.status}${headLocation ? ` ${headLocation}` : ''}`);
     if (res.status >= 300 && res.status < 400) {
-      const location = res.headers.get('location');
+      const location = headLocation;
       const match = location && location.match(/v=([\w-]{11})/);
       if (match) videoId = match[1];
     }
