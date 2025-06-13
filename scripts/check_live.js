@@ -1,7 +1,7 @@
 const fs = require('fs/promises');
 
 // Default API key if not provided via environment
-const API_KEY = process.env.API_KEY || 'AIzaSyBbSKKTu-PNoWZ_MPwNnTi5iaFZmsk3dQw';
+const API_KEY = process.env.API_KEY || 'AIzaSyAgQNSOrxd5EQYZTbLpY63mcafFOP519Jo';
 
 async function loadChannels() {
   const data = await fs.readFile('canals.json', 'utf8');
@@ -18,26 +18,22 @@ async function checkChannelLive(channel) {
   }
 
   let videoId = null;
-  for (const livePath of paths) {
-    let res = await fetch(livePath, { method: 'HEAD', redirect: 'manual' });
-    if (res.status >= 300 && res.status < 400) {
-      const location = res.headers.get('location');
-      const match = location && location.match(/v=([\w-]{11})/);
-      if (match) videoId = match[1];
-    }
+  let res = await fetch(livePath, { method: 'HEAD', redirect: 'manual' });
+  if (res.status >= 300 && res.status < 400) {
+    const location = res.headers.get('location');
+    const match = location && location.match(/v=([\w-]{11})/);
+    if (match) videoId = match[1];
+  }
 
-    if (!videoId) {
-      res = await fetch(livePath, { redirect: 'follow' });
-      const finalUrl = res.url;
-      let match = finalUrl.match(/[?&]v=([\w-]{11})/);
-      if (!match && res.ok) {
-        const html = await res.text();
-        match = html.match(/"(?:watch\?v=|videoId\":\")([\w-]{11})/);
-      }
-      if (match) videoId = match[1];
+  if (!videoId) {
+    res = await fetch(livePath, { redirect: 'follow' });
+    const finalUrl = res.url;
+    let match = finalUrl.match(/[?&]v=([\w-]{11})/);
+    if (!match && res.ok) {
+      const html = await res.text();
+      match = html.match(/"(?:watch\?v=|videoId\":\")([\w-]{11})/);
     }
-
-    if (videoId) break;
+    if (match) videoId = match[1];
   }
 
   if (videoId) {

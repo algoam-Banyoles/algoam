@@ -23,11 +23,10 @@ listed in `canals.json`. Each channel entry includes a `handle` (e.g.
 `HEAD` request to each channel's `/live` page using the handle when available.
 If a redirect to `/watch?v=VIDEO_ID` is found the channel is considered live.
 When no redirect is returned the page is fetched with `GET` and the video ID is
-extracted from the final URL or HTML. If the handle path fails entirely and a
-`channelId` is known, the script retries the check using the channel ID. When an
-`API_KEY` is configured a `videos.list` call retrieves the stream details.
-Channels that are not live do not trigger any API request, minimising quota
-usage.
+extracted from the final URL or HTML. When an `API_KEY` is configured a
+`videos.list` call retrieves the stream details. Channels that are not live do
+not trigger any API request, minimising quota usage.
+
 
 When a live stream is found it appears in a list under the button. Each result
 includes a **Copiar** button that places the live URL into the first empty video
@@ -49,11 +48,10 @@ the results.
 This project requires **Node.js 18** or newer to run the command line scripts.
 
 You can also check live streams from the terminal. The command
-`npm run check-live` applies the same logic: it sends a `HEAD` request to each
-`/live` page and falls back to a regular fetch when there is no redirect.
-If that check fails and a `channelId` exists, the tool retries with the channel
-ID. It only consults the Data API once a live stream is detected. The script
-prints a status line for each channel, for example:
+`npm run check-live` applies the same logic: it first sends a `HEAD` request to
+each `/live` page and, if no redirect is present, falls back to a regular fetch
+to extract the video ID. It only consults the Data API once a live stream is
+detected. The script prints a status line for each channel, for example:
 
 ```
 OK MyChannel en emissió: https://www.youtube.com/watch?v=abc123defgh

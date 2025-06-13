@@ -1,7 +1,7 @@
 // Clau de l'API de YouTube Data a utilitzar per defecte. Pots canviar-la o
 // deixar-la buida si prefereixes emprar el mètode alternatiu que comprova la
 // pàgina /live del canal.
-const API_KEY = 'AIzaSyBbSKKTu-PNoWZ_MPwNnTi5iaFZmsk3dQw';
+const API_KEY = 'AIzaSyAgQNSOrxd5EQYZTbLpY63mcafFOP519Jo';
 
 async function getChannels() {
   const response = await fetch('canals.json');
@@ -45,18 +45,23 @@ async function checkLiveStreams() {
           }
         }
 
-        if (!videoId) {
-          res = await fetch(proxyUrl, { redirect: 'follow' });
-          const finalUrl = decodeURIComponent(res.url.replace('https://corsproxy.io/?', ''));
-          let match = finalUrl.match(/[?&]v=([\w-]{11})/);
-          if (!match) {
-            const html = await res.text();
-            match = html.match(/"(?:watch\?v=|videoId\":\")([\w-]{11})/);
-          }
-          if (match) videoId = match[1];
-        }
+      let videoId = null;
+      let res = await fetch(proxyUrl, { method: 'HEAD', redirect: 'manual' });
+      if (res.status >= 300 && res.status < 400) {
+        const location = res.headers.get('Location') || res.headers.get('location');
+        const match = location && location.match(/v=([\w-]{11})/);
+        if (match) videoId = match[1];
+      }
 
-        if (videoId) break;
+      if (!videoId) {
+        res = await fetch(proxyUrl, { redirect: 'follow' });
+        const finalUrl = decodeURIComponent(res.url.replace('https://corsproxy.io/?', ''));
+        let match = finalUrl.match(/[?&]v=([\w-]{11})/);
+        if (!match) {
+          const html = await res.text();
+          match = html.match(/"(?:watch\?v=|videoId\":\")([\w-]{11})/);
+        }
+        if (match) videoId = match[1];
       }
 
       if (videoId) {
