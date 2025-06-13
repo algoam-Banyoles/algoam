@@ -13,24 +13,37 @@ async function checkChannelLive(channel) {
     ? `https://www.youtube.com/${channel.handle}/live`
     : `https://www.youtube.com/channel/${channel.channelId}/live`;
 
-  const res = await fetch(livePath, { method: 'HEAD', redirect: 'manual' });
+  let videoId = null;
+  let res = await fetch(livePath, { method: 'HEAD', redirect: 'manual' });
   if (res.status >= 300 && res.status < 400) {
     const location = res.headers.get('location');
     const match = location && location.match(/v=([\w-]{11})/);
-    if (match) {
-      const videoId = match[1];
-      let meta = null;
-      if (API_KEY) {
-        const apiUrl =
-          `https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails&id=${videoId}&key=${API_KEY}`;
-        const apiRes = await fetch(apiUrl);
-        const data = await apiRes.json();
-        if (apiRes.ok && data.items && data.items.length > 0) {
-          meta = data.items[0];
-        }
-      }
-      return { url: `https://www.youtube.com/watch?v=${videoId}`, meta };
+    if (match) videoId = match[1];
+  }
+
+  if (!videoId) {
+    res = await fetch(livePath, { redirect: 'follow' });
+    const finalUrl = res.url;
+    let match = finalUrl.match(/[?&]v=([\w-]{11})/);
+    if (!match && res.ok) {
+      const html = await res.text();
+      match = html.match(/"(?:watch\?v=|videoId\":\")([\w-]{11})/);
     }
+    if (match) videoId = match[1];
+  }
+
+  if (videoId) {
+    let meta = null;
+    if (API_KEY) {
+      const apiUrl =
+        `https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails&id=${videoId}&key=${API_KEY}`;
+      const apiRes = await fetch(apiUrl);
+      const data = await apiRes.json();
+      if (apiRes.ok && data.items && data.items.length > 0) {
+        meta = data.items[0];
+      }
+    }
+    return { url: `https://www.youtube.com/watch?v=${videoId}`, meta };
   }
 
   return null;
