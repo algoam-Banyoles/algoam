@@ -63,15 +63,24 @@ async function checkLiveStreams() {
 
       if (videoId) {
         let title = channel.name;
+        let isLive = true;
         if (API_KEY) {
           const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails&id=${videoId}&key=${API_KEY}`;
           const apiRes = await fetch(apiUrl);
           const data = await apiRes.json();
           if (apiRes.ok && data.items && data.items.length > 0) {
-            title = data.items[0].snippet.title;
+            const item = data.items[0];
+            title = item.snippet.title;
+            isLive = item.snippet.liveBroadcastContent === 'live' ||
+              (item.liveStreamingDetails &&
+               item.liveStreamingDetails.actualStartTime &&
+               !item.liveStreamingDetails.actualEndTime);
           } else if (data.error) {
             console.error('API error', data.error);
           }
+        }
+        if (!isLive) {
+          continue;
         }
         if (!cleared) {
           results.innerHTML = '';

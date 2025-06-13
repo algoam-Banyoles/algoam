@@ -51,6 +51,13 @@ async function checkChannelLive(channel) {
       const data = await apiRes.json();
       if (apiRes.ok && data.items && data.items.length > 0) {
         meta = data.items[0];
+        const live = meta.snippet.liveBroadcastContent === 'live' ||
+          (meta.liveStreamingDetails &&
+           meta.liveStreamingDetails.actualStartTime &&
+           !meta.liveStreamingDetails.actualEndTime);
+        if (!live) {
+          return null;
+        }
       }
     }
     return { url: `https://www.youtube.com/watch?v=${videoId}`, meta };
