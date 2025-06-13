@@ -18,6 +18,25 @@ function fillNextInput(url) {
   }
 }
 
+async function getLiveVideoIdFromApi(channelId) {
+  if (!API_KEY || !channelId) return null;
+  try {
+    const url =
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&eventType=live&type=video&key=${API_KEY}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (res.ok && data.items && data.items.length > 0) {
+      const item = data.items.find(
+        it => it.snippet.liveBroadcastContent === 'live' && it.id?.videoId
+      );
+      return item?.id.videoId || null;
+    }
+  } catch (err) {
+    console.error('API search error', err);
+  }
+  return null;
+}
+
 async function checkLiveStreams() {
   const results = document.getElementById('liveResults');
   results.textContent = 'Comprovant...';
@@ -61,8 +80,12 @@ async function checkLiveStreams() {
         if (videoId) break;
       }
 
+      if (!videoId && channel.channelId) {
+        videoId = await getLiveVideoIdFromApi(channel.channelId);
+      }
+
       if (videoId) {
-        let title = channel.name;
+        let videoTitle = '';
         let isLive = true;
         if (API_KEY) {
           const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails&id=${videoId}&key=${API_KEY}`;
@@ -70,7 +93,7 @@ async function checkLiveStreams() {
           const data = await apiRes.json();
           if (apiRes.ok && data.items && data.items.length > 0) {
             const item = data.items[0];
-            title = item.snippet.title;
+            videoTitle = item.snippet.title;
             isLive = item.snippet.liveBroadcastContent === 'live' ||
               (item.liveStreamingDetails &&
                item.liveStreamingDetails.actualStartTime &&
@@ -89,7 +112,8 @@ async function checkLiveStreams() {
         const li = document.createElement('li');
         const a = document.createElement('a');
         a.href = `https://www.youtube.com/watch?v=${videoId}`;
-        a.textContent = title;
+        a.textContent = channel.name;
+        if (videoTitle) a.title = videoTitle;
         a.target = '_blank';
         const copyBtn = document.createElement('button');
         copyBtn.textContent = 'Copiar';

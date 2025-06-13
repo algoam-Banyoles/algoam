@@ -21,17 +21,20 @@ The **Check Live Streams** button (handled by `canal.js`) looks for live broadca
 listed in `canals.json`. Each channel entry includes a `handle` (e.g.
 `@mychannel`) in addition to its `channelId`. The script first issues a light
 `HEAD` request to each channel's `/live` page using the handle when available.
-If a redirect to `/watch?v=VIDEO_ID` is found the channel is considered live.
-When no redirect is returned the page is fetched with `GET` and the video ID is
-extracted from the final URL or HTML. If an `API_KEY` is configured the
-candidate video is verified through the Data API before being listed so that
-only actual live broadcasts appear in the results. This keeps quota usage low
-while avoiding false positives.
+  If a redirect to `/watch?v=VIDEO_ID` is found the channel is considered live.
+  When no redirect is returned the page is fetched with `GET` and the video ID is
+  extracted from the final URL or HTML. If an `API_KEY` is configured the
+  candidate video is verified through the Data API before being listed so that
+  only actual live broadcasts appear in the results. This keeps quota usage low
+  while avoiding false positives. If the `/live` page yields no video the script
+  now falls back to the YouTube Data API search endpoint to look for ongoing
+  streams on that channel.
 
 
 When a live stream is found it appears in a list under the button. Each result
 includes a **Copiar** button that places the live URL into the first empty video
-field of the form so you can easily load it.
+field of the form so you can easily load it. The link text shows the channel
+name from `canals.json` so you know which channel is live at a glance.
 
 
 To use the Data API method you need your own key:
