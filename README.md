@@ -23,9 +23,10 @@ listed in `canals.json`. Each channel entry includes a `handle` (e.g.
 `HEAD` request to each channel's `/live` page using the handle when available.
 If a redirect to `/watch?v=VIDEO_ID` is found the channel is considered live.
 When no redirect is returned the page is fetched with `GET` and the video ID is
-extracted from the final URL or HTML. When an `API_KEY` is configured a
-`videos.list` call retrieves the stream details. Channels that are not live do
-not trigger any API request, minimising quota usage.
+extracted from the final URL or HTML. If an `API_KEY` is configured the
+candidate video is verified through the Data API before being listed so that
+only actual live broadcasts appear in the results. This keeps quota usage low
+while avoiding false positives.
 
 
 When a live stream is found it appears in a list under the button. Each result
@@ -50,8 +51,9 @@ This project requires **Node.js 18** or newer to run the command line scripts.
 You can also check live streams from the terminal. The command
 `npm run check-live` applies the same logic: it first sends a `HEAD` request to
 each `/live` page and, if no redirect is present, falls back to a regular fetch
-to extract the video ID. It only consults the Data API once a live stream is
-detected. The script prints a status line for each channel, for example:
+to extract the video ID. When an API key is available the script confirms
+through the Data API that the video is currently live before reporting it. The
+script prints a status line for each channel, for example:
 
 ```
 OK MyChannel en emissió: https://www.youtube.com/watch?v=abc123defgh
