@@ -30,6 +30,11 @@ listed in `canals.json`. Each channel entry includes a `handle` (e.g.
   now falls back to the YouTube Data API search endpoint to look for ongoing
   streams on that channel.
 
+The results of each check are cached for five minutes in `localStorage` so the
+same channel isn't queried repeatedly. You can adjust this duration by editing
+the `CACHE_TTL` constant in `canal.js`. Verification with the Data API can be
+disabled by setting `VERIFY_WITH_API` to `false`.
+
 
 When a live stream is found it appears in a list under the button. Each result
 includes a **Copiar** button that places the live URL into the first empty video
@@ -89,6 +94,7 @@ CHANNEL_ID=UC... API_KEY=YOUR_KEY CALLBACK_URL=https://example.com/websub \
 The script listens on `PORT` (default `3000`) and automatically subscribes to
 the YouTube hub. Whenever a notification arrives it checks the video ID through
 the YouTube Data API and prints a line if the broadcast is live.
+Using this listener helps avoid polling the API yourself.
 
 
 
