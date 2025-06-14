@@ -1,10 +1,20 @@
-const fs = require('fs/promises');
+const fs = require('fs');
+const fsp = require('fs/promises');
+
+// Simple logger that writes to both stdout and a file
+const logFile = process.env.LOG_FILE || 'check_live.log';
+const logStream = fs.createWriteStream(logFile, { flags: 'a' });
+function log(msg) {
+  const line = `[${new Date().toISOString()}] ${msg}`;
+  console.log(line);
+  logStream.write(line + '\n');
+}
 
 // Default API key if not provided via environment
 const API_KEY = process.env.API_KEY || 'AIzaSyAgQNSOrxd5EQYZTbLpY63mcafFOP519Jo';
 
 async function loadChannels() {
-  const data = await fs.readFile('canals.json', 'utf8');
+  const data = await fsp.readFile('canals.json', 'utf8');
   return JSON.parse(data);
 }
 
@@ -21,7 +31,7 @@ async function checkChannelLive(channel) {
   for (const livePath of paths) {
     let res = await fetch(livePath, { method: 'HEAD', redirect: 'manual' });
     const headLocation = res.headers.get('location');
-    console.log(`[HEAD] ${livePath} -> ${res.status}${headLocation ? ` ${headLocation}` : ''}`);
+    log(`[HEAD] ${livePath} -> ${res.status}${headLocation ? ` ${headLocation}` : ''}`);
     if (res.status >= 300 && res.status < 400) {
       const location = headLocation;
       const match = location && location.match(/v=([\w-]{11})/);
@@ -31,6 +41,7 @@ async function checkChannelLive(channel) {
     if (!videoId) {
       res = await fetch(livePath, { redirect: 'follow' });
       const finalUrl = res.url;
+      log(`[GET] ${livePath} -> ${res.status} ${finalUrl}`);
       let match = finalUrl.match(/[?&]v=([\w-]{11})/);
       if (!match && res.ok) {
         const html = await res.text();
@@ -47,6 +58,7 @@ async function checkChannelLive(channel) {
     if (API_KEY) {
       const apiUrl =
         `https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails&id=${videoId}&key=${API_KEY}`;
+      log(`[API] ${apiUrl}`);
       const apiRes = await fetch(apiUrl);
       const data = await apiRes.json();
       if (apiRes.ok && data.items && data.items.length > 0) {
@@ -77,18 +89,18 @@ async function main() {
         if (viewers) {
           message += ` (${viewers} espectadors)`;
         }
-        console.log(message);
+        log(message);
       } else {
-        console.log(`KO ${channel.name} sense emissió`);
+        log(`KO ${channel.name} sense emissió`);
       }
     } catch (err) {
-      console.error('Error checking', channel.channelId, err.message);
-      console.log(`KO ${channel.name} sense emissió`);
+      log(`Error checking ${channel.channelId} ${err.message}`);
+      log(`KO ${channel.name} sense emissió`);
     }
   }
 }
 
 main().catch(err => {
-  console.error(err);
+  log(`Fatal error: ${err.message}`);
   process.exit(1);
 });
