@@ -10,8 +10,8 @@ function log(msg) {
   logStream.write(line + '\n');
 }
 
-// Default API key if not provided via environment
-const API_KEY = process.env.API_KEY || 'AIzaSyAgQNSOrxd5EQYZTbLpY63mcafFOP519Jo';
+// API key for the YouTube Data API. Provide it via the `API_KEY` environment variable.
+const API_KEY = process.env.API_KEY || '';
 
 async function loadChannels() {
   const data = await fsp.readFile('canals.json', 'utf8');
