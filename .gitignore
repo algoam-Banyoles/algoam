@@ -101,3 +101,7 @@ logs
 
 # Mac system files
 .DS_Store
+
+# Local configuration
+config.js
+

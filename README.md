@@ -45,8 +45,7 @@ name from `canals.json` so you know which channel is live at a glance.
 To use the Data API method you need your own key:
 
 1. Create a project in the Google Cloud Console and enable the *YouTube Data API v3*.
-2. Generate an API key and copy it into `canal.js` by editing the `API_KEY`
-   constant.
+2. Copy `config.sample.js` to `config.js` and set your API key inside the file.
 3. Reload the page and press **Check Live Streams**.
 
 Only public live streams will be returned; unlisted broadcasts won't appear in
@@ -68,8 +67,8 @@ OK MyChannel en emissió: https://www.youtube.com/watch?v=abc123defgh
 KO OtherChannel sense emissió
 ```
 
-An API key is bundled in the project. You can override it by setting the
-`API_KEY` environment variable if desired:
+Provide your API key via a `config.js` file or the `API_KEY` environment
+variable:
 
 ```bash
 API_KEY=YOUR_KEY npm run check-live

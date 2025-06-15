@@ -1,7 +1,6 @@
-// Clau de l'API de YouTube Data a utilitzar per defecte. Pots canviar-la o
-// deixar-la buida si prefereixes emprar el mètode alternatiu que comprova la
-// pàgina /live del canal.
-const API_KEY = 'AIzaSyAgQNSOrxd5EQYZTbLpY63mcafFOP519Jo';
+// Clau de l'API de YouTube Data.
+// Assigna-la a `window.APP_CONFIG.API_KEY` al fitxer `config.js`.
+const API_KEY = window.APP_CONFIG?.API_KEY || '';
 
 // Quant de temps (ms) es manté a la memòria cau el resultat d'un canal
 
