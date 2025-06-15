@@ -1,153 +1,174 @@
 [
   {
     "name": "CLUB BILLAR SANT FELIU 1",
+    "channelId": "UCUeHOxd6FPWXexnTEKCMwqg",
     "handle": "@cbsantfeliu1"
   },
   {
     "name": "CLUB BILLAR SANT FELIU 2",
+    "channelId": "UC45pdJsAb7blCXB6KLsH_eA",
     "handle": "@cbsantfeliu2"
   },
   {
     "name": "CLUB BILLAR SANT FELIU 3",
+    "channelId": "UCVFfhZAoMAAVFwv3Q-57dqA",
     "handle": "@cbsantfeliu3"
   },
   {
     "name": "CLUB BILLAR LLICÀ D'AMUNT 1",
+    "channelId": "UCEz8UUJkAEhJTs-E0jKk1PA",
     "handle": "@llicabillar1"
   },
   {
     "name": "CLUB BILLAR LLICÀ D'AMUNT 2",
+    "channelId": "UCF9dHN1dj7QVElP6i3U4igA",
     "handle": "@llicabillar2"
   },
   {
     "name": "BILLAR CLUB GRANOLLERS 1",
+    "channelId": "UCSs9k7YoYv7Nt1mB6KZBRTQ",
     "handle": "@granollersbillar1"
   },
   {
     "name": "BILLAR CLUB GRANOLLERS 2",
+    "channelId": "UC0fpij86fq4N6dyfpHINerQ",
     "handle": "@granollersbillar2"
   },
   {
     "name": "BILLAR CLUB GRANOLLERS 3",
+    "channelId": "UCr82cEllWDAWVwC0PQH_NHQ",
     "handle": "@granollersbillar3"
   },
   {
     "name": "BILLAR CLUB GRANOLLERS 4",
+    "channelId": "UCvaTe4PNTiW4HMjIIc3W3QA",
     "handle": "@granollersbillar4"
   },
   {
     "name": "CORAL COLON BILLAR 1",
+    "channelId": "UCc-HRok4bklL4QB8E5CYo4g",
     "handle": "@CoralColonBillar1"
   },
   {
     "name": "CORAL COLON BILLAR 2",
+    "channelId": "UC4G8_6vqJp4lwd7pfCwa0aw",
     "handle": "@CoralColonBillar2"
   },
   {
     "name": "CORAL COLON BILLAR 3",
+    "channelId": "UCFpmxFzVEIHUjNkCWwKWzjQ",
     "handle": "@CoralColonBillar3"
   },
   {
     "name": "CORAL COLON BILLAR 4",
+    "channelId": "UCAIWqLIbQrP-nms1jY7708Q",
     "handle": "@CoralColonBillar4"
   },
   {
     "name": "CLUB BILLAR MONT-ROIG 1",
+    "channelId": "UCltOWKtvhMwAZQgxvifjVtA",
     "handle": "@billar1mont-roig610"
   },
   {
     "name": "CLUB BILLAR MONT-ROIG 2",
+    "channelId": "UC9mlE5Ly4-D7mZ-3r7yjE6A",
     "handle": "@billar2mont-roig289"
   },
   {
     "name": "CLUB BILLAR MONT-ROIG 3",
+    "channelId": "UCg95snZ97_qAj1hYmLcg1Fw",
     "handle": "@billar3mont-roig36"
   },
   {
-    "name": "CLUB BILLAR LLINARS 4",
+    "name": "CLUB BILLAR LLINARS",
+    "channelId": "UCccfwKIQC1pcvG9ijxVKSIA",
     "handle": "@ClubBillarllinars"
   },
   {
     "name": "CLUB BILLAR CERVERA 1",
+    "channelId": "UCbtzHgezYeqLq01yfr0t8Ng",
     "handle": "@cerverabillar1"
   },
   {
     "name": "CLUB BILLAR CERVERA 2",
+    "channelId": "UCKg4lz9gL18sxJIX8SvpYowg",
     "handle": "@cerverabillar2"
   },
   {
     "name": "CLUB BILLAR CERVERA 3",
+    "channelId": "UCBcPgiXkb6Am3kcX80cJW6A",
+    
     "handle": "@cerverabillar3"
   },
   {
     "name": "CLUB BILLAR CERVERA 4",
+    "channelId": "UCA6XEJ2sAQxRt7vDvZssbKw",
     "handle": "@cerverabillar4"
   },
   {
     "name": "CLUB BILLAR MONFORTE 1",
     "channelId": "UCFfLvkS2hTIXop-r-wTlXcQ",
-    "handle": "@clubbillarmonforte1"
+    "handle": "@monfortebillar1348"
   },
   {
     "name": "CLUB BILLAR MONFORTE 2",
     "channelId": "UCTZhhkh0po7TgRmJ6qy7UUw",
-    "handle": "@clubbillarmonforte2"
+    "handle": "@monfortebillar253"
   },
   {
     "name": "CLUB BILLAR MONFORTE 3",
     "channelId": "UCw4lTndxGlhu74xVbw8bkzg",
-    "handle": "@clubbillarmonforte3"
+    "handle": "@monfortebillar3564"
   },
   {
     "name": "CLUB BILLAR MONFORTE 4",
     "channelId": "UCSCI6PC7st_sIILtW3bdCvg",
-    "handle": "@clubbillarmonforte4"
+    "handle": "@monfortebillar4505"
   },
   {
     "name": "CLUB BILLAR SANTS 1",
     "channelId": "UCt1s0StHWo6oyawmmxmZASw",
-    "handle": "@clubbillarsants1"
+    "handle": "@clubbillarsants-billar1791"
   },
   {
     "name": "CLUB BILLAR SANTS 2",
     "channelId": "UCwLYL5CIFXXOqaS7kJly3gQ",
-    "handle": "@clubbillarsants2"
+    "handle": "@clubbillarsants-billar2992"
   },
   {
     "name": "CLUB BILLAR SANTS 3",
     "channelId": "UC5EMAWwvg_1gsVrqEWlpixw",
-    "handle": "@clubbillarsants3"
+    "handle": "@clubbillarsants-billar3384"
   },
   {
     "name": "CLUB BILLAR SANTS 4",
     "channelId": "UCOkHTGoB6MGivKS2DBcuTTQ",
-    "handle": "@clubbillarsants4"
+    "handle": "@clubbillarsants-billar4804"
   },
   {
     "name": "CLUB BILLAR SANTS 5",
     "channelId": "UCEy8Kt3skfnGx3rv6TU1iHg",
-    "handle": "@clubbillarsants5"
+    "handle": "@clubbillarsants-billar5504"
   },
   {
     "name": "CLUB BILLAR SANTS 6",
     "channelId": "UCIy2d7-zhSNrQiJISbzKfLw",
-    "handle": "@clubbillarsants6"
+    "handle": "@clubbillarsants-billar6606"
   },
   {
     "name": "CLUB BILLAR SANTS 7",
+    "channelId": "UCGsmBDca83CEaNJRUApZa8A",
     "handle": "@clubbillarsants-billar7"
   },
   {
     "name": "CLUB BILLAR SANTS 8",
+    "channelId": "UCWEKJsLYJkIe68XhIYCvK_Q",
     "handle": "@clubbillarsants-billar8"
   },  
   {
     "name": "CLUB BILLAR TARRAGONA 1",
+    "channelId": "UCPqOow5DLA1eFcj2ji8nmyw",
     "handle": "billar1tarragona611"
-  },
-  {
-    "name": "CLUB BILLAR TARRAGONA 1",
-    "handle": "@clubbillartarragona1"
   },
   {
     "name": "CLUB BILLAR TARRAGONA 2",
@@ -162,93 +183,162 @@
   {
     "name": "CLUB BILLAR BANYOLES 1",
     "channelId": "UCIozKc9Toz66y2am4-nWxAA",
-    "handle": "@clubbillarbanyoles1"
+    "handle": "@banyolesbillar1907"
   },
   {
     "name": "CLUB BILLAR BANYOLES 2",
     "channelId": "UCsbBBXU9y7vyZeZboSGuKvQ",
-    "handle": "@clubbillarbanyoles2"
+    "handle": "@banyolesbillar2701"
   },
   {
     "name": "CLUB BILLAR BANYOLES 3",
     "channelId": "UC3UaoySxRFDKQPVjOiCTGpg",
-    "handle": "@clubbillarbanyoles3"
+    "handle": "@banyolesbillar310"
   },
   {
     "name": "CLUB BILLAR BANYOLES 4",
     "channelId": "UCrJ-OEolzEnigssxldd4l1g",
-    "handle": "@clubbillarbanyoles4"
+    "handle": "@banyolesbillar4995"
   },
   {
     "name": "CLUB BILLAR MANRESA 1",
     "channelId": "UCk9YLBgxJVhWrsjLcrn7qwA",
-    "handle": "@clubbillarmanresa1"
+    "handle": "@billar1manresa625"
   },
   {
     "name": "CLUB BILLAR MANRESA 2",
     "channelId": "UCx17qHHbTj0yXWKqBqN6B2A",
-    "handle": "@clubbillarmanresa2"
+    "handle": "@billar2manresa510"
   },
   {
     "name": "CLUB BILLAR MANRESA 3",
     "channelId": "UCoy0jInzaCfMTirQJTWRtlA",
-    "handle": "@clubbillarmanresa3"
+    "handle": "@billar3manresa548"
   },
   {
     "name": "CLUB BILLAR MANRESA 4",
     "channelId": "UCV4n0mgnRWigOksGnxnHtPw",
-    "handle": "@clubbillarmanresa4"
+    "handle": "@billar4manresa105"
+  },
+  {
+    "name": "CLUB BILLAR CANET DE MAR",
+    "channelId": "UCXUlvTmJB9fpnquujYKy-sA",
+    "handle": "@clubbillarcanet"
   },
   {
     "name": "CLUB BILLAR LLEIDA 1",
     "channelId": "UC33EaGjvEA92-jcWpL06_XQ",
-    "handle": "@clubbillarlleida1"
+    "handle": "@billar1lleida145"
   },
   {
     "name": "CLUB BILLAR LLEIDA 2",
     "channelId": "UC6glMfOX3W3GzVDGenn-cfQ",
-    "handle": "@clubbillarlleida2"
+    "handle": "@billar2lleida528"
   },
   {
     "name": "CLUB BILLAR LLEIDA 3",
     "channelId": "UCNn1Tmh53ejJUXhfSDv3Hfg",
-    "handle": "@clubbillarlleida3"
+    "handle": "@billar3lleida666"
   },
   {
     "name": "CLUB BILLAR LLEIDA 4",
     "channelId": "UCOWby67o_7DONPFu1h9VgVg",
-    "handle": "@clubbillarlleida4"
+    "handle": "@billar4lleida815"
+  },
+  {
+    "name": "CLUB BILLAR VIC 1",
+    "channelId": "UCIVnmnCjM9EcUBLXORiK1OA",
+    "handle": "@billar1vic742"
+  },
+  {
+    "name": "CLUB BILLAR VIC 2",
+    "channelId": "UCoRBuDdUGSDDCEuaFUrrD6A",
+    "handle": "@billar2vic698"
+  },
+  {
+    "name": "CLUB BILLAR VIC 3",
+    "channelId": "UCNGJm0GwZppezlB_9ChL30g",
+    "handle": "@billar3vic724"
+  },
+  {
+    "name": "CLUB BILLAR VIC 4",
+    "channelId": "UCXkumoL_rVqHCW5aDBikzXQ",
+    "handle": "@billar4vic124"
+  },
+  {
+    "name": "CLUB BILLAR MOLINS 1",
+    "channelId": "UCiECbtkV0cph2Gu0Qs0iBiA",
+    "handle": "@billar1molins879"
+  },
+  {
+    "name": "CLUB BILLAR MOLINS 2",
+    "channelId": "UC0IWnK4Ee7sNYaszXJFncbg",
+    "handle": "@billar2molins518"
+  },
+  {
+    "name": "CLUB BILLAR MOLINS 3",
+    "channelId": "UCee6aIK_OmI0LKOvRAwAjTQ",
+    "handle": "@billar3molins593"
+  },
+  {
+    "name": "CLUB BILLAR MOLINS 4",
+    "channelId": "UCrQ1rEv4I6XRhdTYRsrEDsg",
+    "handle": "@billar4molins635"
   },
   {
     "name": "CLUB BILLAR SANT ADRIA 1",
     "channelId": "UC8TiwIIzS1vNHd1W0Z1lpuQ",
-    "handle": "@clubbillarsantadri1"
+    "handle": "@clubbillarsantadria-billar1368"
   },
   {
     "name": "CLUB BILLAR SANT ADRIA 2",
     "channelId": "UC9xHdBNYXuj5CtbpXz28EiQ",
-    "handle": "@clubbillarsantadri2"
+    "handle": "@clubbillarsantadria-billar8825"
   },
   {
     "name": "CLUB BILLAR SANT ADRIA 3",
     "channelId": "UCnxFpglOqmIXLKPv6tf_q-g",
-    "handle": "@clubbillarsantadri3"
+    "handle": "@clubbillarsantadria-billar8038"
   },
   {
     "name": "CLUB BILLAR SANT ADRIA 4",
     "channelId": "UC4QKXDKnDqnQ31_YG5yvdDg",
-    "handle": "@clubbillarsantadri4"
+    "handle": "@clubbillarsantadria-billar9114"
   },
   {
+    "name": "CLUB BILLAR MATARO 1",
+    "channelId": "UCI5SCiRL7n8DuvfUAUlT5Rw",
+    "handle": "@taula1-clubbillarmataroclu407"
+  },  
+  {
+    "name": "CLUB BILLAR MATARO 2",
+    "channelId": "UCW9ZsaFLC5gKcNhYT-BL0Xg",
+    "handle": "@taula2clubbillarmataro326"
+  },  
+  {
+    "name": "CLUB BILLAR MATARO 3",
+    "channelId": "UCWc-MWk2-g8J6F5Aq1YdSaQ",
+    "handle": "@taula3clubbillarmataro355"
+  },  
+  {
+    "name": "CLUB BILLAR MATARO 4",
+    "channelId": "UCWIPUDNGkeQfvUs3-po63Lg",
+    "handle": "@taula4clubbillarmataro186"
+  },  
+  
+  {
     "name": "CLUB BILLAR CERDANYOLA 1",
+    "channelId": "UCsML2_kDClBKP0VMUUMd12Q",
     "handle": "@ClubBillarCerdanyolaBill-wr6so"
   },
   {
     "name": "CLUB BILLAR CERDANYOLA 2",
+    "channelId": "UC5Y3XT1-QJteLAtwazUe1BQ",
     "handle": "@ClubBillarCerdanyolaBill-oq6ri"
   },
   {
     "name": "CLUB BILLAR CERDANYOLA 3",
+    "channelId": "UCN0aqSd1jWoJ0DBSnefw6Gw",
     "handle": "@ClubBillarCerdanyolaBillar"
   },
   {
