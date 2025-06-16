@@ -10,6 +10,7 @@ const ASSETS = [
   './icon-512.png',
   './styles.css',
   './canal.js',
+  './config.js',
   './canals.json'
 ];
 

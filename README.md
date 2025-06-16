@@ -45,7 +45,7 @@ name from `canals.json` so you know which channel is live at a glance.
 To use the Data API method you need your own key:
 
 1. Create a project in the Google Cloud Console and enable the *YouTube Data API v3*.
-2. Copy `config.sample.js` to `config.js` and set your API key inside the file.
+2. Edit `config.js` (included with a placeholder key) and set your API key inside the file.
 3. Reload the page and press **Check Live Streams**.
 
 Only public live streams will be returned; unlisted broadcasts won't appear in
