@@ -1,6 +1,7 @@
 // Clau de l'API de YouTube Data.
 // Assigna-la a `window.APP_CONFIG.API_KEY` al fitxer `config.js`.
 const API_KEY = window.APP_CONFIG?.API_KEY || '';
+const CORS_PROXY = window.APP_CONFIG?.CORS_PROXY || 'https://corsproxy.io/?';
 
 // Quant de temps (ms) es manté a la memòria cau el resultat d'un canal
 
@@ -101,7 +102,7 @@ async function checkLiveStreams() {
       }
       let videoId = null;
       for (const livePath of paths) {
-        const proxyUrl = `https://corsproxy.io/?${livePath}`;
+        const proxyUrl = `${CORS_PROXY}${livePath}`;
 
         let res = await fetch(proxyUrl, { method: 'HEAD', redirect: 'manual' });
         const headLocation = res.headers.get('Location') || res.headers.get('location');
@@ -116,7 +117,7 @@ async function checkLiveStreams() {
 
         if (!videoId) {
           res = await fetch(proxyUrl, { redirect: 'follow' });
-          const finalUrl = decodeURIComponent(res.url.replace('https://corsproxy.io/?', ''));
+          const finalUrl = decodeURIComponent(res.url.replace(CORS_PROXY, ''));
           let match = finalUrl.match(/[?&]v=([\w-]{11})/);
           if (!match) {
             const html = await res.text();
