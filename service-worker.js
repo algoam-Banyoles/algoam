@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'algoam-cache-v2';
+const CACHE_NAME = 'algoam-cache-v1';
 // Files required for the app shell. Use relative paths so the service worker
 // also works when the site is served from a subdirectory (e.g. GitHub Pages).
 const ASSETS = [
@@ -10,7 +10,6 @@ const ASSETS = [
   './icon-512.png',
   './styles.css',
   './canal.js',
-  './config.js',
   './canals.json'
 ];
 
