@@ -1,20 +1,31 @@
 
-const CACHE_NAME = 'algoam-cache-v1';
+const CACHE_NAME = 'algoam-cache-v2';
+// Files required for the app shell. Use relative paths so the service worker
+// also works when the site is served from a subdirectory (e.g. GitHub Pages).
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png',
-  '/styles.css',
-  '/canal.js',
-  '/canals.json'
+  './',
+  './index.html',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png',
+  './styles.css',
+  './canal.js',
+  './config.js',
+  './canals.json'
 ];
 
 self.addEventListener('install', event => {
   console.log('Service Worker: Instal·lat');
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then(cache =>
+      Promise.all(
+        ASSETS.map(asset =>
+          cache.add(asset).catch(err => {
+            console.warn('No s\'ha pogut emmagatzemar', asset, err);
+          })
+        )
+      )
+    )
   );
   self.skipWaiting(); // 🔁 activa la nova versió immediatament
 });
