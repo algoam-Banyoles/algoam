@@ -45,6 +45,8 @@ input {
 
 #video-container.count-1 {
   grid-template-columns: 1fr;
+  justify-items: center;
+  --video-height: 300px;
 }
 
 #video-container.count-2 {
@@ -61,7 +63,10 @@ input {
 
 /* Increase player height on larger screens when few videos are loaded */
 @media (min-width: 768px) {
-  #video-container.count-1,
+  #video-container.count-1 {
+    --video-height: calc(100vh - 150px);
+  }
+
   #video-container.count-2 {
     --video-height: calc(100vh - 200px);
   }
@@ -73,6 +78,8 @@ input {
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   padding: 10px;
+  display: flex;
+  justify-content: center;
 }
 
 .controls {
