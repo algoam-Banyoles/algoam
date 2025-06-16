@@ -99,3 +99,7 @@ Using this listener helps avoid polling the API yourself.
 
 
 
+
+## Troubleshooting
+
+If you see repeated `403 (Forbidden)` errors in the browser console when pressing **Check Live Streams**, the default proxy `https://corsproxy.io/` may be blocking requests to YouTube. Edit `config.js` and set the `CORS_PROXY` value to a proxy you control or one that allows requests to YouTube.
