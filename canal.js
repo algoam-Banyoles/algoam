@@ -66,6 +66,7 @@ async function checkLiveStreams() {
   let cleared = false;
   const cache = loadCache();
   const now = Date.now();
+  let fetchError = false;
   for (const channel of channels) {
     try {
       const key = channel.channelId || channel.handle;
@@ -105,6 +106,7 @@ async function checkLiveStreams() {
         const proxyUrl = `${CORS_PROXY}${livePath}`;
 
         let res = await fetch(proxyUrl, { method: 'HEAD', redirect: 'manual' });
+        if (res.status === 403) fetchError = true;
         const headLocation = res.headers.get('Location') || res.headers.get('location');
         console.log(`[HEAD] ${livePath} -> ${res.status}${headLocation ? ` ${headLocation}` : ''}`);
         if (res.status >= 300 && res.status < 400) {
@@ -117,6 +119,7 @@ async function checkLiveStreams() {
 
         if (!videoId) {
           res = await fetch(proxyUrl, { redirect: 'follow' });
+          if (res.status === 403) fetchError = true;
           const finalUrl = decodeURIComponent(res.url.replace(CORS_PROXY, ''));
           let match = finalUrl.match(/[?&]v=([\w-]{11})/);
           if (!match) {
@@ -182,7 +185,11 @@ async function checkLiveStreams() {
     }
   }
   if (!cleared) {
-    results.textContent = 'No hi ha transmissions en directe ara mateix.';
+    if (fetchError) {
+      results.textContent = 'Error 403 en fer les consultes. Revisa la configuració de CORS_PROXY a config.js.';
+    } else {
+      results.textContent = 'No hi ha transmissions en directe ara mateix.';
+    }
   }
   saveCache(cache);
 }
