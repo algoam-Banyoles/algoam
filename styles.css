@@ -42,6 +42,7 @@ input {
   padding: 0 10px;
 }
 
+
 #video-container.count-1 {
   grid-template-columns: 1fr;
 }
@@ -56,6 +57,14 @@ input {
 
 #video-container.count-4 {
   grid-template-columns: repeat(4, 1fr);
+}
+
+/* Increase player height on larger screens when few videos are loaded */
+@media (min-width: 768px) {
+  #video-container.count-1,
+  #video-container.count-2 {
+    --video-height: calc(100vh - 200px);
+  }
 }
 
 .video-wrapper {
@@ -80,8 +89,8 @@ input {
 }
 
 iframe {
-  width: min(100%, calc(var(--video-height) * 16 / 9));
-  height: auto;
+  width: min(100%, calc(var(--video-height) * 16 / 9)) !important;
+  height: auto !important;
   aspect-ratio: 16 / 9;
   border: none;
   border-radius: 8px;
