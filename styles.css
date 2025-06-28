@@ -43,8 +43,17 @@ input {
 }
 
 @media (max-width: 767px) {
+  body {
+    padding: 5px;
+  }
+
   #video-container {
     grid-template-columns: 1fr !important;
+    padding: 0;
+  }
+
+  .video-wrapper {
+    padding: 0;
   }
 
   iframe {
