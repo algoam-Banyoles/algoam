@@ -42,6 +42,16 @@ input {
   padding: 0 10px;
 }
 
+@media (max-width: 767px) {
+  #video-container {
+    grid-template-columns: 1fr !important;
+  }
+
+  iframe {
+    width: 100% !important;
+  }
+}
+
 
 #video-container.count-1 {
   grid-template-columns: 1fr;
