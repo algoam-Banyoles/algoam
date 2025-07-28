@@ -13,6 +13,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Roboto&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -21,33 +23,52 @@
   <details id="urlToggle" open>
     <summary>Enllaços dels vídeos</summary>
     <form id="videoForm">
-      <input type="url" placeholder="URL vídeo 1" name="url1" required /><br />
-      <input type="url" placeholder="URL vídeo 2" name="url2" /><br />
-      <input type="url" placeholder="URL vídeo 3" name="url3" /><br />
-      <input type="url" placeholder="URL vídeo 4" name="url4" /><br />
+      <div class="input-field">
+        <input id="url1" type="url" name="url1" required />
+        <label for="url1">URL vídeo 1</label>
+      </div>
+      <div class="input-field">
+        <input id="url2" type="url" name="url2" />
+        <label for="url2">URL vídeo 2</label>
+      </div>
+      <div class="input-field">
+        <input id="url3" type="url" name="url3" />
+        <label for="url3">URL vídeo 3</label>
+      </div>
+      <div class="input-field">
+        <input id="url4" type="url" name="url4" />
+        <label for="url4">URL vídeo 4</label>
+      </div>
       <div class="controls">
-        <button type="submit">Carregar vídeos</button>
-        <button type="button" id="playAll">▶️ Reproduir tots</button>
-        <button type="button" id="pauseAll">⏸️ Pausar tots</button>
-        <button type="button" id="checkLive">Check Live Streams</button>
+        <button class="waves-effect waves-light btn" type="submit">Carregar vídeos</button>
+        <button class="waves-effect waves-light btn" type="button" id="playAll">▶️ Reproduir tots</button>
+        <button class="waves-effect waves-light btn" type="button" id="pauseAll">⏸️ Pausar tots</button>
       </div>
     </form>
   </details>
 
-  <ul id="liveResults"></ul>
+  <ul id="liveResults" class="collection"></ul>
 <h2>Jugadors</h2>
-<ul id="playerList"></ul>
+<ul id="playerList" class="collection"></ul>
 
 <div id="chartModal" class="modal">
   <div class="modal-content">
-    <button id="closeChart">Tanca</button>
     <canvas id="playerChart"></canvas>
+  </div>
+  <div class="modal-footer">
+    <a id="closeChart" href="#!" class="modal-close waves-effect waves-green btn-flat">Tanca</a>
   </div>
 </div>
 
 
 
   <div id="video-container"></div>
+
+  <div class="fixed-action-btn">
+    <a id="checkLive" class="btn-floating btn-large red">
+      <i class="large material-icons">live_tv</i>
+    </a>
+  </div>
 
   <script>
     let players = [];
@@ -120,7 +141,7 @@
         const videoId = extractVideoID(convertedUrl);
         if (videoId) {
           const wrapper = document.createElement("div");
-          wrapper.className = "video-wrapper";
+          wrapper.className = "video-wrapper card z-depth-2";
 
           const div = document.createElement("div");
           div.id = "player" + i;
@@ -177,5 +198,11 @@
   <script src="canal.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="players.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      M.AutoInit();
+    });
+  </script>
 </body>
 </html>
