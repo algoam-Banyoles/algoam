@@ -80,10 +80,6 @@ API_KEY=YOUR_KEY npm run check-live
 1. Install dependencies with `npm install`.
 2. Run `npm run fetch-channels` to scrape YouTube channels and update `canals.json` with their IDs and handles.
 
-## Player ranking
-
-The players listed in the application are automatically ordered by their mean score in descending order so that the highest averages appear first.
-
 ## WebSub listener
 
 The `websub_server.js` script subscribes to a channel's WebSub feed and logs a
