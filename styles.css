@@ -1,8 +1,8 @@
 :root {
   --primary: #6200ee;
   --primary-dark: #3700b3;
-  --background-start: #f8f9fa;
-  --background-end: #e9ecef;
+  --background-start: #000000;
+  --background-end: #111111;
   --video-height: 250px;
 }
 
@@ -13,7 +13,7 @@
 body {
   font-family: 'Inter', 'Roboto', sans-serif;
   background: linear-gradient(to bottom right, var(--background-start), var(--background-end));
-  color: #333;
+  color: #eee;
   text-align: center;
   padding: 20px;
   margin: 0;
@@ -30,9 +30,11 @@ input {
   width: 100%;
   max-width: 400px;
   font-size: 16px;
-  border: 1px solid #ccc;
+  border: 1px solid #555;
   border-radius: 6px;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+  background-color: #222;
+  color: #eee;
 }
 
 input:focus {
@@ -228,4 +230,18 @@ h1 {
 .modal-content canvas {
   width: 100%;
   height: 200px;
+}
+
+/* Dark theme overrides */
+.card,
+.modal,
+.modal-content,
+.collection,
+.collection-item {
+  background-color: #222;
+  color: #eee;
+}
+
+.collection-item:not(:last-child) {
+  border-bottom: 1px solid #444;
 }
