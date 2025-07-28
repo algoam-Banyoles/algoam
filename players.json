@@ -1,0 +1,14 @@
+[
+  {
+    "name": "Jugador 1",
+    "history": [1, 3, 2, 4, 5]
+  },
+  {
+    "name": "Jugador 2",
+    "history": [2, 2, 3, 3, 4]
+  },
+  {
+    "name": "Jugador 3",
+    "history": [5, 4, 4, 3, 2]
+  }
+]
