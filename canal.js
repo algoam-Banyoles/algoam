@@ -78,6 +78,7 @@ async function checkLiveStreams() {
             cleared = true;
           }
           const li = document.createElement('li');
+          li.className = 'collection-item';
           const a = document.createElement('a');
           a.href = `https://www.youtube.com/watch?v=${cached.videoId}`;
           a.textContent = channel.name;
@@ -85,8 +86,10 @@ async function checkLiveStreams() {
           a.target = '_blank';
           const copyBtn = document.createElement('button');
           copyBtn.textContent = 'Copiar';
+          copyBtn.className = 'waves-effect waves-light btn';
           copyBtn.addEventListener('click', () => {
             fillNextInput(`https://www.youtube.com/watch?v=${cached.videoId}`);
+            M.toast({html: 'Copiat!'});
           });
           li.appendChild(a);
           li.appendChild(copyBtn);
@@ -164,6 +167,7 @@ async function checkLiveStreams() {
           cleared = true;
         }
         const li = document.createElement('li');
+        li.className = 'collection-item';
         const a = document.createElement('a');
         a.href = `https://www.youtube.com/watch?v=${videoId}`;
         a.textContent = channel.name;
@@ -171,8 +175,10 @@ async function checkLiveStreams() {
         a.target = '_blank';
         const copyBtn = document.createElement('button');
         copyBtn.textContent = 'Copiar';
+        copyBtn.className = 'waves-effect waves-light btn';
         copyBtn.addEventListener('click', () => {
           fillNextInput(`https://www.youtube.com/watch?v=${videoId}`);
+          M.toast({html: 'Copiat!'});
         });
         li.appendChild(a);
         li.appendChild(copyBtn);
