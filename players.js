@@ -1,15 +1,21 @@
 async function loadPlayers() {
   const res = await fetch('players.json');
-  return res.json();
+  const players = await res.json();
+  players.forEach(p => {
+    p.mean = p.history.reduce((sum, val) => sum + val, 0) / p.history.length;
+  });
+  players.sort((a, b) => b.mean - a.mean);
+  return players;
 }
 
 function createPlayerList(players) {
   const container = document.getElementById('playerList');
+  container.innerHTML = '';
   players.forEach(player => {
     const li = document.createElement('li');
     const a = document.createElement('a');
     a.href = '#';
-    a.textContent = player.name;
+    a.textContent = `${player.name} - ${player.mean.toFixed(2)}`;
     a.addEventListener('click', e => {
       e.preventDefault();
       showPlayerEvolution(player);
