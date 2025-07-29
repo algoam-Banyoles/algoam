@@ -205,4 +205,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btn) {
     btn.addEventListener('click', checkLiveStreams);
   }
+  const fab = document.getElementById('checkLiveFab');
+  if (fab) {
+    fab.addEventListener('click', checkLiveStreams);
+  }
 });
