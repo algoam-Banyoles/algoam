@@ -133,6 +133,15 @@
           const div = document.createElement("div");
           div.id = "player" + i;
           wrapper.appendChild(div);
+
+          const downloadBtn = document.createElement("a");
+          downloadBtn.href = convertedUrl;
+          downloadBtn.textContent = "⬇️ Descarregar";
+          downloadBtn.className = "waves-effect waves-light btn";
+          downloadBtn.target = "_blank";
+          downloadBtn.setAttribute("download", "");
+          wrapper.appendChild(downloadBtn);
+
           container.appendChild(wrapper);
 
           loadedCount++;

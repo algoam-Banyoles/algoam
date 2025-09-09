@@ -103,7 +103,12 @@ input:focus {
   width: 100%;
   padding: 10px;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+}
+
+.video-wrapper .btn {
+  margin-top: 8px;
 }
 
 .controls {
