@@ -108,6 +108,24 @@
       }
     }
 
+    async function downloadVideo(url, filename) {
+      try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = filename || "video.mp4";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(blobUrl);
+      } catch (err) {
+        console.error("Error baixant el vídeo:", err);
+        alert("No s'ha pogut descarregar el vídeo.");
+      }
+    }
+
     function processForm() {
       const container = document.getElementById("video-container");
       container.innerHTML = "";
@@ -133,6 +151,15 @@
           const div = document.createElement("div");
           div.id = "player" + i;
           wrapper.appendChild(div);
+
+          const downloadBtn = document.createElement("button");
+          downloadBtn.textContent = "⬇️ Descarregar";
+          downloadBtn.className = "waves-effect waves-light btn";
+          downloadBtn.addEventListener("click", () =>
+            downloadVideo(convertedUrl, `video${i}.mp4`)
+          );
+          wrapper.appendChild(downloadBtn);
+
           container.appendChild(wrapper);
 
           loadedCount++;
