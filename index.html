@@ -152,12 +152,14 @@
           div.id = "player" + i;
           wrapper.appendChild(div);
 
+
           const downloadBtn = document.createElement("button");
           downloadBtn.textContent = "⬇️ Descarregar";
           downloadBtn.className = "waves-effect waves-light btn";
           downloadBtn.addEventListener("click", () =>
             downloadVideo(convertedUrl, `video${i}.mp4`)
           );
+
           wrapper.appendChild(downloadBtn);
 
           container.appendChild(wrapper);
