@@ -1,29 +1,40 @@
-// Multiview — detecció i reproducció automàtica de directes sense API de Google.
-// Tota la detecció es fa via redirecció /live + scrape HTML públic.
+// Multiview — selector i reproducció de directes sense API de Google.
+// Detecció via fetch + scrape HTML (CORS proxy). Selecció manual; iframes
+// a la pestanya "Reproducció". Selecció persistida a localStorage.
 
 const CORS_PROXY = window.APP_CONFIG?.CORS_PROXY || 'https://corsproxy.io/?';
 
 const CACHE_TTL = 5 * 60 * 1000;
 const CACHE_KEY = 'liveCache';
+const SELECTED_KEY = 'selectedChannels';
 const RESCAN_INTERVAL_MS = 90 * 1000;
+const FETCH_CONCURRENCY = 6;
+const FETCH_TIMEOUT_MS = 15000;
 
-const activeSet = new Set();
-const stoppedSet = new Set();
+const selectedSet = loadSelected();
 const playerByKey = new Map();
+const channelByKey = new Map();
 
 let progressDone = 0;
 let progressTotal = 0;
+let playerSeq = 0;
 
 function loadCache() {
-  try {
-    return JSON.parse(localStorage.getItem(CACHE_KEY)) || {};
-  } catch (_) {
-    return {};
-  }
+  try { return JSON.parse(localStorage.getItem(CACHE_KEY)) || {}; }
+  catch (_) { return {}; }
 }
 
 function saveCache(cache) {
   localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+}
+
+function loadSelected() {
+  try { return new Set(JSON.parse(localStorage.getItem(SELECTED_KEY)) || []); }
+  catch (_) { return new Set(); }
+}
+
+function saveSelected() {
+  localStorage.setItem(SELECTED_KEY, JSON.stringify(Array.from(selectedSet)));
 }
 
 async function getChannels() {
@@ -38,14 +49,15 @@ function channelKey(ch) {
 function colorForName(name) {
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) | 0;
-  const hue = Math.abs(hash) % 360;
-  return `hsl(${hue}, 55%, 35%)`;
+  return `hsl(${Math.abs(hash) % 360}, 55%, 35%)`;
 }
 
 function placeholderHTML(name) {
   const letter = (name || '?').trim().charAt(0).toUpperCase();
   return `<div class="placeholder" style="background:${colorForName(name)}">${letter}</div>`;
 }
+
+// ---------- Channel cards ----------
 
 function renderChannelCards(channels) {
   const root = document.getElementById('channelCards');
@@ -54,28 +66,64 @@ function renderChannelCards(channels) {
   root.innerHTML = '';
   for (const ch of channels) {
     const key = channelKey(ch);
+    channelByKey.set(key, ch);
     const card = document.createElement('article');
     card.className = 'ch-card';
     card.dataset.key = key;
     card.dataset.status = 'checking';
+    card.dataset.selected = selectedSet.has(key) ? 'true' : 'false';
     const cached = cache[key];
     const initialThumb = cached?.videoId
       ? `<img loading="lazy" src="https://i.ytimg.com/vi/${cached.videoId}/hqdefault.jpg" alt="">`
       : placeholderHTML(ch.name);
     card.innerHTML = `
-      <div class="ch-thumb">${initialThumb}<span class="ch-badge">EN DIRECTE</span></div>
+      <div class="ch-thumb">
+        ${initialThumb}
+        <span class="ch-badge ch-badge-live">EN DIRECTE</span>
+        <span class="ch-badge ch-badge-selected">✓ SELECCIONAT</span>
+      </div>
       <h3 class="ch-name">${ch.name}</h3>
       <p class="ch-title"></p>
     `;
-    card.addEventListener('click', () => {
-      if (card.dataset.status !== 'live') return;
-      const vid = card.dataset.videoId;
-      if (!vid) return;
-      if (activeSet.has(key)) return;
-      stoppedSet.delete(key);
-      addPlayer(vid, ch.name, key);
-    });
+    card.addEventListener('click', () => onCardClick(key));
     root.appendChild(card);
+  }
+}
+
+function onCardClick(key) {
+  const card = document.querySelector(`.ch-card[data-key="${CSS.escape(key)}"]`);
+  if (!card) return;
+  if (selectedSet.has(key)) {
+    deselectChannel(key);
+  } else {
+    if (card.dataset.status !== 'live') return;
+    selectChannel(key);
+  }
+}
+
+function selectChannel(key) {
+  const card = document.querySelector(`.ch-card[data-key="${CSS.escape(key)}"]`);
+  const ch = channelByKey.get(key);
+  if (!ch) return;
+  const cache = loadCache();
+  const videoId = cache[key]?.videoId;
+  if (!videoId) return;
+  selectedSet.add(key);
+  saveSelected();
+  if (card) card.dataset.selected = 'true';
+  addPlayer(videoId, ch.name, key);
+  updatePlayerCount();
+}
+
+function deselectChannel(key) {
+  selectedSet.delete(key);
+  saveSelected();
+  const card = document.querySelector(`.ch-card[data-key="${CSS.escape(key)}"]`);
+  if (card) card.dataset.selected = 'false';
+  removePlayer(key);
+  updatePlayerCount();
+  if (playerByKey.size === 0 && getActiveTab() === 'players') {
+    switchTab('channels');
   }
 }
 
@@ -88,11 +136,8 @@ function updateCard(result) {
     const thumbDiv = card.querySelector('.ch-thumb');
     const existingImg = thumbDiv.querySelector('img');
     const url = `https://i.ytimg.com/vi/${result.videoId}/hqdefault.jpg`;
-    if (existingImg) {
-      existingImg.src = url;
-    } else {
-      thumbDiv.innerHTML = `<img loading="lazy" src="${url}" alt=""><span class="ch-badge">EN DIRECTE</span>`;
-    }
+    if (existingImg) existingImg.src = url;
+    else thumbDiv.insertAdjacentHTML('afterbegin', `<img loading="lazy" src="${url}" alt="">`);
     card.querySelector('.ch-title').textContent = result.title || '';
   } else {
     card.dataset.status = 'offline';
@@ -103,8 +148,41 @@ function updateCard(result) {
 function markCardError(channel) {
   const key = channelKey(channel);
   const card = document.querySelector(`.ch-card[data-key="${CSS.escape(key)}"]`);
-  if (card) card.dataset.status = 'error';
+  if (card && card.dataset.status === 'checking') card.dataset.status = 'error';
 }
+
+function sortCards() {
+  const root = document.getElementById('channelCards');
+  if (!root) return;
+  const order = { live: 0, checking: 1, error: 2, offline: 3 };
+  const cards = Array.from(root.querySelectorAll('.ch-card'));
+  cards.sort((a, b) => {
+    const oa = order[a.dataset.status] ?? 9;
+    const ob = order[b.dataset.status] ?? 9;
+    if (oa !== ob) return oa - ob;
+    return a.querySelector('.ch-name').textContent.localeCompare(
+      b.querySelector('.ch-name').textContent
+    );
+  });
+  cards.forEach(c => root.appendChild(c));
+}
+
+// ---------- Filters ----------
+
+function applyFilters() {
+  const searchInput = document.getElementById('searchInput');
+  const onlyLiveCB = document.getElementById('onlyLive');
+  const q = (searchInput?.value || '').toLowerCase().trim();
+  const onlyLive = !!onlyLiveCB?.checked;
+  document.querySelectorAll('.ch-card').forEach(card => {
+    const name = card.querySelector('.ch-name').textContent.toLowerCase();
+    const matchesQuery = !q || name.includes(q);
+    const matchesLive = !onlyLive || card.dataset.status === 'live';
+    card.style.display = (matchesQuery && matchesLive) ? '' : 'none';
+  });
+}
+
+// ---------- Progress ----------
 
 function bumpProgressTotal(n) {
   progressDone = 0;
@@ -120,12 +198,12 @@ function bumpProgress() {
 function renderProgress() {
   const el = document.getElementById('checkProgress');
   if (!el) return;
-  if (progressDone >= progressTotal) {
-    el.textContent = `${progressTotal} canals comprovats`;
-  } else {
-    el.textContent = `Comprovant ${progressDone}/${progressTotal}…`;
-  }
+  el.textContent = progressDone >= progressTotal
+    ? `${progressTotal} canals comprovats`
+    : `Comprovant ${progressDone}/${progressTotal}…`;
 }
+
+// ---------- YouTube IFrame API ----------
 
 let ytReadyPromise;
 function whenYTReady() {
@@ -141,53 +219,53 @@ function whenYTReady() {
   return ytReadyPromise;
 }
 
-function updateVideoHeight() {
+// ---------- Players ----------
+
+function updateGridCols() {
   const container = document.getElementById('video-container');
   if (!container) return;
-  const n = container.children.length;
-  let h;
-  if (n <= 1) h = 'min(80vh, 600px)';
-  else if (n <= 2) h = '40vh';
-  else if (n <= 4) h = '30vh';
-  else if (n <= 6) h = '26vh';
-  else h = '22vh';
-  container.style.setProperty('--video-height', h);
+  const n = playerByKey.size;
+  const isMobile = window.matchMedia('(max-width: 767px)').matches;
+  let cols;
+  if (n <= 1) cols = 1;
+  else if (n === 2) cols = isMobile ? 1 : 2;
+  else if (n <= 4) cols = isMobile ? 2 : 2;
+  else if (n <= 9) cols = isMobile ? 2 : 3;
+  else cols = isMobile ? 2 : 4;
+  container.style.setProperty('--cols', cols);
 }
 
-let playerSeq = 0;
 async function addPlayer(videoId, name, key) {
-  if (activeSet.has(key)) return;
+  if (playerByKey.has(key)) return;
   await whenYTReady();
   const container = document.getElementById('video-container');
   if (!container) return;
 
   const wrapper = document.createElement('div');
-  wrapper.className = 'video-wrapper card z-depth-2';
+  wrapper.className = 'video-wrapper';
   wrapper.dataset.key = key;
 
   const playerId = `player-${++playerSeq}`;
   const playerDiv = document.createElement('div');
   playerDiv.id = playerId;
+  playerDiv.className = 'player-iframe-host';
   wrapper.appendChild(playerDiv);
 
-  const stopBtn = document.createElement('button');
-  stopBtn.className = 'stop-btn';
-  stopBtn.title = 'Aturar reproductor';
-  stopBtn.textContent = '×';
-  stopBtn.addEventListener('click', () => stopPlayer(key));
-  wrapper.appendChild(stopBtn);
-
-  const nameEl = document.createElement('div');
-  nameEl.className = 'player-name';
-  nameEl.textContent = name;
-  wrapper.appendChild(nameEl);
+  const overlay = document.createElement('div');
+  overlay.className = 'player-overlay';
+  overlay.innerHTML = `
+    <span class="player-name">${name}</span>
+    <button class="stop-btn" title="Aturar reproductor">×</button>
+  `;
+  overlay.querySelector('.stop-btn').addEventListener('click', () => deselectChannel(key));
+  wrapper.appendChild(overlay);
 
   container.appendChild(wrapper);
-  activeSet.add(key);
-  updateVideoHeight();
+  updateGridCols();
+  updateEmptyState();
 
   const player = new YT.Player(playerId, {
-    height: '250',
+    height: '100%',
     width: '100%',
     videoId,
     playerVars: { autoplay: 1, mute: 1, playsinline: 1, controls: 1 },
@@ -195,22 +273,45 @@ async function addPlayer(videoId, name, key) {
   playerByKey.set(key, { player, wrapper });
 }
 
-function stopPlayer(key) {
+function removePlayer(key) {
   const entry = playerByKey.get(key);
   if (!entry) return;
   try { entry.player.destroy(); } catch (_) {}
   entry.wrapper.remove();
   playerByKey.delete(key);
-  activeSet.delete(key);
-  stoppedSet.add(key);
-  updateVideoHeight();
+  updateGridCols();
+  updateEmptyState();
 }
 
-function autoPlay(result) {
-  if (!result?.live || !result.videoId) return;
-  if (activeSet.has(result.key) || stoppedSet.has(result.key)) return;
-  addPlayer(result.videoId, result.name, result.key);
+function updatePlayerCount() {
+  const el = document.getElementById('playerCount');
+  if (el) el.textContent = playerByKey.size > 0 ? `(${playerByKey.size})` : '';
 }
+
+function updateEmptyState() {
+  const empty = document.getElementById('emptyState');
+  if (empty) empty.style.display = playerByKey.size === 0 ? '' : 'none';
+}
+
+// ---------- Tabs ----------
+
+function getActiveTab() {
+  const btn = document.querySelector('.tab-btn.active');
+  return btn?.dataset.tab || 'channels';
+}
+
+function switchTab(name) {
+  if (name === 'players' && playerByKey.size === 0) name = 'channels';
+  document.querySelectorAll('.tab-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.tab === name)
+  );
+  document.querySelectorAll('.tab-panel').forEach(p =>
+    p.classList.toggle('active', p.id === `tab-${name}`)
+  );
+  document.body.dataset.activeTab = name;
+}
+
+// ---------- Detection ----------
 
 function parseLiveHtml(html) {
   const videoIdMatch = html.match(/"videoId":"([\w-]{11})"/);
@@ -219,9 +320,8 @@ function parseLiveHtml(html) {
   const isLive = /"isLiveContent":true/.test(html) || /"isLiveNow":true/.test(html);
   let title = '';
   const t1 = html.match(/<meta name="title" content="([^"]+)"/);
-  if (t1) {
-    title = t1[1];
-  } else {
+  if (t1) title = t1[1];
+  else {
     const t2 = html.match(/<title>([^<]+) - YouTube<\/title>/);
     if (t2) title = t2[1];
   }
@@ -240,7 +340,6 @@ async function checkOneChannel(channel) {
       name: channel.name,
       videoId: cached.videoId || null,
       title: cached.title || '',
-      thumb: cached.videoId ? `https://i.ytimg.com/vi/${cached.videoId}/hqdefault.jpg` : null,
       live: !!cached.videoId,
     };
   }
@@ -252,14 +351,19 @@ async function checkOneChannel(channel) {
   let parsed = null;
   for (const livePath of paths) {
     const proxyUrl = `${CORS_PROXY}${livePath}`;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
     try {
-      const res = await fetch(proxyUrl, { redirect: 'follow' });
+      const res = await fetch(proxyUrl, { redirect: 'follow', signal: ctrl.signal });
       if (!res.ok) continue;
       const html = await res.text();
       parsed = parseLiveHtml(html);
-      if (parsed) break;
+      if (parsed && parsed.videoId && parsed.isLive) break;
+      parsed = null;
     } catch (err) {
-      console.warn(`fetch failed for ${livePath}`, err);
+      console.warn(`fetch failed for ${livePath}`, err.name || err);
+    } finally {
+      clearTimeout(timer);
     }
   }
 
@@ -269,7 +373,6 @@ async function checkOneChannel(channel) {
     name: channel.name,
     videoId: live ? parsed.videoId : null,
     title: live ? parsed.title : '',
-    thumb: live ? `https://i.ytimg.com/vi/${parsed.videoId}/hqdefault.jpg` : null,
     live,
   };
 
@@ -278,23 +381,47 @@ async function checkOneChannel(channel) {
   return result;
 }
 
-async function checkAllChannels() {
-  const channels = await getChannels();
-  bumpProgressTotal(channels.length);
-  await Promise.allSettled(
-    channels.map(ch =>
-      checkOneChannel(ch)
-        .then(result => {
-          updateCard(result);
-          if (result.live) autoPlay(result);
-        })
-        .catch(err => {
-          console.warn('channel check failed', ch.name, err);
-          markCardError(ch);
-        })
-        .finally(() => bumpProgress())
-    )
+async function pLimit(limit, items, fn) {
+  let i = 0;
+  const workers = Array.from(
+    { length: Math.min(limit, items.length) },
+    async () => {
+      while (true) {
+        const idx = i++;
+        if (idx >= items.length) return;
+        await fn(items[idx]);
+      }
+    }
   );
+  await Promise.all(workers);
+}
+
+async function checkAllChannels() {
+  const channels = Array.from(channelByKey.values());
+  bumpProgressTotal(channels.length);
+  await pLimit(FETCH_CONCURRENCY, channels, async ch => {
+    try {
+      const result = await checkOneChannel(ch);
+      updateCard(result);
+      maybeRestoreSelected(result);
+    } catch (err) {
+      console.warn('channel check failed', ch.name, err);
+      markCardError(ch);
+    } finally {
+      bumpProgress();
+    }
+  });
+  sortCards();
+}
+
+function maybeRestoreSelected(result) {
+  if (!selectedSet.has(result.key)) return;
+  if (!result.live || !result.videoId) return;
+  if (playerByKey.has(result.key)) return;
+  const ch = channelByKey.get(result.key);
+  if (!ch) return;
+  addPlayer(result.videoId, ch.name, result.key);
+  updatePlayerCount();
 }
 
 function startRescanLoop() {
@@ -303,18 +430,24 @@ function startRescanLoop() {
   }, RESCAN_INTERVAL_MS);
 }
 
-function bindFilter() {
-  const cb = document.getElementById('onlyLive');
-  if (!cb) return;
-  cb.addEventListener('change', () => {
-    document.body.classList.toggle('only-live', cb.checked);
-  });
-}
+// ---------- Init ----------
 
 document.addEventListener('DOMContentLoaded', async () => {
-  bindFilter();
   const channels = await getChannels();
   renderChannelCards(channels);
+
+  document.querySelectorAll('.tab-btn').forEach(btn =>
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab))
+  );
+  document.getElementById('goToChannels')?.addEventListener('click', () => switchTab('channels'));
+  document.getElementById('searchInput')?.addEventListener('input', applyFilters);
+  document.getElementById('onlyLive')?.addEventListener('change', applyFilters);
+  window.addEventListener('resize', updateGridCols);
+
+  switchTab(selectedSet.size > 0 ? 'players' : 'channels');
+  updatePlayerCount();
+  updateEmptyState();
+
   await checkAllChannels();
   startRescanLoop();
 });

@@ -5,34 +5,50 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Multiview — directes</title>
 
-  <!-- PWA -->
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#000000" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="apple-touch-icon" href="icon-192.png" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Roboto&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <h1>Multiview — directes</h1>
+  <header class="app-header">
+    <h1>Multiview</h1>
+    <nav class="tabs" role="tablist">
+      <button class="tab-btn active" data-tab="channels" role="tab">Directes</button>
+      <button class="tab-btn" data-tab="players" role="tab">
+        Reproducció <span id="playerCount" class="badge"></span>
+      </button>
+    </nav>
+  </header>
 
-  <div id="video-container"></div>
+  <main>
+    <section id="tab-channels" class="tab-panel active" role="tabpanel">
+      <div class="channel-toolbar">
+        <input id="searchInput" type="search" placeholder="Cercar canal…" autocomplete="off" />
+        <label class="filter-toggle">
+          <input type="checkbox" id="onlyLive" />
+          <span>Només directes</span>
+        </label>
+        <span id="checkProgress" class="progress-text"></span>
+      </div>
+      <div id="channelCards"></div>
+    </section>
 
-  <section id="channelGrid">
-    <div class="channel-toolbar">
-      <label><input type="checkbox" id="onlyLive"> Només directes</label>
-      <span id="checkProgress"></span>
-    </div>
-    <div id="channelCards"></div>
-  </section>
+    <section id="tab-players" class="tab-panel" role="tabpanel">
+      <div id="emptyState" class="empty-state">
+        <p>Cap canal seleccionat.</p>
+        <button id="goToChannels" class="primary-btn">Anar a Directes →</button>
+      </div>
+      <div id="video-container"></div>
+    </section>
+  </main>
 
   <script src="https://www.youtube.com/iframe_api"></script>
   <script src="canal.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
   <script>
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
@@ -43,9 +59,6 @@
         window.location.reload();
       });
     }
-    document.addEventListener('DOMContentLoaded', function() {
-      if (window.M && M.AutoInit) M.AutoInit();
-    });
   </script>
 </body>
 </html>
