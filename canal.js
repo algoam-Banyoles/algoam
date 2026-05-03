@@ -718,6 +718,7 @@ if ('serviceWorker' in navigator) {
 // ---------- Init ----------
 
 document.addEventListener('DOMContentLoaded', async () => {
+  if (WORKER_URL) document.body.classList.add('push-enabled');
   const channels = await getChannels();
   handleDeepLink();
   renderChannelCards(channels);

@@ -259,6 +259,10 @@ body.only-live .ch-card:not([data-status="live"]) { display: none; }
   display: inline-block;
 }
 
+/* The bell is only useful when the push backend is configured.
+   canal.js adds .push-enabled to <body> when WORKER_URL is set. */
+body:not(.push-enabled) .bell-btn { display: none !important; }
+
 .bell-btn {
   position: absolute;
   bottom: 6px;
