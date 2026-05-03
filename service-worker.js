@@ -1,4 +1,4 @@
-const CACHE_NAME = 'algoam-cache-v5';
+const CACHE_NAME = 'algoam-cache-v6';
 const ASSETS = [
   './',
   './index.html',
@@ -80,18 +80,26 @@ self.addEventListener('push', event => {
 
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-  const targetUrl = event.notification.data?.url || './';
+  const data = event.notification.data || {};
+  const fallbackUrl = data.url || './';
   event.waitUntil((async () => {
     const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const client of all) {
-      // Reuse an existing window if it's our app
       const u = new URL(client.url);
       if (u.origin === self.location.origin) {
-        client.focus();
-        client.navigate(targetUrl).catch(() => {});
+        // Don't reload the page — postMessage so the running app can add
+        // the player without losing other reproductors.
+        client.postMessage({
+          type: 'playFromNotification',
+          videoId: data.videoId,
+          channelKey: data.channelKey,
+          channel: data.channel,
+          title: data.title,
+        });
+        try { await client.focus(); } catch (_) {}
         return;
       }
     }
-    await self.clients.openWindow(targetUrl);
+    await self.clients.openWindow(fallbackUrl);
   })());
 });

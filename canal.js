@@ -679,7 +679,7 @@ function applyBellStates() {
 
 // ---------- Deep link from notification click ----------
 
-function handleDeepLink(channels) {
+function handleDeepLink() {
   const params = new URLSearchParams(location.search);
   const playId = params.get('play');
   if (!playId) return;
@@ -690,11 +690,36 @@ function handleDeepLink(channels) {
   history.replaceState({}, '', location.pathname);
 }
 
+async function playFromNotification(data) {
+  if (!data?.videoId) return;
+  // Channels may not be loaded yet if the SW message arrives during boot.
+  for (let i = 0; i < 50 && channelByKey.size === 0; i++) {
+    await new Promise(r => setTimeout(r, 100));
+  }
+  const ch = data.channelKey ? channelByKey.get(data.channelKey) : null;
+  selectedSet.add(data.videoId);
+  saveSelected();
+  if (ch) {
+    addPlayer(data.videoId, ch.name, data.videoId);
+    switchTab('players');
+  }
+  // If we didn't find the channel, the next checkAllChannels pass will
+  // restore via maybeRestoreSelected.
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (e.data?.type === 'playFromNotification') {
+      playFromNotification(e.data).catch(err => console.warn('playFromNotification', err));
+    }
+  });
+}
+
 // ---------- Init ----------
 
 document.addEventListener('DOMContentLoaded', async () => {
   const channels = await getChannels();
-  handleDeepLink(channels);
+  handleDeepLink();
   renderChannelCards(channels);
 
   document.querySelectorAll('.tab-btn').forEach(btn =>
