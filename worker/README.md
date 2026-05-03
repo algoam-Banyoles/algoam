@@ -1,6 +1,11 @@
 # Multiview push backend
 
-Cloudflare Worker que rep subscripcions Web Push de la PWA, sondeja `/streams` dels canals subscrits cada 5 min i envia una notificació quan apareix un nou directe.
+Cloudflare Worker que:
+1. Rep subscripcions Web Push de la PWA i les emmagatzema (per endpoint i per canal).
+2. Rep cada 5 min la llista actualitzada de directes (l'envia GitHub Actions al script `scripts/poll_and_post.js`), la diferencia amb l'estat anterior, i envia push notifications per als nous directes.
+3. Serveix l'endpoint públic `GET /all-live` perquè la PWA pugui hidratar l'estat amb una sola petició petita en lloc de scrapejar 80 canals des del navegador.
+
+L'scrape pesat (80 canals × ~1MB) **no** s'executa al worker (el free tier de Cloudflare limita a 50 subrequests per invocació). Es fa a GitHub Actions runners on no hi ha aquest límit.
 
 ## Requisits
 
@@ -74,12 +79,17 @@ A partir d'ara el workflow `.github/workflows/notify-poll.yml` cridarà l'endpoi
 ```bash
 # Comprovar que el worker respon
 curl https://algoam-push.xxxx.workers.dev/vapid-public
-# Ha de retornar {"key":"BLn7N6..."}
+# {"key":"BLn7N6..."}
 
-# Forçar una poll manual
-curl -X POST -H "Authorization: Bearer <POLL_SECRET>" \
-  https://algoam-push.xxxx.workers.dev/poll
-# Ha de retornar {"subs":N,"polled":M,"pushes":P}
+# Forçar una poll manual des del repo (scrape + post)
+WORKER_URL=https://algoam-push.xxxx.workers.dev \
+POLL_SECRET=<el-teu-secret> \
+node algoam/scripts/poll_and_post.js
+# Imprimeix els canals en directe i la resposta del worker
+
+# Veure l'estat agregat actual
+curl https://algoam-push.xxxx.workers.dev/all-live
+# {"ts":1714750000000,"channels":[{"channelKey":"UC...","name":"...","streams":[...]}]}
 ```
 
 A la PWA, clica la campaneta d'una targeta i confirma la sol·licitud de permís de notificacions. Quan el canal entri en directe, rebràs una notificació en menys de 5 minuts.

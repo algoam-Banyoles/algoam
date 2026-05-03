@@ -2,16 +2,24 @@ name: Live notifications poll
 
 on:
   schedule:
-    # GitHub Actions minimum granularity is 5 minutes.
+    # Minimum granularity on GitHub Actions is 5 minutes.
     - cron: '*/5 * * * *'
   workflow_dispatch:
 
 jobs:
   poll:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 5
     steps:
-      - name: Hit /poll endpoint on Cloudflare Worker
+      - uses: actions/checkout@v4
+
+      - name: Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Scrape /streams of every channel and POST to worker
+        working-directory: ./
         env:
           WORKER_URL: ${{ secrets.WORKER_URL }}
           POLL_SECRET: ${{ secrets.POLL_SECRET }}
@@ -20,6 +28,4 @@ jobs:
             echo "WORKER_URL or POLL_SECRET not set; skipping."
             exit 0
           fi
-          curl -fsS -X POST \
-            -H "Authorization: Bearer $POLL_SECRET" \
-            "$WORKER_URL/poll"
+          node scripts/poll_and_post.js

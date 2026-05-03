@@ -12,7 +12,7 @@ const CACHE_KEY = 'liveCacheV6';
 const SELECTED_KEY = 'selectedStreams';
 const PUSH_CHANNELS_KEY = 'pushChannels';
 const RESCAN_INTERVAL_MS = 90 * 1000;
-const FETCH_CONCURRENCY = 6;
+const FETCH_CONCURRENCY = 12;
 const FETCH_TIMEOUT_MS = 15000;
 
 // Identificador estable que un usuari pot seleccionar:
@@ -530,7 +530,37 @@ async function pLimit(limit, items, fn) {
   await Promise.all(workers);
 }
 
+async function tryFetchAllLive() {
+  if (!WORKER_URL) return false;
+  try {
+    const res = await fetch(`${WORKER_URL}/all-live`, { cache: 'no-store' });
+    if (!res.ok) return false;
+    const data = await res.json();
+    const age = Date.now() - (data.ts || 0);
+    if (age > 10 * 60 * 1000) return false;
+    const byKey = new Map();
+    for (const c of data.channels || []) byKey.set(c.channelKey, c);
+    for (const ch of channelByKey.values()) {
+      const ck = channelKey(ch);
+      const remote = byKey.get(ck);
+      const result = { key: ck, name: ch.name, streams: remote?.streams || [] };
+      updateChannelCards(result);
+      maybeRestoreSelected(result);
+    }
+    sortCards();
+    return true;
+  } catch (err) {
+    console.warn('/all-live failed', err);
+    return false;
+  }
+}
+
 async function checkAllChannels() {
+  // Prefer the worker's pre-aggregated snapshot (single request, ~50ms)
+  // and only fall back to per-channel scraping when the backend is unset
+  // or stale (>10 min old).
+  if (await tryFetchAllLive()) return;
+
   const channels = Array.from(channelByKey.values());
   await pLimit(FETCH_CONCURRENCY, channels, async ch => {
     try {
