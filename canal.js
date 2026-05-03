@@ -5,7 +5,7 @@
 const CORS_PROXY = window.APP_CONFIG?.CORS_PROXY || 'https://corsproxy.io/?';
 
 const CACHE_TTL = 5 * 60 * 1000;
-const CACHE_KEY = 'liveCacheV3';
+const CACHE_KEY = 'liveCacheV4';
 const SELECTED_KEY = 'selectedChannels';
 const RESCAN_INTERVAL_MS = 90 * 1000;
 const FETCH_CONCURRENCY = 6;
@@ -227,11 +227,12 @@ function updateGridCols() {
   const n = playerByKey.size;
   const isMobile = window.matchMedia('(max-width: 767px)').matches;
   let cols;
-  if (n <= 1) cols = 1;
-  else if (n === 2) cols = isMobile ? 1 : 2;
-  else if (n <= 4) cols = isMobile ? 2 : 2;
-  else if (n <= 9) cols = isMobile ? 2 : 3;
-  else cols = isMobile ? 2 : 4;
+  if (isMobile) cols = 1;
+  else if (n <= 1) cols = 1;
+  else if (n === 2) cols = 2;
+  else if (n <= 4) cols = 2;
+  else if (n <= 9) cols = 3;
+  else cols = 4;
   container.style.setProperty('--cols', cols);
 }
 
@@ -345,10 +346,10 @@ function extractInitialPlayerResponse(html) {
   return null;
 }
 
-// Detecció robusta: parlem amb videoDetails directament (camp de veritat per al
-// vídeo principal). videoDetails.isLive és true només mentre s'està emetent;
-// videoDetails.isLiveContent també és true en VODs d'antics directes (FALS
-// POSITIU); liveBroadcastDetails.isLiveNow confirma broadcast actiu.
+// Detecció robusta: només acceptem si YouTube està servint segments ARA
+// (streamingData.hlsManifestUrl o dashManifestUrl). Les emissions programades
+// tenen videoDetails.isLive=true però NO tenen URL de manifest perquè cap
+// segment s'està servint encara — així les descartem.
 function parseLiveHtml(html) {
   const ipr = extractInitialPlayerResponse(html);
   if (!ipr) return null;
@@ -358,6 +359,11 @@ function parseLiveHtml(html) {
   if (vd.isLive !== true) return null;
   const lbd = ipr.microformat?.playerMicroformatRenderer?.liveBroadcastDetails;
   if (lbd && lbd.isLiveNow === false) return null;
+  const sd = ipr.streamingData;
+  const hasManifest =
+    typeof sd?.hlsManifestUrl === 'string' && sd.hlsManifestUrl.startsWith('http') ||
+    typeof sd?.dashManifestUrl === 'string' && sd.dashManifestUrl.startsWith('http');
+  if (!hasManifest) return null;
   return { videoId: vd.videoId, isLive: true, title: vd.title || '' };
 }
 

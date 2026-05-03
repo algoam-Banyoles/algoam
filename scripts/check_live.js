@@ -43,7 +43,9 @@ function extractInitialPlayerResponse(html) {
   return null;
 }
 
-// Detecció robusta: videoDetails.isLive (true només en emissió actual).
+// Detecció robusta: només acceptem si YouTube està servint segments ARA
+// (streamingData.hlsManifestUrl). Les programades tenen isLive=true però sense
+// manifest URL — així les descartem.
 function parseLiveHtml(html) {
   const ipr = extractInitialPlayerResponse(html);
   if (!ipr) return null;
@@ -53,6 +55,11 @@ function parseLiveHtml(html) {
   if (vd.isLive !== true) return null;
   const lbd = ipr.microformat?.playerMicroformatRenderer?.liveBroadcastDetails;
   if (lbd && lbd.isLiveNow === false) return null;
+  const sd = ipr.streamingData;
+  const hasManifest =
+    typeof sd?.hlsManifestUrl === 'string' && sd.hlsManifestUrl.startsWith('http') ||
+    typeof sd?.dashManifestUrl === 'string' && sd.dashManifestUrl.startsWith('http');
+  if (!hasManifest) return null;
   return { videoId: vd.videoId, isLive: true, title: vd.title || '' };
 }
 
