@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Multi YouTube Viewer</title>
+  <title>Multiview — directes</title>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json" />
@@ -18,204 +18,33 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <h1>Multiview</h1>
+  <h1>Multiview — directes</h1>
 
-  <details id="urlToggle" open>
-    <summary>Enllaços dels vídeos</summary>
-    <form id="videoForm">
-      <div class="input-field">
-        <input id="url1" type="url" name="url1" required />
-        <label for="url1">URL vídeo 1</label>
-      </div>
-      <div class="input-field">
-        <input id="url2" type="url" name="url2" />
-        <label for="url2">URL vídeo 2</label>
-      </div>
-      <div class="input-field">
-        <input id="url3" type="url" name="url3" />
-        <label for="url3">URL vídeo 3</label>
-      </div>
-      <div class="input-field">
-        <input id="url4" type="url" name="url4" />
-        <label for="url4">URL vídeo 4</label>
-      </div>
-      <div class="controls">
-        <button class="waves-effect waves-light btn" type="submit">Carregar vídeos</button>
-        <button class="waves-effect waves-light btn" type="button" id="playAll">▶️ Reproduir tots</button>
-        <button class="waves-effect waves-light btn" type="button" id="pauseAll">⏸️ Pausar tots</button>
-        <button class="waves-effect waves-light btn" type="button" id="checkLive">Cercar directes</button>
-      </div>
-    </form>
-  </details>
-
-  <ul id="liveResults" class="collection"></ul>
   <div id="video-container"></div>
 
-  <div class="fixed-action-btn">
-    <a id="checkLiveFab" class="btn-floating btn-large red">
-      <i class="large material-icons">live_tv</i>
-    </a>
-  </div>
+  <section id="channelGrid">
+    <div class="channel-toolbar">
+      <label><input type="checkbox" id="onlyLive"> Només directes</label>
+      <span id="checkProgress"></span>
+    </div>
+    <div id="channelCards"></div>
+  </section>
 
-  <script>
-    let players = [];
-
-    function convertirLiveAWatch(url) {
-      try {
-        const cleanUrl = url.trim();
-        const videoIdMatch = cleanUrl.match(/youtube\.com\/live\/([^?&]+)/);
-        if (videoIdMatch) {
-          return `https://www.youtube.com/watch?v=${videoIdMatch[1]}`;
-        }
-        return cleanUrl;
-      } catch (e) {
-        return url;
-      }
-    }
-
-    function extractVideoID(url) {
-      const regex = /(?:youtube\.com.*[?&]v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
-      const match = url.match(regex);
-      return match ? match[1] : null;
-    }
-
-    function createPlayer(divId, videoId) {
-      new YT.Player(divId, {
-        height: "250",
-        width: "100%",
-        videoId: videoId,
-        playerVars: {
-          autoplay: 0,
-          mute: 1,
-          playsinline: 1,
-          controls: 1
-        },
-        events: {
-          onReady: function (event) {
-            players.push(event.target);
-          }
-        }
-      });
-    }
-
-    function resetViewportZoom() {
-      const viewport = document.querySelector("meta[name=viewport]");
-      if (viewport) {
-        viewport.content = "width=device-width, initial-scale=1.01";
-        setTimeout(() => {
-          viewport.content = "width=device-width, initial-scale=1";
-        }, 100);
-      }
-    }
-
-    async function downloadVideo(url, filename) {
-      try {
-        const response = await fetch(url);
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = blobUrl;
-        a.download = filename || "video.mp4";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(blobUrl);
-      } catch (err) {
-        console.error("Error baixant el vídeo:", err);
-        alert("No s'ha pogut descarregar el vídeo.");
-      }
-    }
-
-    function processForm() {
-      const container = document.getElementById("video-container");
-      container.innerHTML = "";
-      players = [];
-      let loadedCount = 0;
-
-      for (let i = 1; i <= 4; i++) {
-        const input = document.querySelector(`[name="url${i}"]`);
-        if (!input || !input.value.trim()) continue;
-
-        const originalUrl = input.value.trim();
-        const convertedUrl = convertirLiveAWatch(originalUrl);
-
-        if (convertedUrl !== originalUrl) {
-          input.value = convertedUrl;
-        }
-
-        const videoId = extractVideoID(convertedUrl);
-        if (videoId) {
-          const wrapper = document.createElement("div");
-          wrapper.className = "video-wrapper card z-depth-2";
-
-          const div = document.createElement("div");
-          div.id = "player" + i;
-          wrapper.appendChild(div);
-
-
-          const downloadBtn = document.createElement("button");
-          downloadBtn.textContent = "⬇️ Descarregar";
-          downloadBtn.className = "waves-effect waves-light btn";
-          downloadBtn.addEventListener("click", () =>
-            downloadVideo(convertedUrl, `video${i}.mp4`)
-          );
-
-          wrapper.appendChild(downloadBtn);
-
-          container.appendChild(wrapper);
-
-          loadedCount++;
-          createPlayer(div.id, videoId);
-        }
-      }
-
-      container.className = `count-${loadedCount}`;
-
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      resetViewportZoom(); // 👈 evita el zoom després d'escriure en inputs a iPhone
-      const details = document.getElementById('urlToggle');
-      if (details) details.open = false;
-    }
-
-    window.onYouTubeIframeAPIReady = function () {
-      document.getElementById("videoForm").addEventListener("submit", function (e) {
-        e.preventDefault();
-        processForm();
-      });
-    };
-
-    document.getElementById("playAll").addEventListener("click", () => {
-      players.forEach(p => p.playVideo());
-    });
-
-    document.getElementById("pauseAll").addEventListener("click", () => {
-      players.forEach(p => p.pauseVideo());
-    });
-
-    // PWA: registre del service worker
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register("service-worker.js")
-        .then(reg => {
-          console.log("✅ Service Worker registrat");
-          reg.update(); // 🔄 comprova si hi ha una versió nova
-        })
-        .catch(err => console.error("❌ Error en SW:", err));
-
-      // 🔁 recarrega quan el SW nou pren el control
-      navigator.serviceWorker.addEventListener("controllerchange", () => {
-        window.location.reload();
-      });
-    }
-  </script>
-
-  <script src="config.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
   <script src="canal.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
   <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("service-worker.js")
+        .then(reg => reg.update())
+        .catch(err => console.error("Error en SW:", err));
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        window.location.reload();
+      });
+    }
     document.addEventListener('DOMContentLoaded', function() {
-      M.AutoInit();
+      if (window.M && M.AutoInit) M.AutoInit();
     });
   </script>
 </body>

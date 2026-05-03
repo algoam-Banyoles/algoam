@@ -1,17 +1,18 @@
-// Clau de l'API de YouTube Data.
-// Assigna-la a `window.APP_CONFIG.API_KEY` al fitxer `config.js`.
-const API_KEY = window.APP_CONFIG?.API_KEY || '';
+// Multiview — detecció i reproducció automàtica de directes sense API de Google.
+// Tota la detecció es fa via redirecció /live + scrape HTML públic.
+
 const CORS_PROXY = window.APP_CONFIG?.CORS_PROXY || 'https://corsproxy.io/?';
 
-// Quant de temps (ms) es manté a la memòria cau el resultat d'un canal
-
-const CACHE_TTL = 5 * 60 * 1000; // 5 minuts
-
+const CACHE_TTL = 5 * 60 * 1000;
 const CACHE_KEY = 'liveCache';
+const RESCAN_INTERVAL_MS = 90 * 1000;
 
-// Si és `true` cada vídeo detectat es validarà amb l'API; en cas contrari només
-// s'emprarà la redirecció/HTML per deduir que és en directe.
-const VERIFY_WITH_API = true;
+const activeSet = new Set();
+const stoppedSet = new Set();
+const playerByKey = new Map();
+
+let progressDone = 0;
+let progressTotal = 0;
 
 function loadCache() {
   try {
@@ -30,183 +31,290 @@ async function getChannels() {
   return response.json();
 }
 
-function fillNextInput(url) {
-  for (let i = 1; i <= 4; i++) {
-    const input = document.querySelector(`[name="url${i}"]`);
-    if (input && !input.value.trim()) {
-      input.value = url;
-      break;
-    }
+function channelKey(ch) {
+  return ch.channelId || ch.handle || ch.name;
+}
+
+function colorForName(name) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) | 0;
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 55%, 35%)`;
+}
+
+function placeholderHTML(name) {
+  const letter = (name || '?').trim().charAt(0).toUpperCase();
+  return `<div class="placeholder" style="background:${colorForName(name)}">${letter}</div>`;
+}
+
+function renderChannelCards(channels) {
+  const root = document.getElementById('channelCards');
+  if (!root) return;
+  const cache = loadCache();
+  root.innerHTML = '';
+  for (const ch of channels) {
+    const key = channelKey(ch);
+    const card = document.createElement('article');
+    card.className = 'ch-card';
+    card.dataset.key = key;
+    card.dataset.status = 'checking';
+    const cached = cache[key];
+    const initialThumb = cached?.videoId
+      ? `<img loading="lazy" src="https://i.ytimg.com/vi/${cached.videoId}/hqdefault.jpg" alt="">`
+      : placeholderHTML(ch.name);
+    card.innerHTML = `
+      <div class="ch-thumb">${initialThumb}<span class="ch-badge">EN DIRECTE</span></div>
+      <h3 class="ch-name">${ch.name}</h3>
+      <p class="ch-title"></p>
+    `;
+    card.addEventListener('click', () => {
+      if (card.dataset.status !== 'live') return;
+      const vid = card.dataset.videoId;
+      if (!vid) return;
+      if (activeSet.has(key)) return;
+      stoppedSet.delete(key);
+      addPlayer(vid, ch.name, key);
+    });
+    root.appendChild(card);
   }
 }
 
-async function getLiveVideoIdFromApi(channelId) {
-  if (!API_KEY || !channelId) return null;
-  try {
-    const url =
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&eventType=live&type=video&key=${API_KEY}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    if (res.ok && data.items && data.items.length > 0) {
-      const item = data.items.find(
-        it => it.snippet.liveBroadcastContent === 'live' && it.id?.videoId
-      );
-      return item?.id.videoId || null;
+function updateCard(result) {
+  const card = document.querySelector(`.ch-card[data-key="${CSS.escape(result.key)}"]`);
+  if (!card) return;
+  if (result.live && result.videoId) {
+    card.dataset.status = 'live';
+    card.dataset.videoId = result.videoId;
+    const thumbDiv = card.querySelector('.ch-thumb');
+    const existingImg = thumbDiv.querySelector('img');
+    const url = `https://i.ytimg.com/vi/${result.videoId}/hqdefault.jpg`;
+    if (existingImg) {
+      existingImg.src = url;
+    } else {
+      thumbDiv.innerHTML = `<img loading="lazy" src="${url}" alt=""><span class="ch-badge">EN DIRECTE</span>`;
     }
-  } catch (err) {
-    console.error('API search error', err);
+    card.querySelector('.ch-title').textContent = result.title || '';
+  } else {
+    card.dataset.status = 'offline';
+    card.querySelector('.ch-title').textContent = '';
   }
-  return null;
 }
 
-async function checkLiveStreams() {
-  const results = document.getElementById('liveResults');
-  results.textContent = 'Comprovant...';
-  const channels = await getChannels();
-  let cleared = false;
+function markCardError(channel) {
+  const key = channelKey(channel);
+  const card = document.querySelector(`.ch-card[data-key="${CSS.escape(key)}"]`);
+  if (card) card.dataset.status = 'error';
+}
+
+function bumpProgressTotal(n) {
+  progressDone = 0;
+  progressTotal = n;
+  renderProgress();
+}
+
+function bumpProgress() {
+  progressDone++;
+  renderProgress();
+}
+
+function renderProgress() {
+  const el = document.getElementById('checkProgress');
+  if (!el) return;
+  if (progressDone >= progressTotal) {
+    el.textContent = `${progressTotal} canals comprovats`;
+  } else {
+    el.textContent = `Comprovant ${progressDone}/${progressTotal}…`;
+  }
+}
+
+let ytReadyPromise;
+function whenYTReady() {
+  if (ytReadyPromise) return ytReadyPromise;
+  ytReadyPromise = new Promise(resolve => {
+    if (window.YT && window.YT.Player) return resolve();
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      if (typeof prev === 'function') try { prev(); } catch (_) {}
+      resolve();
+    };
+  });
+  return ytReadyPromise;
+}
+
+function updateVideoHeight() {
+  const container = document.getElementById('video-container');
+  if (!container) return;
+  const n = container.children.length;
+  let h;
+  if (n <= 1) h = 'min(80vh, 600px)';
+  else if (n <= 2) h = '40vh';
+  else if (n <= 4) h = '30vh';
+  else if (n <= 6) h = '26vh';
+  else h = '22vh';
+  container.style.setProperty('--video-height', h);
+}
+
+let playerSeq = 0;
+async function addPlayer(videoId, name, key) {
+  if (activeSet.has(key)) return;
+  await whenYTReady();
+  const container = document.getElementById('video-container');
+  if (!container) return;
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'video-wrapper card z-depth-2';
+  wrapper.dataset.key = key;
+
+  const playerId = `player-${++playerSeq}`;
+  const playerDiv = document.createElement('div');
+  playerDiv.id = playerId;
+  wrapper.appendChild(playerDiv);
+
+  const stopBtn = document.createElement('button');
+  stopBtn.className = 'stop-btn';
+  stopBtn.title = 'Aturar reproductor';
+  stopBtn.textContent = '×';
+  stopBtn.addEventListener('click', () => stopPlayer(key));
+  wrapper.appendChild(stopBtn);
+
+  const nameEl = document.createElement('div');
+  nameEl.className = 'player-name';
+  nameEl.textContent = name;
+  wrapper.appendChild(nameEl);
+
+  container.appendChild(wrapper);
+  activeSet.add(key);
+  updateVideoHeight();
+
+  const player = new YT.Player(playerId, {
+    height: '250',
+    width: '100%',
+    videoId,
+    playerVars: { autoplay: 1, mute: 1, playsinline: 1, controls: 1 },
+  });
+  playerByKey.set(key, { player, wrapper });
+}
+
+function stopPlayer(key) {
+  const entry = playerByKey.get(key);
+  if (!entry) return;
+  try { entry.player.destroy(); } catch (_) {}
+  entry.wrapper.remove();
+  playerByKey.delete(key);
+  activeSet.delete(key);
+  stoppedSet.add(key);
+  updateVideoHeight();
+}
+
+function autoPlay(result) {
+  if (!result?.live || !result.videoId) return;
+  if (activeSet.has(result.key) || stoppedSet.has(result.key)) return;
+  addPlayer(result.videoId, result.name, result.key);
+}
+
+function parseLiveHtml(html) {
+  const videoIdMatch = html.match(/"videoId":"([\w-]{11})"/);
+  if (!videoIdMatch) return null;
+  const videoId = videoIdMatch[1];
+  const isLive = /"isLiveContent":true/.test(html) || /"isLiveNow":true/.test(html);
+  let title = '';
+  const t1 = html.match(/<meta name="title" content="([^"]+)"/);
+  if (t1) {
+    title = t1[1];
+  } else {
+    const t2 = html.match(/<title>([^<]+) - YouTube<\/title>/);
+    if (t2) title = t2[1];
+  }
+  return { videoId, isLive, title };
+}
+
+async function checkOneChannel(channel) {
+  const key = channelKey(channel);
   const cache = loadCache();
   const now = Date.now();
-  let fetchError = false;
-  for (const channel of channels) {
+
+  const cached = cache[key];
+  if (cached && now - cached.ts < CACHE_TTL) {
+    return {
+      key,
+      name: channel.name,
+      videoId: cached.videoId || null,
+      title: cached.title || '',
+      thumb: cached.videoId ? `https://i.ytimg.com/vi/${cached.videoId}/hqdefault.jpg` : null,
+      live: !!cached.videoId,
+    };
+  }
+
+  const paths = [];
+  if (channel.handle) paths.push(`https://www.youtube.com/${channel.handle}/live`);
+  if (channel.channelId) paths.push(`https://www.youtube.com/channel/${channel.channelId}/live`);
+
+  let parsed = null;
+  for (const livePath of paths) {
+    const proxyUrl = `${CORS_PROXY}${livePath}`;
     try {
-      const key = channel.channelId || channel.handle;
-      const cached = cache[key];
-      if (cached && now - cached.ts < CACHE_TTL) {
-        if (cached.videoId) {
-          if (!cleared) {
-            results.innerHTML = '';
-            cleared = true;
-          }
-          const li = document.createElement('li');
-          li.className = 'collection-item';
-          const a = document.createElement('a');
-          a.href = `https://www.youtube.com/watch?v=${cached.videoId}`;
-          a.textContent = channel.name;
-          if (cached.title) a.title = cached.title;
-          a.target = '_blank';
-          const copyBtn = document.createElement('button');
-          copyBtn.textContent = 'Copiar';
-          copyBtn.className = 'waves-effect waves-light btn';
-          copyBtn.addEventListener('click', () => {
-            fillNextInput(`https://www.youtube.com/watch?v=${cached.videoId}`);
-            M.toast({html: 'Copiat!'});
-          });
-          li.appendChild(a);
-          li.appendChild(copyBtn);
-          results.appendChild(li);
-        }
-        continue;
-      }
-      const paths = [];
-      if (channel.handle) {
-        paths.push(`https://www.youtube.com/${channel.handle}/live`);
-      }
-      if (channel.channelId) {
-        paths.push(`https://www.youtube.com/channel/${channel.channelId}/live`);
-      }
-      let videoId = null;
-      for (const livePath of paths) {
-        const proxyUrl = `${CORS_PROXY}${livePath}`;
-
-        let res = await fetch(proxyUrl, { method: 'HEAD', redirect: 'manual' });
-        if (res.status === 403) fetchError = true;
-        const headLocation = res.headers.get('Location') || res.headers.get('location');
-        console.log(`[HEAD] ${livePath} -> ${res.status}${headLocation ? ` ${headLocation}` : ''}`);
-        if (res.status >= 300 && res.status < 400) {
-          const location = headLocation;
-          const match = location && location.match(/v=([\w-]{11})/);
-          if (match) {
-            videoId = match[1];
-          }
-        }
-
-        if (!videoId) {
-          res = await fetch(proxyUrl, { redirect: 'follow' });
-          if (res.status === 403) fetchError = true;
-          const finalUrl = decodeURIComponent(res.url.replace(CORS_PROXY, ''));
-          let match = finalUrl.match(/[?&]v=([\w-]{11})/);
-          if (!match) {
-            const html = await res.text();
-            match = html.match(/"(?:watch\?v=|videoId\":\")([\w-]{11})/);
-          }
-          if (match) videoId = match[1];
-        }
-
-        if (videoId) break;
-      }
-
-      if (!videoId && channel.channelId) {
-        videoId = await getLiveVideoIdFromApi(channel.channelId);
-      }
-
-      if (videoId) {
-        let videoTitle = '';
-        let isLive = true;
-        if (VERIFY_WITH_API && API_KEY) {
-          const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails&id=${videoId}&key=${API_KEY}`;
-          const apiRes = await fetch(apiUrl);
-          const data = await apiRes.json();
-          if (apiRes.ok && data.items && data.items.length > 0) {
-            const item = data.items[0];
-            videoTitle = item.snippet.title;
-            isLive = item.snippet.liveBroadcastContent === 'live' ||
-              (item.liveStreamingDetails &&
-               item.liveStreamingDetails.actualStartTime &&
-               !item.liveStreamingDetails.actualEndTime);
-          } else if (data.error) {
-            console.error('API error', data.error);
-          }
-        }
-        if (!isLive) {
-          cache[key] = { ts: now, videoId: null };
-          continue;
-        }
-        cache[key] = { ts: now, videoId, title: videoTitle };
-        if (!cleared) {
-          results.innerHTML = '';
-          cleared = true;
-        }
-        const li = document.createElement('li');
-        li.className = 'collection-item';
-        const a = document.createElement('a');
-        a.href = `https://www.youtube.com/watch?v=${videoId}`;
-        a.textContent = channel.name;
-        if (videoTitle) a.title = videoTitle;
-        a.target = '_blank';
-        const copyBtn = document.createElement('button');
-        copyBtn.textContent = 'Copiar';
-        copyBtn.className = 'waves-effect waves-light btn';
-        copyBtn.addEventListener('click', () => {
-          fillNextInput(`https://www.youtube.com/watch?v=${videoId}`);
-          M.toast({html: 'Copiat!'});
-        });
-        li.appendChild(a);
-        li.appendChild(copyBtn);
-        results.appendChild(li);
-      } else {
-        cache[key] = { ts: now, videoId: null };
-      }
+      const res = await fetch(proxyUrl, { redirect: 'follow' });
+      if (!res.ok) continue;
+      const html = await res.text();
+      parsed = parseLiveHtml(html);
+      if (parsed) break;
     } catch (err) {
-      console.error('Error checking channel', channel.channelId, err);
+      console.warn(`fetch failed for ${livePath}`, err);
     }
   }
-  if (!cleared) {
-    if (fetchError) {
-      results.textContent = 'Error 403 en fer les consultes. Revisa la configuració de CORS_PROXY a config.js.';
-    } else {
-      results.textContent = 'No hi ha transmissions en directe ara mateix.';
-    }
-  }
+
+  const live = !!(parsed && parsed.videoId && parsed.isLive);
+  const result = {
+    key,
+    name: channel.name,
+    videoId: live ? parsed.videoId : null,
+    title: live ? parsed.title : '',
+    thumb: live ? `https://i.ytimg.com/vi/${parsed.videoId}/hqdefault.jpg` : null,
+    live,
+  };
+
+  cache[key] = { ts: now, videoId: result.videoId, title: result.title };
   saveCache(cache);
+  return result;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  const btn = document.getElementById('checkLive');
-  if (btn) {
-    btn.addEventListener('click', checkLiveStreams);
-  }
-  const fab = document.getElementById('checkLiveFab');
-  if (fab) {
-    fab.addEventListener('click', checkLiveStreams);
-  }
+async function checkAllChannels() {
+  const channels = await getChannels();
+  bumpProgressTotal(channels.length);
+  await Promise.allSettled(
+    channels.map(ch =>
+      checkOneChannel(ch)
+        .then(result => {
+          updateCard(result);
+          if (result.live) autoPlay(result);
+        })
+        .catch(err => {
+          console.warn('channel check failed', ch.name, err);
+          markCardError(ch);
+        })
+        .finally(() => bumpProgress())
+    )
+  );
+}
+
+function startRescanLoop() {
+  setInterval(() => {
+    checkAllChannels().catch(err => console.warn('rescan failed', err));
+  }, RESCAN_INTERVAL_MS);
+}
+
+function bindFilter() {
+  const cb = document.getElementById('onlyLive');
+  if (!cb) return;
+  cb.addEventListener('change', () => {
+    document.body.classList.toggle('only-live', cb.checked);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  bindFilter();
+  const channels = await getChannels();
+  renderChannelCards(channels);
+  await checkAllChannels();
+  startRescanLoop();
 });

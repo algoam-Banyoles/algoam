@@ -1,6 +1,4 @@
-// Copy this file to config.js and set your own YouTube Data API key
-window.APP_CONFIG = {
-  API_KEY: 'YOUR_API_KEY_HERE',
-  // Base URL for the CORS proxy used in canal.js
-  CORS_PROXY: 'https://corsproxy.io/?'
-};
+// Opcional: copia aquest fitxer a config.js per sobreescriure el proxy CORS
+// que canal.js fa servir per defecte (https://corsproxy.io/?).
+// Ja no cal cap clau d'API; la detecció de directes es fa via scrape públic.
+// window.APP_CONFIG = { CORS_PROXY: 'https://el-teu-proxy/?' };
