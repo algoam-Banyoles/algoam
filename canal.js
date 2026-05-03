@@ -2,10 +2,12 @@
 // Detecció via fetch + scrape HTML (CORS proxy). Selecció manual; iframes
 // a la pestanya "Reproducció". Selecció persistida a localStorage.
 
-const CORS_PROXY = window.APP_CONFIG?.CORS_PROXY || 'https://corsproxy.io/?';
+// codetabs entrega les pàgines /live de YouTube sense LOGIN_REQUIRED;
+// corsproxy.io rep LOGIN_REQUIRED per als canals en directe (IP bloquejada).
+const CORS_PROXY = window.APP_CONFIG?.CORS_PROXY || 'https://api.codetabs.com/v1/proxy?quest=';
 
 const CACHE_TTL = 5 * 60 * 1000;
-const CACHE_KEY = 'liveCacheV4';
+const CACHE_KEY = 'liveCacheV5';
 const SELECTED_KEY = 'selectedChannels';
 const RESCAN_INTERVAL_MS = 90 * 1000;
 const FETCH_CONCURRENCY = 6;
@@ -389,7 +391,7 @@ async function checkOneChannel(channel) {
 
   let parsed = null;
   for (const livePath of paths) {
-    const proxyUrl = `${CORS_PROXY}${livePath}`;
+    const proxyUrl = `${CORS_PROXY}${encodeURIComponent(livePath)}`;
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
     try {
