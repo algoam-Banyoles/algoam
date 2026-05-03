@@ -14,14 +14,12 @@ async function loadChannels() {
   return JSON.parse(data);
 }
 
-function extractInitialPlayerResponse(html) {
-  const idx = html.indexOf('ytInitialPlayerResponse');
+function extractYtInitialData(html) {
+  const idx = html.indexOf('ytInitialData');
   if (idx < 0) return null;
   const startBrace = html.indexOf('{', idx);
   if (startBrace < 0) return null;
-  let depth = 0;
-  let inString = false;
-  let escape = false;
+  let depth = 0, inString = false, escape = false;
   for (let i = startBrace; i < html.length; i++) {
     const c = html[i];
     if (escape) { escape = false; continue; }
@@ -43,30 +41,52 @@ function extractInitialPlayerResponse(html) {
   return null;
 }
 
-// Detecció robusta: només acceptem si YouTube està servint segments ARA
-// (streamingData.hlsManifestUrl). Les programades tenen isLive=true però sense
-// manifest URL — així les descartem.
-function parseLiveHtml(html) {
-  const ipr = extractInitialPlayerResponse(html);
-  if (!ipr) return null;
-  const vd = ipr.videoDetails;
-  if (!vd || !vd.videoId) return null;
-  if (vd.isUpcoming === true) return null;
-  if (vd.isLive !== true) return null;
-  const lbd = ipr.microformat?.playerMicroformatRenderer?.liveBroadcastDetails;
-  if (lbd && lbd.isLiveNow === false) return null;
-  const sd = ipr.streamingData;
-  const hasManifest =
-    typeof sd?.hlsManifestUrl === 'string' && sd.hlsManifestUrl.startsWith('http') ||
-    typeof sd?.dashManifestUrl === 'string' && sd.dashManifestUrl.startsWith('http');
-  if (!hasManifest) return null;
-  return { videoId: vd.videoId, isLive: true, title: vd.title || '' };
+function isVideoRendererLive(vr) {
+  const overlays = vr.thumbnailOverlays || [];
+  for (const overlay of overlays) {
+    const tos = overlay.thumbnailOverlayTimeStatusRenderer;
+    if (tos && tos.style === 'LIVE') return true;
+  }
+  const badges = vr.badges || [];
+  for (const badge of badges) {
+    const mbr = badge.metadataBadgeRenderer;
+    if (mbr && (mbr.label === 'LIVE NOW' || mbr.style === 'BADGE_STYLE_TYPE_LIVE_NOW')) return true;
+  }
+  return false;
+}
+
+function walkVideoRenderers(obj, cb) {
+  if (Array.isArray(obj)) {
+    for (const item of obj) walkVideoRenderers(item, cb);
+    return;
+  }
+  if (obj && typeof obj === 'object') {
+    if (obj.videoRenderer) cb(obj.videoRenderer);
+    if (obj.gridVideoRenderer) cb(obj.gridVideoRenderer);
+    for (const key of Object.keys(obj)) {
+      if (key === 'videoRenderer' || key === 'gridVideoRenderer') continue;
+      walkVideoRenderers(obj[key], cb);
+    }
+  }
+}
+
+function findLiveStreams(ytData) {
+  const streams = [];
+  const seen = new Set();
+  walkVideoRenderers(ytData, vr => {
+    if (!vr.videoId || seen.has(vr.videoId)) return;
+    if (!isVideoRendererLive(vr)) return;
+    seen.add(vr.videoId);
+    const title = vr.title?.runs?.[0]?.text || vr.title?.simpleText || '';
+    streams.push({ videoId: vr.videoId, title });
+  });
+  return streams;
 }
 
 async function checkChannelLive(channel) {
   const paths = [];
-  if (channel.handle) paths.push(`https://www.youtube.com/${channel.handle}/live`);
-  if (channel.channelId) paths.push(`https://www.youtube.com/channel/${channel.channelId}/live`);
+  if (channel.handle) paths.push(`https://www.youtube.com/${channel.handle}/streams`);
+  if (channel.channelId) paths.push(`https://www.youtube.com/channel/${channel.channelId}/streams`);
 
   for (const livePath of paths) {
     try {
@@ -78,32 +98,34 @@ async function checkChannelLive(channel) {
           'Cookie': 'CONSENT=YES+1',
         },
       });
-      log(`[GET] ${livePath} -> ${res.status} ${res.url}`);
+      log(`[GET] ${livePath} -> ${res.status}`);
       if (!res.ok) continue;
       const html = await res.text();
-      const parsed = parseLiveHtml(html);
-      if (parsed) {
-        return {
-          url: `https://www.youtube.com/watch?v=${parsed.videoId}`,
-          title: parsed.title,
-        };
-      }
+      const ytData = extractYtInitialData(html);
+      if (!ytData) continue;
+      const streams = findLiveStreams(ytData);
+      if (streams.length > 0) return streams;
     } catch (err) {
       log(`[ERR] ${livePath} ${err.message}`);
     }
   }
-  return null;
+  return [];
 }
 
 async function main() {
   const channels = await loadChannels();
   for (const channel of channels) {
     try {
-      const info = await checkChannelLive(channel);
-      if (info) {
-        log(`OK ${channel.name} en emissió: ${info.url}${info.title ? ` — ${info.title}` : ''}`);
-      } else {
+      const streams = await checkChannelLive(channel);
+      if (streams.length === 0) {
         log(`KO ${channel.name} sense emissió`);
+      } else if (streams.length === 1) {
+        log(`OK ${channel.name} en emissió: https://www.youtube.com/watch?v=${streams[0].videoId} — ${streams[0].title}`);
+      } else {
+        log(`OK ${channel.name} ${streams.length} emissions simultànies:`);
+        for (const s of streams) {
+          log(`     https://www.youtube.com/watch?v=${s.videoId} — ${s.title}`);
+        }
       }
     } catch (err) {
       log(`Error checking ${channel.channelId} ${err.message}`);
