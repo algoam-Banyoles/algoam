@@ -171,16 +171,19 @@ function sortCards() {
 
 // ---------- Filters ----------
 
-function applyFilters() {
-  const searchInput = document.getElementById('searchInput');
-  const onlyLiveCB = document.getElementById('onlyLive');
-  const q = (searchInput?.value || '').toLowerCase().trim();
-  const onlyLive = !!onlyLiveCB?.checked;
+// Filtres via CSS (body.only-live + .search-hidden) perquè s'apliquin
+// automàticament quan els data-status canvien sense haver de re-renderitzar.
+function applyOnlyLiveFilter() {
+  const cb = document.getElementById('onlyLive');
+  document.body.classList.toggle('only-live', !!cb?.checked);
+}
+
+function applySearchFilter() {
+  const input = document.getElementById('searchInput');
+  const q = (input?.value || '').toLowerCase().trim();
   document.querySelectorAll('.ch-card').forEach(card => {
     const name = card.querySelector('.ch-name').textContent.toLowerCase();
-    const matchesQuery = !q || name.includes(q);
-    const matchesLive = !onlyLive || card.dataset.status === 'live';
-    card.style.display = (matchesQuery && matchesLive) ? '' : 'none';
+    card.classList.toggle('search-hidden', !!q && !name.includes(q));
   });
 }
 
@@ -485,8 +488,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab))
   );
   document.getElementById('goToChannels')?.addEventListener('click', () => switchTab('channels'));
-  document.getElementById('searchInput')?.addEventListener('input', applyFilters);
-  document.getElementById('onlyLive')?.addEventListener('change', applyFilters);
+  document.getElementById('searchInput')?.addEventListener('input', applySearchFilter);
+  document.getElementById('onlyLive')?.addEventListener('change', applyOnlyLiveFilter);
+  applyOnlyLiveFilter();
   window.addEventListener('resize', updateGridCols);
 
   switchTab(selectedSet.size > 0 ? 'players' : 'channels');

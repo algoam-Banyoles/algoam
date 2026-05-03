@@ -202,6 +202,9 @@ main {
 .ch-card[data-status="error"] { opacity: 0.5; }
 .ch-card[data-status="offline"] { opacity: 0.75; }
 
+body.only-live .ch-card:not([data-status="live"]) { display: none; }
+.ch-card.search-hidden { display: none; }
+
 .ch-thumb {
   position: relative;
   aspect-ratio: 16 / 9;
