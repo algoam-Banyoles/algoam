@@ -5,7 +5,7 @@
 const CORS_PROXY = window.APP_CONFIG?.CORS_PROXY || 'https://corsproxy.io/?';
 
 const CACHE_TTL = 5 * 60 * 1000;
-const CACHE_KEY = 'liveCacheV2';
+const CACHE_KEY = 'liveCacheV3';
 const SELECTED_KEY = 'selectedChannels';
 const RESCAN_INTERVAL_MS = 90 * 1000;
 const FETCH_CONCURRENCY = 6;
@@ -313,28 +313,52 @@ function switchTab(name) {
 
 // ---------- Detection ----------
 
-// Detecció robusta de directe:
-//   - rebutja premières/programades (isUpcoming)
-//   - requereix "isLive":true (estat actual, no només "és de tipus directe")
-//   - requereix <link rel="canonical"> a watch?v=VIDEO_ID (quan /live redirigeix
-//     al canal perquè no hi ha emissió, canonical apunta al canal i no aquí)
-// "isLiveContent":true NO és prou: apareix també en VODs d'antics directes.
-function parseLiveHtml(html) {
-  if (/"isUpcoming":true/.test(html)) return null;
-  if (!/"isLive":true/.test(html)) return null;
-  const canonical = html.match(
-    /<link rel="canonical" href="https:\/\/www\.youtube\.com\/watch\?v=([\w-]{11})"/
-  );
-  if (!canonical) return null;
-  const videoId = canonical[1];
-  let title = '';
-  const t1 = html.match(/<meta name="title" content="([^"]+)"/);
-  if (t1) title = t1[1];
-  else {
-    const t2 = html.match(/<title>([^<]+) - YouTube<\/title>/);
-    if (t2) title = t2[1];
+// Extreu el JSON ytInitialPlayerResponse de l'HTML balancejant claus i
+// respectant strings escapades. Cal evitar regex sobre 1MB perquè "isLive":true
+// pot aparèixer en vídeos relacionats — només volem el del vídeo principal.
+function extractInitialPlayerResponse(html) {
+  const idx = html.indexOf('ytInitialPlayerResponse');
+  if (idx < 0) return null;
+  const startBrace = html.indexOf('{', idx);
+  if (startBrace < 0) return null;
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = startBrace; i < html.length; i++) {
+    const c = html[i];
+    if (escape) { escape = false; continue; }
+    if (inString) {
+      if (c === '\\') escape = true;
+      else if (c === '"') inString = false;
+      continue;
+    }
+    if (c === '"') { inString = true; continue; }
+    if (c === '{') depth++;
+    else if (c === '}') {
+      depth--;
+      if (depth === 0) {
+        try { return JSON.parse(html.slice(startBrace, i + 1)); }
+        catch (_) { return null; }
+      }
+    }
   }
-  return { videoId, isLive: true, title };
+  return null;
+}
+
+// Detecció robusta: parlem amb videoDetails directament (camp de veritat per al
+// vídeo principal). videoDetails.isLive és true només mentre s'està emetent;
+// videoDetails.isLiveContent també és true en VODs d'antics directes (FALS
+// POSITIU); liveBroadcastDetails.isLiveNow confirma broadcast actiu.
+function parseLiveHtml(html) {
+  const ipr = extractInitialPlayerResponse(html);
+  if (!ipr) return null;
+  const vd = ipr.videoDetails;
+  if (!vd || !vd.videoId) return null;
+  if (vd.isUpcoming === true) return null;
+  if (vd.isLive !== true) return null;
+  const lbd = ipr.microformat?.playerMicroformatRenderer?.liveBroadcastDetails;
+  if (lbd && lbd.isLiveNow === false) return null;
+  return { videoId: vd.videoId, isLive: true, title: vd.title || '' };
 }
 
 async function checkOneChannel(channel) {

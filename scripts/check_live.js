@@ -14,25 +14,46 @@ async function loadChannels() {
   return JSON.parse(data);
 }
 
-// Detecció robusta: requereix "isLive":true + canonical a watch?v= i descarta
-// premières (isUpcoming). "isLiveContent" sol també està en VODs antics.
-function parseLiveHtml(html) {
-  if (/"isUpcoming":true/.test(html)) return null;
-  if (!/"isLive":true/.test(html)) return null;
-  const canonical = html.match(
-    /<link rel="canonical" href="https:\/\/www\.youtube\.com\/watch\?v=([\w-]{11})"/
-  );
-  if (!canonical) return null;
-  const videoId = canonical[1];
-  let title = '';
-  const t1 = html.match(/<meta name="title" content="([^"]+)"/);
-  if (t1) {
-    title = t1[1];
-  } else {
-    const t2 = html.match(/<title>([^<]+) - YouTube<\/title>/);
-    if (t2) title = t2[1];
+function extractInitialPlayerResponse(html) {
+  const idx = html.indexOf('ytInitialPlayerResponse');
+  if (idx < 0) return null;
+  const startBrace = html.indexOf('{', idx);
+  if (startBrace < 0) return null;
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = startBrace; i < html.length; i++) {
+    const c = html[i];
+    if (escape) { escape = false; continue; }
+    if (inString) {
+      if (c === '\\') escape = true;
+      else if (c === '"') inString = false;
+      continue;
+    }
+    if (c === '"') { inString = true; continue; }
+    if (c === '{') depth++;
+    else if (c === '}') {
+      depth--;
+      if (depth === 0) {
+        try { return JSON.parse(html.slice(startBrace, i + 1)); }
+        catch (_) { return null; }
+      }
+    }
   }
-  return { videoId, isLive: true, title };
+  return null;
+}
+
+// Detecció robusta: videoDetails.isLive (true només en emissió actual).
+function parseLiveHtml(html) {
+  const ipr = extractInitialPlayerResponse(html);
+  if (!ipr) return null;
+  const vd = ipr.videoDetails;
+  if (!vd || !vd.videoId) return null;
+  if (vd.isUpcoming === true) return null;
+  if (vd.isLive !== true) return null;
+  const lbd = ipr.microformat?.playerMicroformatRenderer?.liveBroadcastDetails;
+  if (lbd && lbd.isLiveNow === false) return null;
+  return { videoId: vd.videoId, isLive: true, title: vd.title || '' };
 }
 
 async function checkChannelLive(channel) {
