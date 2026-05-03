@@ -68,6 +68,16 @@ Genera/actualitza `canals.json` amb identificadors i handles.
 CHANNEL_ID=UC... CALLBACK_URL=https://example.com/websub node websub_server.js
 ```
 
+## Notificacions push (opcional)
+
+Quan un canal entri en directe, la PWA pot enviar una notificació. Cal desplegar el petit backend de [algoam/worker/](worker/) (Cloudflare Workers + GitHub Actions cron). Vegeu [worker/README.md](worker/README.md) per als 6 passos de setup. Tot dins del free tier; cost 0 €/mes.
+
+Un cop desplegat:
+1. Afegir `WORKER_URL` i `VAPID_PUBLIC` al `config.js` (vegeu `config.sample.js`).
+2. A la pestanya **Directes**, clica la campaneta de qualsevol targeta. La primera vegada el navegador demanarà permís de notificacions.
+3. La campaneta passa a verda i el canal queda subscrit.
+4. Quan el canal entri en directe (en menys de 5 min), rebràs una notificació amb el títol del directe; clicant-la, l'app s'obre i afegeix el reproductor automàticament.
+
 ## Resolució de problemes
 
 - **403 / 429 al servidor proxy CORS**: configureu un `CORS_PROXY` propi (vegeu *Configuració opcional*).

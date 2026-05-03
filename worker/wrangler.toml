@@ -1,0 +1,20 @@
+name = "algoam-push"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+# CORS: allow only your PWA origin (set via wrangler secret put or here directly).
+[vars]
+ALLOWED_ORIGIN = "https://algoam-banyoles.github.io"
+VAPID_SUBJECT = "mailto:noreply@example.com"
+
+# Replace KV_NAMESPACE_ID with the id printed by:
+#   wrangler kv namespace create ALGOAM_KV
+[[kv_namespaces]]
+binding = "ALGOAM_KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+# Secrets to set with `wrangler secret put NAME`:
+#   - VAPID_PUBLIC   (base64url public key from `npx web-push generate-vapid-keys`)
+#   - VAPID_PRIVATE  (the matching private key)
+#   - POLL_SECRET    (any random string used by GitHub Actions to call /poll)

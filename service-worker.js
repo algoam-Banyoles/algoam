@@ -1,4 +1,4 @@
-const CACHE_NAME = 'algoam-cache-v4';
+const CACHE_NAME = 'algoam-cache-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -50,4 +50,48 @@ self.addEventListener('fetch', event => {
 
 self.addEventListener('message', event => {
   if (event.data === 'skipWaiting') self.skipWaiting();
+});
+
+// ---------- Push notifications ----------
+
+self.addEventListener('push', event => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; }
+  catch (_) { data = { channel: 'Multiview', title: 'Nou directe' }; }
+
+  const title = data.channel ? `${data.channel} en directe` : 'Multiview — nou directe';
+  const body = data.title || 'Una nova emissió ha començat';
+  const tag = data.videoId ? `live-${data.videoId}` : 'multiview-live';
+  const urlToOpen = data.videoId
+    ? `./?play=${encodeURIComponent(data.videoId)}`
+    : './';
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      tag,
+      renotify: true,
+      icon: './icon-192.png',
+      badge: './icon-192.png',
+      data: { url: urlToOpen, ...data },
+    })
+  );
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || './';
+  event.waitUntil((async () => {
+    const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of all) {
+      // Reuse an existing window if it's our app
+      const u = new URL(client.url);
+      if (u.origin === self.location.origin) {
+        client.focus();
+        client.navigate(targetUrl).catch(() => {});
+        return;
+      }
+    }
+    await self.clients.openWindow(targetUrl);
+  })());
 });

@@ -4,10 +4,13 @@
 // Selecció manual persistida a localStorage (per videoId).
 
 const CORS_PROXY = window.APP_CONFIG?.CORS_PROXY || 'https://api.codetabs.com/v1/proxy?quest=';
+const WORKER_URL = window.APP_CONFIG?.WORKER_URL || '';
+let vapidPublic = window.APP_CONFIG?.VAPID_PUBLIC || '';
 
 const CACHE_TTL = 5 * 60 * 1000;
 const CACHE_KEY = 'liveCacheV6';
 const SELECTED_KEY = 'selectedStreams';
+const PUSH_CHANNELS_KEY = 'pushChannels';
 const RESCAN_INTERVAL_MS = 90 * 1000;
 const FETCH_CONCURRENCY = 6;
 const FETCH_TIMEOUT_MS = 15000;
@@ -18,6 +21,7 @@ const FETCH_TIMEOUT_MS = 15000;
 // La selecció és sempre per videoId; channelKey s'usa només a la UI per
 // representar canals que encara no estan en directe.
 const selectedSet = loadSelected();
+const subscribedChannels = loadPushChannels();
 const playerByKey = new Map();   // videoId -> {wrapper, player}
 const channelByKey = new Map();  // channelKey -> channel object
 const cardsByChannel = new Map(); // channelKey -> Set<cardKey>
@@ -42,6 +46,15 @@ function loadSelected() {
 
 function saveSelected() {
   localStorage.setItem(SELECTED_KEY, JSON.stringify(Array.from(selectedSet)));
+}
+
+function loadPushChannels() {
+  try { return new Set(JSON.parse(localStorage.getItem(PUSH_CHANNELS_KEY)) || []); }
+  catch (_) { return new Set(); }
+}
+
+function savePushChannels() {
+  localStorage.setItem(PUSH_CHANNELS_KEY, JSON.stringify(Array.from(subscribedChannels)));
 }
 
 async function getChannels() {
@@ -70,9 +83,11 @@ function createCard({ cardKey, channel, status, videoId, title }) {
   const card = document.createElement('article');
   card.className = 'ch-card';
   card.dataset.key = cardKey;
-  card.dataset.channelKey = channelKey(channel);
+  const cKey = channelKey(channel);
+  card.dataset.channelKey = cKey;
   card.dataset.status = status;
   card.dataset.selected = selectedSet.has(cardKey) ? 'true' : 'false';
+  card.dataset.notify = subscribedChannels.has(cKey) ? 'on' : 'off';
   if (videoId) card.dataset.videoId = videoId;
   const thumb = videoId
     ? `<img loading="lazy" src="https://i.ytimg.com/vi/${videoId}/hqdefault.jpg" alt="">`
@@ -82,11 +97,21 @@ function createCard({ cardKey, channel, status, videoId, title }) {
       ${thumb}
       <span class="ch-badge ch-badge-live">EN DIRECTE</span>
       <span class="ch-badge ch-badge-selected">✓ SELECCIONAT</span>
+      <button class="bell-btn" type="button"
+              title="Notifica'm quan aquest canal entri en directe"
+              aria-label="Activar notificacions">
+        <span class="bell-on">🔔</span>
+        <span class="bell-off">🔕</span>
+      </button>
     </div>
     <h3 class="ch-name">${channel.name}</h3>
     <p class="ch-title">${title || ''}</p>
   `;
   card.addEventListener('click', () => onCardClick(cardKey));
+  card.querySelector('.bell-btn').addEventListener('click', e => {
+    e.stopPropagation();
+    toggleBellForChannel(cKey);
+  });
   return card;
 }
 
@@ -560,10 +585,112 @@ function startRescanLoop() {
   }, RESCAN_INTERVAL_MS);
 }
 
+// ---------- Push notifications ----------
+
+function urlB64ToUint8Array(b64) {
+  const padding = '='.repeat((4 - b64.length % 4) % 4);
+  const base64 = (b64 + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  const arr = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return arr;
+}
+
+async function ensurePushSubscription() {
+  if (!WORKER_URL) throw new Error('Backend de notificacions no configurat (WORKER_URL).');
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    throw new Error('El teu navegador no suporta notificacions push.');
+  }
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') throw new Error('Permís de notificacions denegat.');
+
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if (sub) return sub;
+
+  if (!vapidPublic) {
+    try {
+      const r = await fetch(`${WORKER_URL}/vapid-public`);
+      const data = await r.json();
+      vapidPublic = data.key;
+    } catch (_) { /* ignore */ }
+  }
+  if (!vapidPublic) throw new Error('No es pot obtenir la clau VAPID del backend.');
+
+  return reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlB64ToUint8Array(vapidPublic),
+  });
+}
+
+async function syncSubscriptionToBackend() {
+  if (!WORKER_URL) return;
+  const reg = await navigator.serviceWorker.ready;
+  const sub = await reg.pushManager.getSubscription();
+  if (!sub) return;
+  const channels = Array.from(subscribedChannels);
+  if (channels.length === 0) {
+    await fetch(`${WORKER_URL}/unsubscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint: sub.endpoint }),
+    });
+    return;
+  }
+  await fetch(`${WORKER_URL}/subscribe`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ subscription: sub.toJSON(), channels }),
+  });
+}
+
+async function toggleBellForChannel(channelKeyVal) {
+  const willEnable = !subscribedChannels.has(channelKeyVal);
+  if (willEnable) {
+    try {
+      await ensurePushSubscription();
+    } catch (err) {
+      alert(err.message || String(err));
+      return;
+    }
+    subscribedChannels.add(channelKeyVal);
+  } else {
+    subscribedChannels.delete(channelKeyVal);
+  }
+  savePushChannels();
+  applyBellStates();
+  try { await syncSubscriptionToBackend(); }
+  catch (err) {
+    console.warn('sync subscription failed', err);
+  }
+}
+
+function applyBellStates() {
+  document.querySelectorAll('.ch-card').forEach(card => {
+    const ck = card.dataset.channelKey;
+    if (!ck) return;
+    card.dataset.notify = subscribedChannels.has(ck) ? 'on' : 'off';
+  });
+}
+
+// ---------- Deep link from notification click ----------
+
+function handleDeepLink(channels) {
+  const params = new URLSearchParams(location.search);
+  const playId = params.get('play');
+  if (!playId) return;
+  // Add to selectedSet so maybeRestoreSelected picks it up after detection
+  selectedSet.add(playId);
+  saveSelected();
+  // Clean the URL so refresh doesn't re-trigger
+  history.replaceState({}, '', location.pathname);
+}
+
 // ---------- Init ----------
 
 document.addEventListener('DOMContentLoaded', async () => {
   const channels = await getChannels();
+  handleDeepLink(channels);
   renderChannelCards(channels);
 
   document.querySelectorAll('.tab-btn').forEach(btn =>
