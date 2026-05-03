@@ -1,5 +1,40 @@
 [
   {
+    "name": "CLUB BILLAR BARCELONA 1",
+    "channelId": "UC-4myvsPx91baXD_-MwDlZQ",
+    "handle": "@ClubBillarBarcelona"
+  },
+  {
+    "name": "CLUB BILLAR BARCELONA 2",
+    "channelId": "UCOHccUJBMW-W4yDgvf2QjUg",
+    "handle": "@Club_Billar_Barcelona_Taula_02"
+  },
+  {
+    "name": "CLUB BILLAR BARCELONA 3",
+    "channelId": "UC9d1GsXrTZ80jMkyV9RQzwg",
+    "handle": "@Club_Billar_Barcelona_Taula_03"
+  },
+  {
+    "name": "CLUB BILLAR BARCELONA 4",
+    "channelId": "UC3ZKv9wAXeCFWNfWmCfRPRw",
+    "handle": "@Club_Billar_Barcelona_Taula_04"
+  },
+  {
+    "name": "CLUB BILLAR BORGES 1",
+    "channelId": "UCJjxV_pXCrFDH8ApNLmcPYw",
+    "handle": "@BorgesBillar1"
+  },
+  {
+    "name": "CLUB BILLAR BORGES 2",
+    "channelId": "UCkn9nPsmOA2Kc4UsEWtfklQ",
+    "handle": "@BorgesBillar2"
+  },
+  {
+    "name": "CLUB BILLAR BORGES 3",
+    "channelId": "UCFFjnjOuGUMdwalt3EexnCg",
+    "handle": "@BorgesBillar3"
+  },
+  {
     "name": "CLUB BILLAR SANT FELIU 1",
     "channelId": "UCUeHOxd6FPWXexnTEKCMwqg",
     "handle": "@cbsantfeliu1"

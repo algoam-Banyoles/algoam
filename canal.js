@@ -114,7 +114,6 @@ function selectChannel(key) {
   saveSelected();
   if (card) card.dataset.selected = 'true';
   addPlayer(videoId, ch.name, key);
-  updatePlayerCount();
 }
 
 function deselectChannel(key) {
@@ -123,7 +122,6 @@ function deselectChannel(key) {
   const card = document.querySelector(`.ch-card[data-key="${CSS.escape(key)}"]`);
   if (card) card.dataset.selected = 'false';
   removePlayer(key);
-  updatePlayerCount();
   if (playerByKey.size === 0 && getActiveTab() === 'players') {
     switchTab('channels');
   }
@@ -243,9 +241,19 @@ function updateGridCols() {
 
 async function addPlayer(videoId, name, key) {
   if (playerByKey.has(key)) return;
+  // Reserva l'slot abans del await perquè el comptador sigui correcte i no
+  // es dupliqui un mateix canal si addPlayer s'invoca dues vegades de pressa.
+  const slot = { wrapper: null, player: null };
+  playerByKey.set(key, slot);
+  updatePlayerCount();
+
   await whenYTReady();
   const container = document.getElementById('video-container');
-  if (!container) return;
+  if (!container) {
+    playerByKey.delete(key);
+    updatePlayerCount();
+    return;
+  }
 
   const wrapper = document.createElement('div');
   wrapper.className = 'video-wrapper';
@@ -267,24 +275,25 @@ async function addPlayer(videoId, name, key) {
   wrapper.appendChild(overlay);
 
   container.appendChild(wrapper);
+  slot.wrapper = wrapper;
   updateGridCols();
 
-  const player = new YT.Player(playerId, {
+  slot.player = new YT.Player(playerId, {
     height: '100%',
     width: '100%',
     videoId,
     playerVars: { autoplay: 1, mute: 1, playsinline: 1, controls: 1 },
   });
-  playerByKey.set(key, { player, wrapper });
 }
 
 function removePlayer(key) {
   const entry = playerByKey.get(key);
   if (!entry) return;
-  try { entry.player.destroy(); } catch (_) {}
-  entry.wrapper.remove();
+  try { entry.player?.destroy(); } catch (_) {}
+  entry.wrapper?.remove();
   playerByKey.delete(key);
   updateGridCols();
+  updatePlayerCount();
 }
 
 function updatePlayerCount() {
@@ -462,7 +471,6 @@ function maybeRestoreSelected(result) {
   const ch = channelByKey.get(result.key);
   if (!ch) return;
   addPlayer(result.videoId, ch.name, result.key);
-  updatePlayerCount();
 }
 
 function startRescanLoop() {
