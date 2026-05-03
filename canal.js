@@ -268,7 +268,6 @@ async function addPlayer(videoId, name, key) {
 
   container.appendChild(wrapper);
   updateGridCols();
-  updateEmptyState();
 
   const player = new YT.Player(playerId, {
     height: '100%',
@@ -286,17 +285,11 @@ function removePlayer(key) {
   entry.wrapper.remove();
   playerByKey.delete(key);
   updateGridCols();
-  updateEmptyState();
 }
 
 function updatePlayerCount() {
   const el = document.getElementById('playerCount');
   if (el) el.textContent = playerByKey.size > 0 ? `(${playerByKey.size})` : '';
-}
-
-function updateEmptyState() {
-  const empty = document.getElementById('emptyState');
-  if (empty) empty.style.display = playerByKey.size === 0 ? '' : 'none';
 }
 
 // ---------- Tabs ----------
@@ -487,7 +480,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.querySelectorAll('.tab-btn').forEach(btn =>
     btn.addEventListener('click', () => switchTab(btn.dataset.tab))
   );
-  document.getElementById('goToChannels')?.addEventListener('click', () => switchTab('channels'));
   document.getElementById('searchInput')?.addEventListener('input', applySearchFilter);
   document.getElementById('onlyLive')?.addEventListener('change', applyOnlyLiveFilter);
   applyOnlyLiveFilter();
@@ -495,7 +487,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   switchTab(selectedSet.size > 0 ? 'players' : 'channels');
   updatePlayerCount();
-  updateEmptyState();
 
   await checkAllChannels();
   startRescanLoop();
