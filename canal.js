@@ -1,21 +1,26 @@
 // Multiview — selector i reproducció de directes sense API de Google.
-// Detecció via fetch + scrape HTML (CORS proxy). Selecció manual; iframes
-// a la pestanya "Reproducció". Selecció persistida a localStorage.
+// Detecció via /streams + scrape HTML (CORS proxy). Un canal pot tenir
+// múltiples directes simultanis: en sortirà una targeta per stream.
+// Selecció manual persistida a localStorage (per videoId).
 
-// codetabs entrega les pàgines /live de YouTube sense LOGIN_REQUIRED;
-// corsproxy.io rep LOGIN_REQUIRED per als canals en directe (IP bloquejada).
 const CORS_PROXY = window.APP_CONFIG?.CORS_PROXY || 'https://api.codetabs.com/v1/proxy?quest=';
 
 const CACHE_TTL = 5 * 60 * 1000;
-const CACHE_KEY = 'liveCacheV5';
-const SELECTED_KEY = 'selectedChannels';
+const CACHE_KEY = 'liveCacheV6';
+const SELECTED_KEY = 'selectedStreams';
 const RESCAN_INTERVAL_MS = 90 * 1000;
 const FETCH_CONCURRENCY = 6;
 const FETCH_TIMEOUT_MS = 15000;
 
+// Identificador estable que un usuari pot seleccionar:
+//   - Per un stream live: el videoId (canvia quan canvia l'emissió)
+//   - Per un canal offline o en comprovació: la channelKey (channelId o handle)
+// La selecció és sempre per videoId; channelKey s'usa només a la UI per
+// representar canals que encara no estan en directe.
 const selectedSet = loadSelected();
-const playerByKey = new Map();
-const channelByKey = new Map();
+const playerByKey = new Map();   // videoId -> {wrapper, player}
+const channelByKey = new Map();  // channelKey -> channel object
+const cardsByChannel = new Map(); // channelKey -> Set<cardKey>
 
 let progressDone = 0;
 let progressTotal = 0;
@@ -61,94 +66,171 @@ function placeholderHTML(name) {
 
 // ---------- Channel cards ----------
 
+function createCard({ cardKey, channel, status, videoId, title }) {
+  const card = document.createElement('article');
+  card.className = 'ch-card';
+  card.dataset.key = cardKey;
+  card.dataset.channelKey = channelKey(channel);
+  card.dataset.status = status;
+  card.dataset.selected = selectedSet.has(cardKey) ? 'true' : 'false';
+  if (videoId) card.dataset.videoId = videoId;
+  const thumb = videoId
+    ? `<img loading="lazy" src="https://i.ytimg.com/vi/${videoId}/hqdefault.jpg" alt="">`
+    : placeholderHTML(channel.name);
+  card.innerHTML = `
+    <div class="ch-thumb">
+      ${thumb}
+      <span class="ch-badge ch-badge-live">EN DIRECTE</span>
+      <span class="ch-badge ch-badge-selected">✓ SELECCIONAT</span>
+    </div>
+    <h3 class="ch-name">${channel.name}</h3>
+    <p class="ch-title">${title || ''}</p>
+  `;
+  card.addEventListener('click', () => onCardClick(cardKey));
+  return card;
+}
+
 function renderChannelCards(channels) {
   const root = document.getElementById('channelCards');
   if (!root) return;
   const cache = loadCache();
   root.innerHTML = '';
+  cardsByChannel.clear();
   for (const ch of channels) {
-    const key = channelKey(ch);
-    channelByKey.set(key, ch);
-    const card = document.createElement('article');
-    card.className = 'ch-card';
-    card.dataset.key = key;
-    card.dataset.status = 'checking';
-    card.dataset.selected = selectedSet.has(key) ? 'true' : 'false';
-    const cached = cache[key];
-    const initialThumb = cached?.videoId
-      ? `<img loading="lazy" src="https://i.ytimg.com/vi/${cached.videoId}/hqdefault.jpg" alt="">`
-      : placeholderHTML(ch.name);
-    card.innerHTML = `
-      <div class="ch-thumb">
-        ${initialThumb}
-        <span class="ch-badge ch-badge-live">EN DIRECTE</span>
-        <span class="ch-badge ch-badge-selected">✓ SELECCIONAT</span>
-      </div>
-      <h3 class="ch-name">${ch.name}</h3>
-      <p class="ch-title"></p>
-    `;
-    card.addEventListener('click', () => onCardClick(key));
-    root.appendChild(card);
+    const cKey = channelKey(ch);
+    channelByKey.set(cKey, ch);
+    const cached = cache[cKey];
+    const cachedStreams = cached?.streams || [];
+    if (cachedStreams.length > 0) {
+      // Restore cards from cache (will get refreshed when checkAllChannels runs)
+      const set = new Set();
+      for (const s of cachedStreams) {
+        const card = createCard({
+          cardKey: s.videoId,
+          channel: ch,
+          status: 'live',
+          videoId: s.videoId,
+          title: s.title,
+        });
+        root.appendChild(card);
+        set.add(s.videoId);
+      }
+      cardsByChannel.set(cKey, set);
+    } else {
+      const card = createCard({ cardKey: cKey, channel: ch, status: 'checking' });
+      root.appendChild(card);
+      cardsByChannel.set(cKey, new Set([cKey]));
+    }
   }
 }
 
-function onCardClick(key) {
-  const card = document.querySelector(`.ch-card[data-key="${CSS.escape(key)}"]`);
+function updateChannelCards(result) {
+  const ch = channelByKey.get(result.key);
+  if (!ch) return;
+  const root = document.getElementById('channelCards');
+  if (!root) return;
+
+  const existing = cardsByChannel.get(result.key) || new Set();
+  const streams = result.streams || [];
+
+  if (streams.length === 0) {
+    // Collapse to one offline card keyed by channelKey
+    if (existing.size === 1 && existing.has(result.key)) {
+      const card = root.querySelector(`.ch-card[data-key="${CSS.escape(result.key)}"]`);
+      if (card) {
+        card.dataset.status = result.error ? 'error' : 'offline';
+        card.querySelector('.ch-title').textContent = '';
+        card.removeAttribute('data-video-id');
+      }
+    } else {
+      removeCardsByKeys(existing, root);
+      const card = createCard({
+        cardKey: result.key,
+        channel: ch,
+        status: result.error ? 'error' : 'offline',
+      });
+      root.appendChild(card);
+      cardsByChannel.set(result.key, new Set([result.key]));
+    }
+    return;
+  }
+
+  // streams.length >= 1: one card per stream, keyed by videoId
+  const desiredKeys = new Set(streams.map(s => s.videoId));
+
+  // Remove obsolete cards (channel-key placeholder or ended streams)
+  for (const k of existing) {
+    if (!desiredKeys.has(k)) {
+      const card = root.querySelector(`.ch-card[data-key="${CSS.escape(k)}"]`);
+      if (card) card.remove();
+    }
+  }
+
+  // Add or update cards for each current stream
+  for (const stream of streams) {
+    const card = root.querySelector(`.ch-card[data-key="${CSS.escape(stream.videoId)}"]`);
+    if (card) {
+      card.dataset.status = 'live';
+      card.dataset.videoId = stream.videoId;
+      card.querySelector('.ch-title').textContent = stream.title || '';
+    } else {
+      const newCard = createCard({
+        cardKey: stream.videoId,
+        channel: ch,
+        status: 'live',
+        videoId: stream.videoId,
+        title: stream.title,
+      });
+      root.appendChild(newCard);
+    }
+  }
+
+  cardsByChannel.set(result.key, desiredKeys);
+}
+
+function removeCardsByKeys(keys, root) {
+  for (const k of keys) {
+    const card = root.querySelector(`.ch-card[data-key="${CSS.escape(k)}"]`);
+    if (card) card.remove();
+  }
+}
+
+function markChannelError(channel) {
+  updateChannelCards({ key: channelKey(channel), streams: [], error: true });
+}
+
+function onCardClick(cardKey) {
+  const card = document.querySelector(`.ch-card[data-key="${CSS.escape(cardKey)}"]`);
   if (!card) return;
-  if (selectedSet.has(key)) {
-    deselectChannel(key);
+  if (selectedSet.has(cardKey)) {
+    deselectStream(cardKey);
   } else {
     if (card.dataset.status !== 'live') return;
-    selectChannel(key);
+    selectStream(cardKey);
   }
 }
 
-function selectChannel(key) {
-  const card = document.querySelector(`.ch-card[data-key="${CSS.escape(key)}"]`);
-  const ch = channelByKey.get(key);
+function selectStream(videoId) {
+  const card = document.querySelector(`.ch-card[data-key="${CSS.escape(videoId)}"]`);
+  if (!card) return;
+  const channelKeyVal = card.dataset.channelKey;
+  const ch = channelByKey.get(channelKeyVal);
   if (!ch) return;
-  const cache = loadCache();
-  const videoId = cache[key]?.videoId;
-  if (!videoId) return;
-  selectedSet.add(key);
+  selectedSet.add(videoId);
   saveSelected();
-  if (card) card.dataset.selected = 'true';
-  addPlayer(videoId, ch.name, key);
+  card.dataset.selected = 'true';
+  addPlayer(videoId, ch.name, videoId);
 }
 
-function deselectChannel(key) {
-  selectedSet.delete(key);
+function deselectStream(videoId) {
+  selectedSet.delete(videoId);
   saveSelected();
-  const card = document.querySelector(`.ch-card[data-key="${CSS.escape(key)}"]`);
+  const card = document.querySelector(`.ch-card[data-key="${CSS.escape(videoId)}"]`);
   if (card) card.dataset.selected = 'false';
-  removePlayer(key);
+  removePlayer(videoId);
   if (playerByKey.size === 0 && getActiveTab() === 'players') {
     switchTab('channels');
   }
-}
-
-function updateCard(result) {
-  const card = document.querySelector(`.ch-card[data-key="${CSS.escape(result.key)}"]`);
-  if (!card) return;
-  if (result.live && result.videoId) {
-    card.dataset.status = 'live';
-    card.dataset.videoId = result.videoId;
-    const thumbDiv = card.querySelector('.ch-thumb');
-    const existingImg = thumbDiv.querySelector('img');
-    const url = `https://i.ytimg.com/vi/${result.videoId}/hqdefault.jpg`;
-    if (existingImg) existingImg.src = url;
-    else thumbDiv.insertAdjacentHTML('afterbegin', `<img loading="lazy" src="${url}" alt="">`);
-    card.querySelector('.ch-title').textContent = result.title || '';
-  } else {
-    card.dataset.status = 'offline';
-    card.querySelector('.ch-title').textContent = '';
-  }
-}
-
-function markCardError(channel) {
-  const key = channelKey(channel);
-  const card = document.querySelector(`.ch-card[data-key="${CSS.escape(key)}"]`);
-  if (card && card.dataset.status === 'checking') card.dataset.status = 'error';
 }
 
 function sortCards() {
@@ -169,8 +251,6 @@ function sortCards() {
 
 // ---------- Filters ----------
 
-// Filtres via CSS (body.only-live + .search-hidden) perquè s'apliquin
-// automàticament quan els data-status canvien sense haver de re-renderitzar.
 function applyOnlyLiveFilter() {
   const cb = document.getElementById('onlyLive');
   document.body.classList.toggle('only-live', !!cb?.checked);
@@ -242,7 +322,7 @@ function updateGridCols() {
 async function addPlayer(videoId, name, key) {
   if (playerByKey.has(key)) return;
   // Reserva l'slot abans del await perquè el comptador sigui correcte i no
-  // es dupliqui un mateix canal si addPlayer s'invoca dues vegades de pressa.
+  // es dupliqui un mateix vídeo si addPlayer s'invoca dues vegades de pressa.
   const slot = { wrapper: null, player: null };
   playerByKey.set(key, slot);
   updatePlayerCount();
@@ -271,7 +351,7 @@ async function addPlayer(videoId, name, key) {
     <span class="player-name">${name}</span>
     <button class="stop-btn" title="Aturar reproductor">×</button>
   `;
-  overlay.querySelector('.stop-btn').addEventListener('click', () => deselectChannel(key));
+  overlay.querySelector('.stop-btn').addEventListener('click', () => deselectStream(key));
   wrapper.appendChild(overlay);
 
   container.appendChild(wrapper);
@@ -319,19 +399,14 @@ function switchTab(name) {
   document.body.dataset.activeTab = name;
 }
 
-// ---------- Detection ----------
+// ---------- Detection (parses /streams page) ----------
 
-// Extreu el JSON ytInitialPlayerResponse de l'HTML balancejant claus i
-// respectant strings escapades. Cal evitar regex sobre 1MB perquè "isLive":true
-// pot aparèixer en vídeos relacionats — només volem el del vídeo principal.
-function extractInitialPlayerResponse(html) {
-  const idx = html.indexOf('ytInitialPlayerResponse');
+function extractYtInitialData(html) {
+  const idx = html.indexOf('ytInitialData');
   if (idx < 0) return null;
   const startBrace = html.indexOf('{', idx);
   if (startBrace < 0) return null;
-  let depth = 0;
-  let inString = false;
-  let escape = false;
+  let depth = 0, inString = false, escape = false;
   for (let i = startBrace; i < html.length; i++) {
     const c = html[i];
     if (escape) { escape = false; continue; }
@@ -353,25 +428,46 @@ function extractInitialPlayerResponse(html) {
   return null;
 }
 
-// Detecció robusta: només acceptem si YouTube està servint segments ARA
-// (streamingData.hlsManifestUrl o dashManifestUrl). Les emissions programades
-// tenen videoDetails.isLive=true però NO tenen URL de manifest perquè cap
-// segment s'està servint encara — així les descartem.
-function parseLiveHtml(html) {
-  const ipr = extractInitialPlayerResponse(html);
-  if (!ipr) return null;
-  const vd = ipr.videoDetails;
-  if (!vd || !vd.videoId) return null;
-  if (vd.isUpcoming === true) return null;
-  if (vd.isLive !== true) return null;
-  const lbd = ipr.microformat?.playerMicroformatRenderer?.liveBroadcastDetails;
-  if (lbd && lbd.isLiveNow === false) return null;
-  const sd = ipr.streamingData;
-  const hasManifest =
-    typeof sd?.hlsManifestUrl === 'string' && sd.hlsManifestUrl.startsWith('http') ||
-    typeof sd?.dashManifestUrl === 'string' && sd.dashManifestUrl.startsWith('http');
-  if (!hasManifest) return null;
-  return { videoId: vd.videoId, isLive: true, title: vd.title || '' };
+function isVideoRendererLive(vr) {
+  const overlays = vr.thumbnailOverlays || [];
+  for (const overlay of overlays) {
+    const tos = overlay.thumbnailOverlayTimeStatusRenderer;
+    if (tos && tos.style === 'LIVE') return true;
+  }
+  const badges = vr.badges || [];
+  for (const badge of badges) {
+    const mbr = badge.metadataBadgeRenderer;
+    if (mbr && (mbr.label === 'LIVE NOW' || mbr.style === 'BADGE_STYLE_TYPE_LIVE_NOW')) return true;
+  }
+  return false;
+}
+
+function walkVideoRenderers(obj, cb) {
+  if (Array.isArray(obj)) {
+    for (const item of obj) walkVideoRenderers(item, cb);
+    return;
+  }
+  if (obj && typeof obj === 'object') {
+    if (obj.videoRenderer) cb(obj.videoRenderer);
+    if (obj.gridVideoRenderer) cb(obj.gridVideoRenderer);
+    for (const key of Object.keys(obj)) {
+      if (key === 'videoRenderer' || key === 'gridVideoRenderer') continue;
+      walkVideoRenderers(obj[key], cb);
+    }
+  }
+}
+
+function findLiveStreams(ytData) {
+  const streams = [];
+  const seen = new Set();
+  walkVideoRenderers(ytData, vr => {
+    if (!vr.videoId || seen.has(vr.videoId)) return;
+    if (!isVideoRendererLive(vr)) return;
+    seen.add(vr.videoId);
+    const title = vr.title?.runs?.[0]?.text || vr.title?.simpleText || '';
+    streams.push({ videoId: vr.videoId, title });
+  });
+  return streams;
 }
 
 async function checkOneChannel(channel) {
@@ -381,20 +477,14 @@ async function checkOneChannel(channel) {
 
   const cached = cache[key];
   if (cached && now - cached.ts < CACHE_TTL) {
-    return {
-      key,
-      name: channel.name,
-      videoId: cached.videoId || null,
-      title: cached.title || '',
-      live: !!cached.videoId,
-    };
+    return { key, name: channel.name, streams: cached.streams || [] };
   }
 
   const paths = [];
-  if (channel.handle) paths.push(`https://www.youtube.com/${channel.handle}/live`);
-  if (channel.channelId) paths.push(`https://www.youtube.com/channel/${channel.channelId}/live`);
+  if (channel.handle) paths.push(`https://www.youtube.com/${channel.handle}/streams`);
+  if (channel.channelId) paths.push(`https://www.youtube.com/channel/${channel.channelId}/streams`);
 
-  let parsed = null;
+  let streams = [];
   for (const livePath of paths) {
     const proxyUrl = `${CORS_PROXY}${encodeURIComponent(livePath)}`;
     const ctrl = new AbortController();
@@ -407,9 +497,10 @@ async function checkOneChannel(channel) {
       });
       if (!res.ok) continue;
       const html = await res.text();
-      parsed = parseLiveHtml(html);
-      if (parsed && parsed.videoId && parsed.isLive) break;
-      parsed = null;
+      const ytData = extractYtInitialData(html);
+      if (!ytData) continue;
+      streams = findLiveStreams(ytData);
+      break;
     } catch (err) {
       console.warn(`fetch failed for ${livePath}`, err.name || err);
     } finally {
@@ -417,18 +508,9 @@ async function checkOneChannel(channel) {
     }
   }
 
-  const live = !!(parsed && parsed.videoId && parsed.isLive);
-  const result = {
-    key,
-    name: channel.name,
-    videoId: live ? parsed.videoId : null,
-    title: live ? parsed.title : '',
-    live,
-  };
-
-  cache[key] = { ts: now, videoId: result.videoId, title: result.title };
+  cache[key] = { ts: now, streams };
   saveCache(cache);
-  return result;
+  return { key, name: channel.name, streams };
 }
 
 async function pLimit(limit, items, fn) {
@@ -452,11 +534,11 @@ async function checkAllChannels() {
   await pLimit(FETCH_CONCURRENCY, channels, async ch => {
     try {
       const result = await checkOneChannel(ch);
-      updateCard(result);
+      updateChannelCards(result);
       maybeRestoreSelected(result);
     } catch (err) {
       console.warn('channel check failed', ch.name, err);
-      markCardError(ch);
+      markChannelError(ch);
     } finally {
       bumpProgress();
     }
@@ -465,12 +547,11 @@ async function checkAllChannels() {
 }
 
 function maybeRestoreSelected(result) {
-  if (!selectedSet.has(result.key)) return;
-  if (!result.live || !result.videoId) return;
-  if (playerByKey.has(result.key)) return;
-  const ch = channelByKey.get(result.key);
-  if (!ch) return;
-  addPlayer(result.videoId, ch.name, result.key);
+  for (const stream of result.streams || []) {
+    if (!selectedSet.has(stream.videoId)) continue;
+    if (playerByKey.has(stream.videoId)) continue;
+    addPlayer(stream.videoId, result.name, stream.videoId);
+  }
 }
 
 function startRescanLoop() {
