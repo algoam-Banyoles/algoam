@@ -26,8 +26,6 @@ const playerByKey = new Map();   // videoId -> {wrapper, player}
 const channelByKey = new Map();  // channelKey -> channel object
 const cardsByChannel = new Map(); // channelKey -> Set<cardKey>
 
-let progressDone = 0;
-let progressTotal = 0;
 let playerSeq = 0;
 
 function loadCache() {
@@ -290,27 +288,6 @@ function applySearchFilter() {
   });
 }
 
-// ---------- Progress ----------
-
-function bumpProgressTotal(n) {
-  progressDone = 0;
-  progressTotal = n;
-  renderProgress();
-}
-
-function bumpProgress() {
-  progressDone++;
-  renderProgress();
-}
-
-function renderProgress() {
-  const el = document.getElementById('checkProgress');
-  if (!el) return;
-  el.textContent = progressDone >= progressTotal
-    ? `${progressTotal} canals comprovats`
-    : `Comprovant ${progressDone}/${progressTotal}…`;
-}
-
 // ---------- YouTube IFrame API ----------
 
 let ytReadyPromise;
@@ -555,7 +532,6 @@ async function pLimit(limit, items, fn) {
 
 async function checkAllChannels() {
   const channels = Array.from(channelByKey.values());
-  bumpProgressTotal(channels.length);
   await pLimit(FETCH_CONCURRENCY, channels, async ch => {
     try {
       const result = await checkOneChannel(ch);
@@ -564,8 +540,6 @@ async function checkAllChannels() {
     } catch (err) {
       console.warn('channel check failed', ch.name, err);
       markChannelError(ch);
-    } finally {
-      bumpProgress();
     }
   });
   sortCards();

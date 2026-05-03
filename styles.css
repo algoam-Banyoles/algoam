@@ -155,12 +155,6 @@ main {
   accent-color: var(--primary);
 }
 
-.progress-text {
-  font-size: 0.85em;
-  color: var(--text-2);
-  font-variant-numeric: tabular-nums;
-}
-
 /* ---------- Channel cards ---------- */
 
 #channelCards {
