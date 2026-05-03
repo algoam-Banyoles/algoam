@@ -14,11 +14,16 @@ async function loadChannels() {
   return JSON.parse(data);
 }
 
+// Detecció robusta: requereix "isLive":true + canonical a watch?v= i descarta
+// premières (isUpcoming). "isLiveContent" sol també està en VODs antics.
 function parseLiveHtml(html) {
-  const videoIdMatch = html.match(/"videoId":"([\w-]{11})"/);
-  if (!videoIdMatch) return null;
-  const videoId = videoIdMatch[1];
-  const isLive = /"isLiveContent":true/.test(html) || /"isLiveNow":true/.test(html);
+  if (/"isUpcoming":true/.test(html)) return null;
+  if (!/"isLive":true/.test(html)) return null;
+  const canonical = html.match(
+    /<link rel="canonical" href="https:\/\/www\.youtube\.com\/watch\?v=([\w-]{11})"/
+  );
+  if (!canonical) return null;
+  const videoId = canonical[1];
   let title = '';
   const t1 = html.match(/<meta name="title" content="([^"]+)"/);
   if (t1) {
@@ -27,7 +32,7 @@ function parseLiveHtml(html) {
     const t2 = html.match(/<title>([^<]+) - YouTube<\/title>/);
     if (t2) title = t2[1];
   }
-  return { videoId, isLive, title };
+  return { videoId, isLive: true, title };
 }
 
 async function checkChannelLive(channel) {
@@ -39,13 +44,17 @@ async function checkChannelLive(channel) {
     try {
       const res = await fetch(livePath, {
         redirect: 'follow',
-        headers: { 'User-Agent': 'Mozilla/5.0' }
+        headers: {
+          'User-Agent': 'Mozilla/5.0',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Cookie': 'CONSENT=YES+1',
+        },
       });
       log(`[GET] ${livePath} -> ${res.status} ${res.url}`);
       if (!res.ok) continue;
       const html = await res.text();
       const parsed = parseLiveHtml(html);
-      if (parsed && parsed.videoId && parsed.isLive) {
+      if (parsed) {
         return {
           url: `https://www.youtube.com/watch?v=${parsed.videoId}`,
           title: parsed.title,

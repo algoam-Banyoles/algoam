@@ -37,11 +37,16 @@ async function subscribe() {
 
 async function checkVideoLive(videoId) {
   const res = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-    headers: { 'User-Agent': 'Mozilla/5.0' }
+    headers: {
+      'User-Agent': 'Mozilla/5.0',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Cookie': 'CONSENT=YES+1',
+    },
   });
   if (!res.ok) return false;
   const html = await res.text();
-  return /"isLiveContent":true/.test(html) || /"isLiveNow":true/.test(html);
+  if (/"isUpcoming":true/.test(html)) return false;
+  return /"isLive":true/.test(html);
 }
 
 const server = http.createServer((req, res) => {

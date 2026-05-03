@@ -5,7 +5,7 @@
 const CORS_PROXY = window.APP_CONFIG?.CORS_PROXY || 'https://corsproxy.io/?';
 
 const CACHE_TTL = 5 * 60 * 1000;
-const CACHE_KEY = 'liveCache';
+const CACHE_KEY = 'liveCacheV2';
 const SELECTED_KEY = 'selectedChannels';
 const RESCAN_INTERVAL_MS = 90 * 1000;
 const FETCH_CONCURRENCY = 6;
@@ -313,11 +313,20 @@ function switchTab(name) {
 
 // ---------- Detection ----------
 
+// Detecció robusta de directe:
+//   - rebutja premières/programades (isUpcoming)
+//   - requereix "isLive":true (estat actual, no només "és de tipus directe")
+//   - requereix <link rel="canonical"> a watch?v=VIDEO_ID (quan /live redirigeix
+//     al canal perquè no hi ha emissió, canonical apunta al canal i no aquí)
+// "isLiveContent":true NO és prou: apareix també en VODs d'antics directes.
 function parseLiveHtml(html) {
-  const videoIdMatch = html.match(/"videoId":"([\w-]{11})"/);
-  if (!videoIdMatch) return null;
-  const videoId = videoIdMatch[1];
-  const isLive = /"isLiveContent":true/.test(html) || /"isLiveNow":true/.test(html);
+  if (/"isUpcoming":true/.test(html)) return null;
+  if (!/"isLive":true/.test(html)) return null;
+  const canonical = html.match(
+    /<link rel="canonical" href="https:\/\/www\.youtube\.com\/watch\?v=([\w-]{11})"/
+  );
+  if (!canonical) return null;
+  const videoId = canonical[1];
   let title = '';
   const t1 = html.match(/<meta name="title" content="([^"]+)"/);
   if (t1) title = t1[1];
@@ -325,7 +334,7 @@ function parseLiveHtml(html) {
     const t2 = html.match(/<title>([^<]+) - YouTube<\/title>/);
     if (t2) title = t2[1];
   }
-  return { videoId, isLive, title };
+  return { videoId, isLive: true, title };
 }
 
 async function checkOneChannel(channel) {
@@ -354,7 +363,11 @@ async function checkOneChannel(channel) {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
     try {
-      const res = await fetch(proxyUrl, { redirect: 'follow', signal: ctrl.signal });
+      const res = await fetch(proxyUrl, {
+        redirect: 'follow',
+        signal: ctrl.signal,
+        headers: { 'Accept-Language': 'en-US,en;q=0.9' },
+      });
       if (!res.ok) continue;
       const html = await res.text();
       parsed = parseLiveHtml(html);
