@@ -155,13 +155,94 @@ main {
   accent-color: var(--primary);
 }
 
-/* ---------- Channel cards ---------- */
+/* ---------- Channel groups ---------- */
 
 #channelCards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.club-group {
+  background: #15151b;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.club-group > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  color: var(--text-0);
+  user-select: none;
+}
+
+.club-group > summary::-webkit-details-marker { display: none; }
+.club-group > summary::marker { content: ''; }
+
+.club-arrow {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 5px solid var(--text-1);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  transition: transform 0.15s;
+}
+
+.club-group[open] > summary .club-arrow {
+  transform: rotate(90deg);
+}
+
+.club-title {
+  flex: 1;
+  font-size: 0.95em;
+}
+
+.club-count {
+  color: var(--text-2);
+  font-weight: 400;
+  font-size: 0.85em;
+}
+
+.club-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 12px;
+  padding: 4px 12px 14px;
 }
+
+.club-empty {
+  display: none;
+  margin: 0;
+  padding: 16px;
+  color: var(--text-2);
+  font-style: italic;
+  text-align: center;
+  font-size: 0.9em;
+}
+
+.club-group-live > summary {
+  background: linear-gradient(90deg, rgba(204, 0, 0, 0.2), transparent);
+}
+
+.club-group-live > summary .club-title::before {
+  content: '🔴 ';
+  margin-right: 4px;
+}
+
+.club-group.group-empty > .club-grid { display: none; }
+.club-group-live.group-empty > .club-empty { display: block; }
+.club-group:not(.club-group-live).group-empty { display: none; }
+.club-group.group-search-hidden { display: none; }
+body.only-live .club-group:not(.club-group-live) { display: none; }
+
+/* ---------- Channel cards ---------- */
 
 .ch-card {
   background: var(--bg-card);
@@ -196,7 +277,6 @@ main {
 .ch-card[data-status="error"] { opacity: 0.5; }
 .ch-card[data-status="offline"] { opacity: 0.75; }
 
-body.only-live .ch-card:not([data-status="live"]) { display: none; }
 .ch-card.search-hidden { display: none; }
 
 .ch-thumb {
@@ -459,7 +539,8 @@ body:not(.push-enabled) .bell-btn { display: none !important; }
   #tab-channels { padding: 12px 8px; }
   .channel-toolbar { gap: 8px; }
   #searchInput { flex-basis: 100%; }
-  #channelCards { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+  .club-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; padding: 4px 8px 10px; }
+  .club-group > summary { padding: 8px 10px; }
   .ch-name { font-size: 0.78em; }
   .ch-title { font-size: 0.65em; }
 }

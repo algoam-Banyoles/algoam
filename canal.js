@@ -25,6 +25,24 @@ const subscribedChannels = loadPushChannels();
 const playerByKey = new Map();   // videoId -> {wrapper, player}
 const channelByKey = new Map();  // channelKey -> channel object
 const cardsByChannel = new Map(); // channelKey -> Set<cardKey>
+const groupElByKey = new Map();  // groupKey (LIVE_GROUP_KEY | clubName) -> <details>
+
+const LIVE_GROUP_KEY = '__live__';
+const LIVE_GROUP_LABEL = 'Ara en directe';
+
+// Ordre dels grups: live primer, Banyoles segon, resta alfabèticament.
+function groupOrder(key) {
+  if (key === LIVE_GROUP_KEY) return 0;
+  if (/banyoles/i.test(key)) return 1;
+  return 2;
+}
+
+function compareGroupKeys(a, b) {
+  const oa = groupOrder(a);
+  const ob = groupOrder(b);
+  if (oa !== ob) return oa - ob;
+  return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+}
 
 let playerSeq = 0;
 
@@ -62,6 +80,23 @@ async function getChannels() {
 
 function channelKey(ch) {
   return ch.channelId || ch.handle || ch.name;
+}
+
+// Treu el sufix de mesa/taula ("CLUB X 1" -> "CLUB X", "PBA_1" -> "PBA").
+// Mantén intacte el nom si no hi ha sufix numèric clar.
+function clubNameFor(channel) {
+  const name = channel.name || '';
+  const stripped = name.replace(/[\s_]+\d+\s*$/, '').trim();
+  return stripped || name;
+}
+
+function youtubeChannelURL(ch) {
+  if (ch.handle) {
+    const h = ch.handle.startsWith('@') ? ch.handle : `@${ch.handle}`;
+    return `https://www.youtube.com/${h}`;
+  }
+  if (ch.channelId) return `https://www.youtube.com/channel/${ch.channelId}`;
+  return null;
 }
 
 function colorForName(name) {
@@ -113,15 +148,88 @@ function createCard({ cardKey, channel, status, videoId, title }) {
   return card;
 }
 
+function ensureGroup(root, key, label) {
+  let el = groupElByKey.get(key);
+  if (el) return el;
+  el = document.createElement('details');
+  el.className = 'club-group';
+  el.dataset.group = key;
+  if (key === LIVE_GROUP_KEY) {
+    el.classList.add('club-group-live');
+    el.open = true;
+  }
+  el.innerHTML = `
+    <summary>
+      <span class="club-arrow" aria-hidden="true"></span>
+      <span class="club-title"></span>
+      <span class="club-count"></span>
+    </summary>
+    <div class="club-grid"></div>
+    <p class="club-empty">Ningú en directe ara mateix.</p>
+  `;
+  el.querySelector('.club-title').textContent = label;
+  groupElByKey.set(key, el);
+
+  if (key === LIVE_GROUP_KEY) {
+    root.insertBefore(el, root.firstChild);
+  } else {
+    let inserted = false;
+    const existing = Array.from(root.querySelectorAll(':scope > details.club-group'));
+    for (const g of existing) {
+      const gKey = g.dataset.group;
+      if (gKey === LIVE_GROUP_KEY) continue;
+      if (compareGroupKeys(gKey, key) > 0) {
+        root.insertBefore(el, g);
+        inserted = true;
+        break;
+      }
+    }
+    if (!inserted) root.appendChild(el);
+  }
+  return el;
+}
+
+function groupGrid(group) {
+  return group.querySelector('.club-grid');
+}
+
+function placeCardInLiveGroup(root, card) {
+  const g = ensureGroup(root, LIVE_GROUP_KEY, LIVE_GROUP_LABEL);
+  const grid = groupGrid(g);
+  if (card.parentElement !== grid) grid.appendChild(card);
+}
+
+function placeCardInClubGroup(root, club, card) {
+  const g = ensureGroup(root, club, club);
+  const grid = groupGrid(g);
+  if (card.parentElement !== grid) grid.appendChild(card);
+}
+
+function updateAllGroupCounts() {
+  for (const group of groupElByKey.values()) {
+    const grid = groupGrid(group);
+    const total = grid.children.length;
+    const countEl = group.querySelector('.club-count');
+    countEl.textContent = total > 0 ? `(${total})` : '';
+    group.classList.toggle('group-empty', total === 0);
+  }
+}
+
 function renderChannelCards(channels) {
   const root = document.getElementById('channelCards');
   if (!root) return;
   const cache = loadCache();
   root.innerHTML = '';
   cardsByChannel.clear();
+  groupElByKey.clear();
+
+  // Live group sempre present, primer i visible (encara que estigui buit).
+  ensureGroup(root, LIVE_GROUP_KEY, LIVE_GROUP_LABEL);
+
   for (const ch of channels) {
     const cKey = channelKey(ch);
     channelByKey.set(cKey, ch);
+    const club = clubNameFor(ch);
     const cached = cache[cKey];
     const cachedStreams = cached?.streams || [];
     if (cachedStreams.length > 0) {
@@ -135,16 +243,18 @@ function renderChannelCards(channels) {
           videoId: s.videoId,
           title: s.title,
         });
-        root.appendChild(card);
+        placeCardInLiveGroup(root, card);
         set.add(s.videoId);
       }
       cardsByChannel.set(cKey, set);
     } else {
       const card = createCard({ cardKey: cKey, channel: ch, status: 'checking' });
-      root.appendChild(card);
+      placeCardInClubGroup(root, club, card);
       cardsByChannel.set(cKey, new Set([cKey]));
     }
   }
+
+  updateAllGroupCounts();
 }
 
 function updateChannelCards(result) {
@@ -153,6 +263,7 @@ function updateChannelCards(result) {
   const root = document.getElementById('channelCards');
   if (!root) return;
 
+  const club = clubNameFor(ch);
   const existing = cardsByChannel.get(result.key) || new Set();
   const streams = result.streams || [];
 
@@ -164,6 +275,7 @@ function updateChannelCards(result) {
         card.dataset.status = result.error ? 'error' : 'offline';
         card.querySelector('.ch-title').textContent = '';
         card.removeAttribute('data-video-id');
+        placeCardInClubGroup(root, club, card);
       }
     } else {
       removeCardsByKeys(existing, root);
@@ -172,9 +284,10 @@ function updateChannelCards(result) {
         channel: ch,
         status: result.error ? 'error' : 'offline',
       });
-      root.appendChild(card);
+      placeCardInClubGroup(root, club, card);
       cardsByChannel.set(result.key, new Set([result.key]));
     }
+    updateAllGroupCounts();
     return;
   }
 
@@ -196,6 +309,7 @@ function updateChannelCards(result) {
       card.dataset.status = 'live';
       card.dataset.videoId = stream.videoId;
       card.querySelector('.ch-title').textContent = stream.title || '';
+      placeCardInLiveGroup(root, card);
     } else {
       const newCard = createCard({
         cardKey: stream.videoId,
@@ -204,11 +318,12 @@ function updateChannelCards(result) {
         videoId: stream.videoId,
         title: stream.title,
       });
-      root.appendChild(newCard);
+      placeCardInLiveGroup(root, newCard);
     }
   }
 
   cardsByChannel.set(result.key, desiredKeys);
+  updateAllGroupCounts();
 }
 
 function removeCardsByKeys(keys, root) {
@@ -227,10 +342,17 @@ function onCardClick(cardKey) {
   if (!card) return;
   if (selectedSet.has(cardKey)) {
     deselectStream(cardKey);
-  } else {
-    if (card.dataset.status !== 'live') return;
-    selectStream(cardKey);
+    return;
   }
+  if (card.dataset.status === 'live') {
+    selectStream(cardKey);
+    return;
+  }
+  // Card no en directe: obre el canal de YouTube. Android App Links / iOS
+  // Universal Links porten l'usuari directament a l'app si la té instal·lada.
+  const ch = channelByKey.get(card.dataset.channelKey);
+  const url = ch && youtubeChannelURL(ch);
+  if (url) window.open(url, '_blank', 'noopener,noreferrer');
 }
 
 function selectStream(videoId) {
@@ -257,19 +379,16 @@ function deselectStream(videoId) {
 }
 
 function sortCards() {
-  const root = document.getElementById('channelCards');
-  if (!root) return;
-  const order = { live: 0, checking: 1, error: 2, offline: 3 };
-  const cards = Array.from(root.querySelectorAll('.ch-card'));
-  cards.sort((a, b) => {
-    const oa = order[a.dataset.status] ?? 9;
-    const ob = order[b.dataset.status] ?? 9;
-    if (oa !== ob) return oa - ob;
-    return a.querySelector('.ch-name').textContent.localeCompare(
-      b.querySelector('.ch-name').textContent
-    );
-  });
-  cards.forEach(c => root.appendChild(c));
+  for (const group of groupElByKey.values()) {
+    const grid = groupGrid(group);
+    const cards = Array.from(grid.querySelectorAll(':scope > .ch-card'));
+    cards.sort((a, b) => {
+      const na = a.querySelector('.ch-name').textContent;
+      const nb = b.querySelector('.ch-name').textContent;
+      return na.localeCompare(nb, undefined, { numeric: true, sensitivity: 'base' });
+    });
+    cards.forEach(c => grid.appendChild(c));
+  }
 }
 
 // ---------- Filters ----------
@@ -286,6 +405,19 @@ function applySearchFilter() {
     const name = card.querySelector('.ch-name').textContent.toLowerCase();
     card.classList.toggle('search-hidden', !!q && !name.includes(q));
   });
+  // Amaga grups que no tenen cap card visible (excepte el live group, que
+  // sempre s'ha de mostrar amb l'estat buit).
+  for (const group of groupElByKey.values()) {
+    if (group.dataset.group === LIVE_GROUP_KEY) {
+      group.classList.remove('group-search-hidden');
+      continue;
+    }
+    const grid = groupGrid(group);
+    const total = grid.children.length;
+    if (total === 0) continue;
+    const hidden = grid.querySelectorAll(':scope > .ch-card.search-hidden').length;
+    group.classList.toggle('group-search-hidden', hidden === total);
+  }
 }
 
 // ---------- YouTube IFrame API ----------
