@@ -490,11 +490,6 @@
     "handle": "@KozoomCaromTV"
   },
   {
-    "name": "KOZOOM POOL",
-    "channelId": "UCCgd8_MFdqMHXYSE91KUxQQ",
-    "handle": "@KozoomPoolTV"
-  },
-  {
     "name": "PBA ZONE",
     "channelId": "UC_3PORLDOE4BA0jrgN1mFMw",
     "handle": "@pbatvbillizone6853"
@@ -593,17 +588,13 @@
   {
     "name": "C.B. MONFORTE",
     "channelId": "UCLXoYu5z5Gu_CmrbVeWVxDg",
-    "handle": "@cbmonforte"
+    "handle": "@cbmonforte",
+    "federation": "FCB"
   },
   {
     "name": "FMB VALLECAS MADRID",
     "channelId": "UCMe7BWxuJs9nPYcDbS04gPA",
     "handle": "@fmbvallecasmadrid6669"
-  },
-  {
-    "name": "CLUB BILLAR POOL DÉNIA",
-    "channelId": "UCNpywgy_b-MS8fOZ3KMJrPA",
-    "handle": "@clubbillarpooldeniaymarinaalta"
   },
   {
     "name": "ASOCIACIÓN BILLAR PALMA",
@@ -626,17 +617,12 @@
     "handle": "@baezabillar6310"
   },
   {
-    "name": "BILLAR ALBA",
-    "channelId": "UCwDEC-aUFBv9MJ2Ra3PaQQQ",
-    "handle": "@billaralba9074"
-  },
-  {
-    "name": "CLUB BILLAR VALENCIA cam 1",
+    "name": "CLUB BILLAR VALENCIA 1",
     "channelId": "UCO0I4CwABojhuotU8jPZzoA",
     "handle": "@ClubBillarValenciacam1-m3r"
   },
   {
-    "name": "CLUB BILLAR VALENCIA cam 4",
+    "name": "CLUB BILLAR VALENCIA 4",
     "channelId": "UCwQ7_xtpVbhvyshqu30OgVA",
     "handle": "@ClubBillarValenciacam4-v9d"
   },
