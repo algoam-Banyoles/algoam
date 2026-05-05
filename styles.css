@@ -1,16 +1,24 @@
 :root {
   --primary: #7a5cff;
   --primary-dark: #4528c9;
-  --accent-live: #ff3b3b;
+  --primary-soft: rgba(122, 92, 255, 0.16);
+  --accent-live: #ff4757;
+  --accent-live-soft: rgba(255, 71, 87, 0.18);
   --accent-selected: #2ecc71;
+  --accent-selected-soft: rgba(46, 204, 113, 0.18);
   --bg-0: #0a0a10;
   --bg-1: #14141d;
+  --bg-surface: #15151d;
   --bg-card: #1f1f29;
   --bg-card-hover: #2a2a36;
   --text-0: #f5f5f7;
   --text-1: #c8c8d4;
   --text-2: #8e8ea0;
-  --border: #2f2f3b;
+  --border: #2a2a36;
+  --border-strong: #3a3a48;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.35);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 6px 14px rgba(0, 0, 0, 0.18);
 }
 
 * { box-sizing: border-box; }
@@ -57,10 +65,11 @@ body {
 .tabs {
   display: inline-flex;
   gap: 4px;
-  background: #15151b;
+  background: var(--bg-surface);
   padding: 4px;
   border-radius: 999px;
   border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .tab-btn {
@@ -84,6 +93,7 @@ body {
 .tab-btn.active {
   background: var(--primary);
   color: #fff;
+  box-shadow: 0 2px 8px rgba(122, 92, 255, 0.35);
 }
 
 .badge {
@@ -131,15 +141,16 @@ main {
   font-size: 0.95rem;
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: #15151b;
+  background: var(--bg-surface);
   color: var(--text-0);
   font-family: inherit;
   outline: none;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
 }
 
 #searchInput:focus {
   border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
 }
 
 #searchInput::placeholder {
@@ -172,32 +183,40 @@ main {
 }
 
 .federation-group {
-  background: #12121a;
+  background: var(--bg-surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
+  box-shadow: var(--shadow-md);
+  transition: border-color 0.2s;
 }
+
+.federation-group:hover { border-color: var(--border-strong); }
 
 .federation-group > summary {
   list-style: none;
   cursor: pointer;
-  padding: 14px 16px;
+  padding: 14px 18px;
   display: flex;
   align-items: center;
   gap: 12px;
   font-weight: 700;
   color: var(--text-0);
   user-select: none;
-  background: linear-gradient(90deg, rgba(122, 92, 255, 0.18), transparent);
+  background: linear-gradient(90deg, var(--primary-soft), transparent 70%);
   font-size: 1.1rem;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s;
 }
+
+.federation-group[open] > summary { border-bottom-color: var(--border); }
 
 .federation-group > summary::-webkit-details-marker { display: none; }
 .federation-group > summary::marker { content: ''; }
 
 .federation-group[data-federation="OTHERS"] > summary {
-  background: linear-gradient(90deg, rgba(170, 170, 170, 0.12), transparent);
+  background: linear-gradient(90deg, rgba(160, 160, 175, 0.10), transparent 70%);
 }
 
 .federation-children {
@@ -211,11 +230,14 @@ main {
 .federation-group.group-search-hidden { display: none; }
 
 .club-group {
-  background: #15151b;
+  background: rgba(255, 255, 255, 0.015);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
+  transition: background 0.15s, border-color 0.15s;
 }
+
+.club-group:hover { border-color: var(--border-strong); }
 
 .club-group > summary {
   list-style: none;
@@ -228,8 +250,11 @@ main {
   color: var(--text-0);
   user-select: none;
   font-size: 1rem;
-  letter-spacing: -0.005em;
+  letter-spacing: -0.01em;
+  transition: background 0.15s;
 }
+
+.club-group > summary:hover { background: rgba(255, 255, 255, 0.025); }
 
 .club-group > summary::-webkit-details-marker { display: none; }
 .club-group > summary::marker { content: ''; }
@@ -276,13 +301,34 @@ main {
   font-size: 0.95rem;
 }
 
+.club-group-live {
+  border-color: rgba(255, 71, 87, 0.35);
+  box-shadow: 0 0 0 1px rgba(255, 71, 87, 0.08), 0 8px 24px rgba(255, 71, 87, 0.08);
+}
+
 .club-group-live > summary {
-  background: linear-gradient(90deg, rgba(204, 0, 0, 0.2), transparent);
+  background: linear-gradient(90deg, var(--accent-live-soft), transparent 65%);
+  font-size: 1.05rem;
+  font-weight: 700;
 }
 
 .club-group-live > summary .club-title::before {
-  content: '🔴 ';
-  margin-right: 4px;
+  content: '';
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent-live);
+  margin-right: 8px;
+  vertical-align: 1px;
+  box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.6);
+  animation: liveDot 2s infinite;
+}
+
+@keyframes liveDot {
+  0%   { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.55); }
+  70%  { box-shadow: 0 0 0 8px rgba(255, 71, 87, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0); }
 }
 
 .club-group.group-empty > .club-grid { display: none; }
@@ -296,36 +342,45 @@ body.only-live .federation-group { display: none; }
 
 .ch-card {
   background: var(--bg-card);
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
-  cursor: default;
-  transition: transform 0.15s, outline-color 0.2s, background 0.15s;
+  cursor: pointer;
+  transition: transform 0.18s ease, outline-color 0.2s, background 0.15s, box-shadow 0.18s;
   outline: 2px solid transparent;
   text-align: left;
   position: relative;
+  box-shadow: var(--shadow-sm);
 }
 
+.ch-card:hover { background: var(--bg-card-hover); }
+
 .ch-card[data-status="live"] {
-  cursor: pointer;
   outline-color: var(--accent-live);
+  box-shadow: var(--shadow-card);
 }
 
 .ch-card[data-status="live"]:hover {
-  transform: translateY(-2px);
-  background: var(--bg-card-hover);
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), 0 12px 28px rgba(255, 71, 87, 0.15);
 }
+
+.ch-card[data-status="offline"]:hover,
+.ch-card[data-status="error"]:hover { transform: translateY(-1px); }
 
 .ch-card[data-selected="true"] {
   outline-color: var(--accent-selected);
   outline-width: 3px;
+  box-shadow: 0 0 0 4px var(--accent-selected-soft), var(--shadow-card);
 }
 
 .ch-card[data-selected="true"][data-status="live"] {
   cursor: pointer;
 }
 
-.ch-card[data-status="error"] { opacity: 0.5; }
-.ch-card[data-status="offline"] { opacity: 0.75; }
+.ch-card[data-status="error"] { opacity: 0.55; }
+.ch-card[data-status="offline"] { opacity: 0.82; }
+.ch-card[data-status="error"]:hover,
+.ch-card[data-status="offline"]:hover { opacity: 1; }
 
 .ch-card.search-hidden { display: none; }
 
@@ -396,28 +451,31 @@ body:not(.push-enabled) .bell-btn { display: none !important; }
 
 .bell-btn {
   position: absolute;
-  bottom: 6px;
-  right: 6px;
-  width: 28px;
-  height: 28px;
+  bottom: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   border: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.65);
   color: #fff;
   cursor: pointer;
-  font-size: 0.85em;
+  font-size: 0.9em;
   line-height: 1;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s, transform 0.15s;
+  transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
   z-index: 3;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: var(--shadow-sm);
 }
 
 .bell-btn:hover {
-  background: rgba(0, 0, 0, 0.85);
-  transform: scale(1.05);
+  background: rgba(0, 0, 0, 0.9);
+  transform: scale(1.08);
 }
 
 .bell-btn .bell-on,
@@ -427,6 +485,7 @@ body:not(.push-enabled) .bell-btn { display: none !important; }
 
 .ch-card[data-notify="on"] .bell-btn {
   background: var(--accent-selected);
+  box-shadow: 0 0 0 3px var(--accent-selected-soft);
 }
 
 .ch-card[data-notify="on"] .bell-btn .bell-on {
@@ -439,7 +498,16 @@ body:not(.push-enabled) .bell-btn { display: none !important; }
 
 @keyframes livePulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.55; }
+  50% { opacity: 0.6; }
+}
+
+.ch-card:focus-visible,
+.tab-btn:focus-visible,
+.bell-btn:focus-visible,
+.club-group > summary:focus-visible,
+.federation-group > summary:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .ch-card[data-status="checking"] .ch-thumb {
