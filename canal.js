@@ -271,6 +271,22 @@ function updateAllGroupCounts() {
     countEl.textContent = totalCards > 0 ? `(${totalCards})` : '';
     fg.classList.toggle('group-empty', totalCards === 0);
   }
+  updateAppBadge();
+}
+
+// Badge "boleta WhatsApp" a la icona de la PWA instal·lada amb el nombre
+// de directes actuals. Suportat a Chrome/Edge desktop+Android i a iOS
+// 16.4+ amb notificacions concedides; els navegadors sense suport ignoren
+// la crida silenciosament.
+function updateAppBadge() {
+  if (!('setAppBadge' in navigator)) return;
+  const live = groupElByKey.get(LIVE_GROUP_KEY);
+  const count = live ? live.querySelectorAll('.ch-card[data-status="live"]').length : 0;
+  if (count > 0) {
+    navigator.setAppBadge(count).catch(() => {});
+  } else {
+    navigator.clearAppBadge?.().catch(() => {});
+  }
 }
 
 function renderChannelCards(channels) {

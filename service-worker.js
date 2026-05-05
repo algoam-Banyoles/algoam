@@ -1,10 +1,10 @@
-const CACHE_NAME = 'algoam-cache-v6';
+const CACHE_NAME = 'algoam-cache-v7';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './icon-192.png',
-  './icon-512.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
   './styles.css',
   './canal.js',
   './canals.json'
@@ -66,16 +66,29 @@ self.addEventListener('push', event => {
     ? `./?play=${encodeURIComponent(data.videoId)}`
     : './';
 
-  event.waitUntil(
+  const tasks = [
     self.registration.showNotification(title, {
       body,
       tag,
       renotify: true,
-      icon: './icon-192.png',
-      badge: './icon-192.png',
+      icon: './icons/icon-192.png',
+      badge: './icons/icon-96.png',
       data: { url: urlToOpen, ...data },
-    })
-  );
+    }),
+  ];
+
+  // Estil "boleta de WhatsApp": comptador d'emissions actives a la icona
+  // de la PWA instal·lada. Suportat per Chrome/Edge i iOS 16.4+ amb el
+  // permís de notificacions concedit.
+  if (typeof data.liveCount === 'number' && 'setAppBadge' in self.navigator) {
+    if (data.liveCount > 0) {
+      tasks.push(self.navigator.setAppBadge(data.liveCount).catch(() => {}));
+    } else {
+      tasks.push(self.navigator.clearAppBadge?.().catch(() => {}));
+    }
+  }
+
+  event.waitUntil(Promise.all(tasks));
 });
 
 self.addEventListener('notificationclick', event => {

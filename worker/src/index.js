@@ -90,6 +90,17 @@ async function ingestPoll(env, payload) {
       name: ch.name || ch.channelKey,
       streams,
     };
+  }
+
+  // Total live streams across every channel — included in each push payload
+  // so the SW can update the app badge to reflect the global state, not just
+  // the channel that just went live.
+  const liveCount = Object.values(newState.channels)
+    .reduce((sum, c) => sum + (c.streams?.length || 0), 0);
+
+  for (const ch of payload.channels) {
+    if (!ch?.channelKey) continue;
+    const streams = Array.isArray(ch.streams) ? ch.streams : [];
 
     const prevIds = new Set((previousByKey[ch.channelKey]?.streams || []).map(s => s.videoId));
     const newOnes = streams.filter(s => s.videoId && !prevIds.has(s.videoId));
@@ -105,6 +116,7 @@ async function ingestPoll(env, payload) {
         channelKey: ch.channelKey,
         videoId: stream.videoId,
         title: stream.title || '',
+        liveCount,
       });
       for (const sub of subscribers) {
         try {
