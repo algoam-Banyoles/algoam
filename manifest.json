@@ -1,6 +1,6 @@
 {
-  "name": "Multi YouTube Viewer",
-  "short_name": "YT Multi",
+  "name": "Billar en Directe",
+  "short_name": "Billar",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#000000",

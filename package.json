@@ -1,7 +1,7 @@
 {
-  "name": "multiviewer",
+  "name": "billar-en-directe",
   "version": "1.0.0",
-  "description": "Multi YouTube Viewer PWA",
+  "description": "Billar en Directe — PWA per veure simultàniament els canals de billar de YouTube en directe",
   "scripts": {
     "fetch-channels": "node scripts/fetch_channels.js",
     "check-live": "node scripts/check_live.js",

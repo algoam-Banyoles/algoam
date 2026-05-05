@@ -1,4 +1,4 @@
-# Multiview push backend
+# Billar en Directe — push backend
 
 Cloudflare Worker que:
 1. Rep subscripcions Web Push de la PWA i les emmagatzema (per endpoint i per canal).

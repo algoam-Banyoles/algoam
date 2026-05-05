@@ -1,4 +1,4 @@
-// Multiview — selector i reproducció de directes sense API de Google.
+// Billar en Directe — selector i reproducció de directes sense API de Google.
 // Detecció via /streams + scrape HTML (CORS proxy). Un canal pot tenir
 // múltiples directes simultanis: en sortirà una targeta per stream.
 // Selecció manual persistida a localStorage (per videoId).

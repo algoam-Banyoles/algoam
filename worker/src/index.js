@@ -1,4 +1,4 @@
-// Cloudflare Worker: backend for Multiview push notifications + shared
+// Cloudflare Worker: backend for Billar en Directe push notifications + shared
 // "all-live" snapshot for the PWA.
 //
 // Heavy work (scraping ~80 YouTube /streams pages every 5 min) lives in

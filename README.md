@@ -1,4 +1,4 @@
-# Multiview — directes
+# Billar en Directe
 
 PWA per veure simultàniament tots els canals de YouTube de `canals.json` que estan emetent en directe. Es pot instal·lar gràcies al manifest i al service worker.
 

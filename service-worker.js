@@ -57,11 +57,11 @@ self.addEventListener('message', event => {
 self.addEventListener('push', event => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; }
-  catch (_) { data = { channel: 'Multiview', title: 'Nou directe' }; }
+  catch (_) { data = { channel: 'Billar en Directe', title: 'Nou directe' }; }
 
-  const title = data.channel ? `${data.channel} en directe` : 'Multiview — nou directe';
+  const title = data.channel ? `${data.channel} en directe` : 'Billar en Directe — nou directe';
   const body = data.title || 'Una nova emissió ha començat';
-  const tag = data.videoId ? `live-${data.videoId}` : 'multiview-live';
+  const tag = data.videoId ? `live-${data.videoId}` : 'billar-live';
   const urlToOpen = data.videoId
     ? `./?play=${encodeURIComponent(data.videoId)}`
     : './';
