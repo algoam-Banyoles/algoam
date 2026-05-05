@@ -1,21 +1,23 @@
 :root {
-  --primary: #6200ee;
-  --primary-dark: #3700b3;
-  --accent-live: #cc0000;
-  --accent-selected: #00b86b;
-  --bg-0: #000;
-  --bg-1: #111;
-  --bg-card: #1c1c22;
-  --bg-card-hover: #24242c;
-  --text-0: #eee;
-  --text-1: #aaa;
-  --text-2: #777;
-  --border: #2a2a32;
+  --primary: #7a5cff;
+  --primary-dark: #4528c9;
+  --accent-live: #ff3b3b;
+  --accent-selected: #2ecc71;
+  --bg-0: #0a0a10;
+  --bg-1: #14141d;
+  --bg-card: #1f1f29;
+  --bg-card-hover: #2a2a36;
+  --text-0: #f5f5f7;
+  --text-1: #c8c8d4;
+  --text-2: #8e8ea0;
+  --border: #2f2f3b;
 }
 
 * { box-sizing: border-box; }
 
 html, body { height: 100%; }
+
+html { font-size: 17px; }
 
 body {
   margin: 0;
@@ -24,6 +26,10 @@ body {
   background: linear-gradient(to bottom right, var(--bg-0), var(--bg-1));
   color: var(--text-0);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv11', 'ss01';
+  line-height: 1.45;
 }
 
 /* ---------- Header & tabs ---------- */
@@ -41,10 +47,10 @@ body {
 }
 
 .app-header h1 {
-  font-size: 1.1em;
-  margin: 0 0 8px;
+  font-size: 1.25rem;
+  margin: 0 0 10px;
   color: var(--primary);
-  letter-spacing: 0.5px;
+  letter-spacing: -0.01em;
   font-weight: 700;
 }
 
@@ -58,16 +64,17 @@ body {
 }
 
 .tab-btn {
-  padding: 6px 16px;
+  padding: 7px 18px;
   background: transparent;
   border: none;
   color: var(--text-1);
-  font-size: 0.9em;
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
   border-radius: 999px;
   transition: background 0.15s, color 0.15s;
   font-family: inherit;
+  letter-spacing: -0.005em;
 }
 
 .tab-btn:hover {
@@ -119,16 +126,16 @@ main {
 
 #searchInput {
   flex: 1 1 240px;
-  max-width: 320px;
-  padding: 8px 12px;
-  font-size: 0.9em;
+  max-width: 360px;
+  padding: 10px 14px;
+  font-size: 0.95rem;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   background: #15151b;
   color: var(--text-0);
   font-family: inherit;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, background 0.15s;
 }
 
 #searchInput:focus {
@@ -142,11 +149,12 @@ main {
 .filter-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   cursor: pointer;
-  font-size: 0.9em;
+  font-size: 0.95rem;
   color: var(--text-1);
   user-select: none;
+  font-weight: 500;
 }
 
 .filter-toggle input[type="checkbox"] {
@@ -173,16 +181,16 @@ main {
 .federation-group > summary {
   list-style: none;
   cursor: pointer;
-  padding: 12px 14px;
+  padding: 14px 16px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   font-weight: 700;
   color: var(--text-0);
   user-select: none;
-  background: linear-gradient(90deg, rgba(98, 0, 238, 0.18), transparent);
-  font-size: 1.02em;
-  letter-spacing: 0.3px;
+  background: linear-gradient(90deg, rgba(122, 92, 255, 0.18), transparent);
+  font-size: 1.1rem;
+  letter-spacing: -0.01em;
 }
 
 .federation-group > summary::-webkit-details-marker { display: none; }
@@ -212,13 +220,15 @@ main {
 .club-group > summary {
   list-style: none;
   cursor: pointer;
-  padding: 10px 14px;
+  padding: 12px 16px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   font-weight: 600;
   color: var(--text-0);
   user-select: none;
+  font-size: 1rem;
+  letter-spacing: -0.005em;
 }
 
 .club-group > summary::-webkit-details-marker { display: none; }
@@ -240,13 +250,13 @@ main {
 
 .club-title {
   flex: 1;
-  font-size: 0.95em;
 }
 
 .club-count {
   color: var(--text-2);
-  font-weight: 400;
+  font-weight: 500;
   font-size: 0.85em;
+  font-variant-numeric: tabular-nums;
 }
 
 .club-grid {
@@ -259,11 +269,11 @@ main {
 .club-empty {
   display: none;
   margin: 0;
-  padding: 16px;
-  color: var(--text-2);
+  padding: 20px 16px;
+  color: var(--text-1);
   font-style: italic;
   text-align: center;
-  font-size: 0.9em;
+  font-size: 0.95rem;
 }
 
 .club-group-live > summary {
@@ -349,13 +359,14 @@ body.only-live .federation-group { display: none; }
 
 .ch-badge {
   position: absolute;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-size: 0.62em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.04em;
   display: none;
   color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 .ch-badge-live {
@@ -441,21 +452,30 @@ body:not(.push-enabled) .bell-btn { display: none !important; }
 }
 
 .ch-name {
-  padding: 6px 8px 2px;
-  font-size: 0.85em;
+  padding: 10px 12px 4px;
+  font-size: 0.95rem;
   margin: 0;
   font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+  color: var(--text-0);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .ch-title {
-  padding: 0 8px 8px;
-  font-size: 0.7em;
+  padding: 0 12px 12px;
+  font-size: 0.82rem;
   color: var(--text-1);
   margin: 0;
   min-height: 1em;
-  white-space: nowrap;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* ---------- Players grid ---------- */
@@ -504,7 +524,7 @@ body:not(.push-enabled) .bell-btn { display: none !important; }
 }
 
 .player-name {
-  font-size: 0.75em;
+  font-size: 0.85rem;
   color: #fff;
   font-weight: 600;
   white-space: nowrap;
@@ -512,6 +532,7 @@ body:not(.push-enabled) .bell-btn { display: none !important; }
   text-overflow: ellipsis;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
   pointer-events: none;
+  letter-spacing: -0.005em;
 }
 
 .stop-btn {
@@ -576,11 +597,13 @@ body:not(.push-enabled) .bell-btn { display: none !important; }
 /* ---------- Responsive ---------- */
 
 @media (max-width: 767px) {
+  html { font-size: 16px; }
   #tab-channels { padding: 12px 8px; }
   .channel-toolbar { gap: 8px; }
   #searchInput { flex-basis: 100%; }
-  .club-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; padding: 4px 8px 10px; }
-  .club-group > summary { padding: 8px 10px; }
-  .ch-name { font-size: 0.78em; }
-  .ch-title { font-size: 0.65em; }
+  .club-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; padding: 6px 10px 12px; }
+  .club-group > summary { padding: 10px 12px; font-size: 0.95rem; }
+  .federation-group > summary { padding: 12px; font-size: 1rem; }
+  .ch-name { font-size: 0.9rem; padding: 8px 10px 3px; }
+  .ch-title { font-size: 0.78rem; padding: 0 10px 10px; }
 }
