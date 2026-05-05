@@ -26,9 +26,17 @@ const playerByKey = new Map();   // videoId -> {wrapper, player}
 const channelByKey = new Map();  // channelKey -> channel object
 const cardsByChannel = new Map(); // channelKey -> Set<cardKey>
 const groupElByKey = new Map();  // groupKey (LIVE_GROUP_KEY | clubName) -> <details>
+const federationGroupByKey = new Map(); // federationKey -> <details> (macro group)
 
 const LIVE_GROUP_KEY = '__live__';
 const LIVE_GROUP_LABEL = 'Ara en directe';
+const OTHERS_FED_KEY = 'OTHERS';
+const FEDERATION_LABELS = {
+  FCB: 'Federació Catalana de Billar',
+  [OTHERS_FED_KEY]: 'Altres',
+};
+// Ordre dels macro grups (live no compta, té el seu lloc fix al top).
+const FEDERATION_ORDER = ['FCB', OTHERS_FED_KEY];
 
 // Ordre dels grups: live primer, Banyoles segon, resta alfabèticament.
 function groupOrder(key) {
@@ -90,6 +98,10 @@ function clubNameFor(channel) {
   return stripped || name;
 }
 
+function federationKey(channel) {
+  return channel.federation || OTHERS_FED_KEY;
+}
+
 function youtubeChannelURL(ch) {
   if (ch.handle) {
     const h = ch.handle.startsWith('@') ? ch.handle : `@${ch.handle}`;
@@ -148,12 +160,47 @@ function createCard({ cardKey, channel, status, videoId, title }) {
   return card;
 }
 
-function ensureGroup(root, key, label) {
+function ensureFederationGroup(root, fed) {
+  let el = federationGroupByKey.get(fed);
+  if (el) return el;
+  el = document.createElement('details');
+  el.className = 'federation-group';
+  el.dataset.federation = fed;
+  el.open = true;
+  el.innerHTML = `
+    <summary>
+      <span class="club-arrow" aria-hidden="true"></span>
+      <span class="club-title"></span>
+      <span class="club-count"></span>
+    </summary>
+    <div class="federation-children"></div>
+  `;
+  el.querySelector('.club-title').textContent = FEDERATION_LABELS[fed] || fed;
+  federationGroupByKey.set(fed, el);
+
+  // FCB just after Live; OTHERS after FCB; both before any other later element.
+  const desiredIdx = FEDERATION_ORDER.indexOf(fed);
+  const existing = Array.from(root.querySelectorAll(':scope > details.federation-group'));
+  let inserted = false;
+  for (const g of existing) {
+    const gIdx = FEDERATION_ORDER.indexOf(g.dataset.federation);
+    if (gIdx > desiredIdx) {
+      root.insertBefore(el, g);
+      inserted = true;
+      break;
+    }
+  }
+  if (!inserted) root.appendChild(el);
+  return el;
+}
+
+function ensureGroup(root, key, label, fed) {
   let el = groupElByKey.get(key);
   if (el) return el;
   el = document.createElement('details');
   el.className = 'club-group';
   el.dataset.group = key;
+  if (fed) el.dataset.federation = fed;
   if (key === LIVE_GROUP_KEY) {
     el.classList.add('club-group-live');
     el.open = true;
@@ -172,20 +219,22 @@ function ensureGroup(root, key, label) {
 
   if (key === LIVE_GROUP_KEY) {
     root.insertBefore(el, root.firstChild);
-  } else {
-    let inserted = false;
-    const existing = Array.from(root.querySelectorAll(':scope > details.club-group'));
-    for (const g of existing) {
-      const gKey = g.dataset.group;
-      if (gKey === LIVE_GROUP_KEY) continue;
-      if (compareGroupKeys(gKey, key) > 0) {
-        root.insertBefore(el, g);
-        inserted = true;
-        break;
-      }
-    }
-    if (!inserted) root.appendChild(el);
+    return el;
   }
+
+  // Club groups viuen dins el contenidor del seu macro grup (federació).
+  const fg = ensureFederationGroup(root, fed || OTHERS_FED_KEY);
+  const parent = fg.querySelector('.federation-children');
+  let inserted = false;
+  const existing = Array.from(parent.querySelectorAll(':scope > details.club-group'));
+  for (const g of existing) {
+    if (compareGroupKeys(g.dataset.group, key) > 0) {
+      parent.insertBefore(el, g);
+      inserted = true;
+      break;
+    }
+  }
+  if (!inserted) parent.appendChild(el);
   return el;
 }
 
@@ -199,8 +248,10 @@ function placeCardInLiveGroup(root, card) {
   if (card.parentElement !== grid) grid.appendChild(card);
 }
 
-function placeCardInClubGroup(root, club, card) {
-  const g = ensureGroup(root, club, club);
+function placeCardInClubGroup(root, channel, card) {
+  const club = clubNameFor(channel);
+  const fed = federationKey(channel);
+  const g = ensureGroup(root, club, club, fed);
   const grid = groupGrid(g);
   if (card.parentElement !== grid) grid.appendChild(card);
 }
@@ -209,9 +260,16 @@ function updateAllGroupCounts() {
   for (const group of groupElByKey.values()) {
     const grid = groupGrid(group);
     const total = grid.children.length;
-    const countEl = group.querySelector('.club-count');
+    const countEl = group.querySelector(':scope > summary > .club-count');
     countEl.textContent = total > 0 ? `(${total})` : '';
     group.classList.toggle('group-empty', total === 0);
+  }
+  for (const fg of federationGroupByKey.values()) {
+    const children = fg.querySelector('.federation-children');
+    const totalCards = children.querySelectorAll('.ch-card').length;
+    const countEl = fg.querySelector(':scope > summary > .club-count');
+    countEl.textContent = totalCards > 0 ? `(${totalCards})` : '';
+    fg.classList.toggle('group-empty', totalCards === 0);
   }
 }
 
@@ -222,6 +280,7 @@ function renderChannelCards(channels) {
   root.innerHTML = '';
   cardsByChannel.clear();
   groupElByKey.clear();
+  federationGroupByKey.clear();
 
   // Live group sempre present, primer i visible (encara que estigui buit).
   ensureGroup(root, LIVE_GROUP_KEY, LIVE_GROUP_LABEL);
@@ -229,7 +288,6 @@ function renderChannelCards(channels) {
   for (const ch of channels) {
     const cKey = channelKey(ch);
     channelByKey.set(cKey, ch);
-    const club = clubNameFor(ch);
     const cached = cache[cKey];
     const cachedStreams = cached?.streams || [];
     if (cachedStreams.length > 0) {
@@ -249,7 +307,7 @@ function renderChannelCards(channels) {
       cardsByChannel.set(cKey, set);
     } else {
       const card = createCard({ cardKey: cKey, channel: ch, status: 'checking' });
-      placeCardInClubGroup(root, club, card);
+      placeCardInClubGroup(root, ch, card);
       cardsByChannel.set(cKey, new Set([cKey]));
     }
   }
@@ -263,7 +321,6 @@ function updateChannelCards(result) {
   const root = document.getElementById('channelCards');
   if (!root) return;
 
-  const club = clubNameFor(ch);
   const existing = cardsByChannel.get(result.key) || new Set();
   const streams = result.streams || [];
 
@@ -275,7 +332,7 @@ function updateChannelCards(result) {
         card.dataset.status = result.error ? 'error' : 'offline';
         card.querySelector('.ch-title').textContent = '';
         card.removeAttribute('data-video-id');
-        placeCardInClubGroup(root, club, card);
+        placeCardInClubGroup(root, ch, card);
       }
     } else {
       removeCardsByKeys(existing, root);
@@ -405,8 +462,8 @@ function applySearchFilter() {
     const name = card.querySelector('.ch-name').textContent.toLowerCase();
     card.classList.toggle('search-hidden', !!q && !name.includes(q));
   });
-  // Amaga grups que no tenen cap card visible (excepte el live group, que
-  // sempre s'ha de mostrar amb l'estat buit).
+  // Amaga grups de club que no tenen cap card visible (excepte el live
+  // group, que sempre s'ha de mostrar amb l'estat buit).
   for (const group of groupElByKey.values()) {
     if (group.dataset.group === LIVE_GROUP_KEY) {
       group.classList.remove('group-search-hidden');
@@ -417,6 +474,14 @@ function applySearchFilter() {
     if (total === 0) continue;
     const hidden = grid.querySelectorAll(':scope > .ch-card.search-hidden').length;
     group.classList.toggle('group-search-hidden', hidden === total);
+  }
+  // Amaga macro grups quan tots els clubs queden ocults per la cerca.
+  for (const fg of federationGroupByKey.values()) {
+    const children = fg.querySelector('.federation-children');
+    const visible = children.querySelectorAll(
+      ':scope > details.club-group:not(.group-search-hidden):not(.group-empty)'
+    ).length;
+    fg.classList.toggle('group-search-hidden', visible === 0);
   }
 }
 

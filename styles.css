@@ -163,6 +163,45 @@ main {
   gap: 12px;
 }
 
+.federation-group {
+  background: #12121a;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.federation-group > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  color: var(--text-0);
+  user-select: none;
+  background: linear-gradient(90deg, rgba(98, 0, 238, 0.18), transparent);
+  font-size: 1.02em;
+  letter-spacing: 0.3px;
+}
+
+.federation-group > summary::-webkit-details-marker { display: none; }
+.federation-group > summary::marker { content: ''; }
+
+.federation-group[data-federation="OTHERS"] > summary {
+  background: linear-gradient(90deg, rgba(170, 170, 170, 0.12), transparent);
+}
+
+.federation-children {
+  padding: 8px 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.federation-group.group-empty { display: none; }
+.federation-group.group-search-hidden { display: none; }
+
 .club-group {
   background: #15151b;
   border: 1px solid var(--border);
@@ -241,6 +280,7 @@ main {
 .club-group:not(.club-group-live).group-empty { display: none; }
 .club-group.group-search-hidden { display: none; }
 body.only-live .club-group:not(.club-group-live) { display: none; }
+body.only-live .federation-group { display: none; }
 
 /* ---------- Channel cards ---------- */
 
