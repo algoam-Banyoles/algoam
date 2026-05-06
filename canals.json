@@ -478,11 +478,6 @@
     "handle": "@KozoomCaromTV"
   },
   {
-    "name": "PBA ZONE",
-    "channelId": "UC_3PORLDOE4BA0jrgN1mFMw",
-    "handle": "@pbatvbillizone6853"
-  },
-  {
     "name": "CLUB MADRID ESCUELA NACIONAL DE BILLAR",
     "channelId": "UCzAcYT_zYeb51V5KnrdYjHg",
     "handle": "@madridescuela",
@@ -637,11 +632,6 @@
     "handle": "@billiard.hakase"
   },
   {
-    "name": "GJ Billiards",
-    "channelId": "UCH9dC2kl_uUwWdTUaBJSgOg",
-    "handle": "@GJBilliards"
-  },
-  {
     "name": "CAROM CAFE BILLIARDS (NYC)",
     "channelId": "UCDDy0Iwng5nZAG4jLPpu2_g",
     "handle": "@CaromCafeBilliards"
@@ -690,25 +680,5 @@
     "name": "CAROM CAFE TABLE 10",
     "channelId": "UC2Jshopft4m8v0yd7Ww5wiQ",
     "handle": "@CaromCafeTable10-qd9ie"
-  },
-  {
-    "name": "BILLARES GIORGIO 1",
-    "channelId": "UCUqNjH3ZsnRDFlvx8zM0ObQ",
-    "handle": "@billaresgiorgio"
-  },
-  {
-    "name": "BILLARES GIORGIO 2",
-    "channelId": "UCrS0pjHVckaCPha4CCkBgyw",
-    "handle": "@billaresgiorgio323"
-  },
-  {
-    "name": "BILLARES GIORGIO 4",
-    "channelId": "UC5Xr-xyq4W0QQb16JJHaXMA",
-    "handle": "@billaresgiorgio9977"
-  },
-  {
-    "name": "BILLARES GIORGIO 5",
-    "channelId": "UCNE8a9OC2xU0kC_0gj-x4ng",
-    "handle": "@billaresgiorgio4141"
   }
 ]
