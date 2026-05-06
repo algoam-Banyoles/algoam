@@ -925,6 +925,44 @@ function applyBellStates() {
   });
 }
 
+// ---------- Hard refresh ----------
+//
+// Botó accessible a mòbils (on no hi ha shortcut de browser per esborrar
+// la cache). Buida service-worker caches, snapshot local i clau de
+// localStorage de directes, demana al SW que s'actualitzi i recarrega.
+async function hardRefresh() {
+  const btn = document.getElementById('hardRefreshBtn');
+  if (btn) btn.classList.add('refreshing');
+  try {
+    // Esborra el cache de directes que té el client
+    try { localStorage.removeItem(CACHE_KEY); } catch (_) {}
+    // Esborra TOTES les Cache Storage del SW
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+    // Demana al SW que s'actualitzi i, si n'hi ha de pendent, que se salti
+    // l'espera. La nova versió s'activarà i el listener controllerchange
+    // recarregarà la pàgina; si no n'hi ha de pendent, recarreguem nosaltres.
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) {
+        await reg.update();
+        if (reg.waiting) {
+          reg.waiting.postMessage('skipWaiting');
+          return; // controllerchange listener farà reload
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('hardRefresh failed', err);
+  }
+  // Fallback: forcem un reload amb cache-bust
+  const url = new URL(location.href);
+  url.searchParams.set('_r', Date.now().toString());
+  location.replace(url.toString());
+}
+
 // ---------- Deep link from notification click ----------
 
 function handleDeepLink() {
@@ -976,6 +1014,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   );
   document.getElementById('searchInput')?.addEventListener('input', applySearchFilter);
   document.getElementById('onlyLive')?.addEventListener('change', applyOnlyLiveFilter);
+  document.getElementById('hardRefreshBtn')?.addEventListener('click', hardRefresh);
   applyOnlyLiveFilter();
   window.addEventListener('resize', updateGridCols);
 

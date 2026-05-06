@@ -62,6 +62,33 @@ body {
   font-weight: 700;
 }
 
+.hard-refresh-btn {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 0.15s, background 0.15s, transform 0.4s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hard-refresh-btn:hover { color: var(--text-0); background: var(--bg-card); }
+.hard-refresh-btn:active { transform: scale(0.92); }
+.hard-refresh-btn.refreshing svg { animation: refreshSpin 0.9s linear infinite; }
+
+@keyframes refreshSpin {
+  to { transform: rotate(360deg); }
+}
+
 .tabs {
   display: inline-flex;
   gap: 4px;
