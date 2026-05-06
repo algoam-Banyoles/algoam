@@ -455,11 +455,6 @@
     "handle": "@montpetitbillar"
   },
   {
-    "name": "PBA_1",
-    "channelId": "UCuXTHFVxa6tPC_jmqwpyOUA",
-    "handle": "@pba1"
-  },
-  {
     "name": "PBA",
     "channelId": "UC4n_ME6BVRofHr4fVoBTdNg",
     "handle": "@billiards-pbatv"
@@ -505,12 +500,6 @@
     "federation": "RFEB"
   },
   {
-    "name": "CLUB BILLAR SEVILLA",
-    "channelId": "UC5mkH_KKWXeMgRoF-Zlgo4w",
-    "handle": "@clubbillarsevilla1558",
-    "federation": "RFEB"
-  },
-  {
     "name": "CLUB BILLAR VALENCIA",
     "channelId": "UC4dwMUmaD1I9d7PDeZw48gw",
     "handle": "@clubbillarvalencia-v6p",
@@ -526,12 +515,6 @@
     "name": "CLUB BILLAR MARACENA 3",
     "channelId": "UC_h9zs9B6FcpO_HXmjU7e5A",
     "handle": "@josemanueldomingo6171",
-    "federation": "RFEB"
-  },
-  {
-    "name": "CLUB BILLAR ÚBEDA",
-    "channelId": "UCe43sIim4alLSvfaXK1IEeQ",
-    "handle": "",
     "federation": "RFEB"
   },
   {
@@ -673,11 +656,6 @@
     "federation": "FCB"
   },
   {
-    "name": "CENTURY BILLARD (Suwon, Corea)",
-    "channelId": "UC-7gVrwEW83r7Rh3SRKtaNA",
-    "handle": "@century-billard"
-  },
-  {
     "name": "BoyBao TV (Vietnam)",
     "channelId": "UCXh2hyij01gLejZ6vVRYj4w",
     "handle": "@BoyBao-TV"
@@ -708,11 +686,6 @@
     "handle": "@welcomesports"
   },
   {
-    "name": "3 Cushion Billiards EZ (Corea)",
-    "channelId": "UCd12rKLLeWYU7fFnUqIFttg",
-    "handle": "@3CushionBilliardsEZ"
-  },
-  {
     "name": "Billiards Hakase / 撞球博士 (Japó)",
     "channelId": "UCEbNK3YAKIGTLRCtPQvpbTQ",
     "handle": "@billiard.hakase"
@@ -738,19 +711,9 @@
     "handle": "@3cushionbilliards769"
   },
   {
-    "name": "Fone Jr.",
-    "channelId": "UClDCDgWvhOiLDgl-HCr87kw",
-    "handle": "@fone_jr"
-  },
-  {
     "name": "CAROM CAFE BILLIARDS (NYC)",
     "channelId": "UCDDy0Iwng5nZAG4jLPpu2_g",
     "handle": "@CaromCafeBilliards"
-  },
-  {
-    "name": "CAROM CAFE TABLE 1",
-    "channelId": "UC4GP92y9xtugWJph4XFO60Q",
-    "handle": "@CaromCafeTable01-ek4gl"
   },
   {
     "name": "CAROM CAFE TABLE 2",
