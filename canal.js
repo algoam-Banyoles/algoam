@@ -358,7 +358,7 @@ function updateChannelCards(result) {
         channel: ch,
         status: result.error ? 'error' : 'offline',
       });
-      placeCardInClubGroup(root, club, card);
+      placeCardInClubGroup(root, ch, card);
       cardsByChannel.set(result.key, new Set([result.key]));
     }
     updateAllGroupCounts();
