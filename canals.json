@@ -54,12 +54,6 @@
     "federation": "FCB"
   },
   {
-    "name": "CLUB BILLAR SANT FELIU 3",
-    "channelId": "UCVFfhZAoMAAVFwv3Q-57dqA",
-    "handle": "@cbsantfeliu3",
-    "federation": "FCB"
-  },
-  {
     "name": "CLUB BILLAR LLICÀ D'AMUNT 1",
     "channelId": "UCEz8UUJkAEhJTs-E0jKk1PA",
     "handle": "@llicabillar1",
@@ -450,11 +444,6 @@
     "federation": "FCB"
   },
   {
-    "name": "Montpetitbillar",
-    "channelId": "UCoTdUYscGMAB5zrhmTbi3Ug",
-    "handle": "@montpetitbillar"
-  },
-  {
     "name": "PBA",
     "channelId": "UC4n_ME6BVRofHr4fVoBTdNg",
     "handle": "@billiards-pbatv"
@@ -548,12 +537,6 @@
     "federation": "RFEB"
   },
   {
-    "name": "CLUB BILLAR BENACAZÓN",
-    "channelId": "UCwHJwOaQ2qtOfC1seSY659Q",
-    "handle": "@billarbenacazon",
-    "federation": "RFEB"
-  },
-  {
     "name": "FEDERACIÓ CATALANA DE BILLAR",
     "channelId": "UCdZUs67fC0R2LmzeB3XEWgg",
     "handle": "@FEDERACIÓCATALANADEBILLAR",
@@ -608,12 +591,6 @@
     "federation": "RFEB"
   },
   {
-    "name": "CLUB BILLAR AYAMONTE",
-    "channelId": "UCkvCZqymisfM0F16Sm3349w",
-    "handle": "@clubbillarayamonte7763",
-    "federation": "RFEB"
-  },
-  {
     "name": "GANDIA BILLAR CLUB",
     "channelId": "UCn3bwzP8wihXAkBaN_hbUTA",
     "handle": "@gandiabillarclub",
@@ -638,12 +615,6 @@
     "federation": "RFEB"
   },
   {
-    "name": "CLUB BILLAR SANTS",
-    "channelId": "UCOlTp2F2gcdFxyDG0EEiDbw",
-    "handle": "@clubbillarsants7638",
-    "federation": "FCB"
-  },
-  {
     "name": "CLUB BILLAR VIC",
     "channelId": "UCVGd212mAPEAC-TNA7QNxHg",
     "handle": "@clubbillarvic3334",
@@ -656,34 +627,9 @@
     "federation": "FCB"
   },
   {
-    "name": "BoyBao TV (Vietnam)",
-    "channelId": "UCXh2hyij01gLejZ6vVRYj4w",
-    "handle": "@BoyBao-TV"
-  },
-  {
     "name": "Yeu Bida 3C (Vietnam)",
     "channelId": "UCwvL0aQTq-gwPJtWnsuNj0Q",
     "handle": "@YeuBida3C"
-  },
-  {
-    "name": "3C Billiards BM (Vietnam)",
-    "channelId": "UCp0Avlg0G06qbNsz1SR7iUw",
-    "handle": "@3CBilliardsBM"
-  },
-  {
-    "name": "SY Sports / 에스와이 스포츠 (Corea)",
-    "channelId": "UC5UXUsdRQgliY_3CoKzO6Dg",
-    "handle": ""
-  },
-  {
-    "name": "Hwanju TV / 뽠주TV (Corea)",
-    "channelId": "UC6QmdmVb4T8rKj-SS1Lq3Yw",
-    "handle": "@hwanjuTV"
-  },
-  {
-    "name": "Welcome Sports / 웰컴스포츠 (Corea)",
-    "channelId": "UC7vrs96QT9uq16QWqB3aPyw",
-    "handle": "@welcomesports"
   },
   {
     "name": "Billiards Hakase / 撞球博士 (Japó)",
@@ -691,24 +637,9 @@
     "handle": "@billiard.hakase"
   },
   {
-    "name": "Mundo de Billar de 3 Cojines",
-    "channelId": "UCbrPrCRcQKZSmK3lZ7VxNJQ",
-    "handle": "@cherry10059"
-  },
-  {
-    "name": "HT Billiards Channels",
-    "channelId": "UCRzcLQNBq9NLPQro3Fztzdw",
-    "handle": "@htbilliards"
-  },
-  {
     "name": "GJ Billiards",
     "channelId": "UCH9dC2kl_uUwWdTUaBJSgOg",
     "handle": "@GJBilliards"
-  },
-  {
-    "name": "3 Cushion Billiards",
-    "channelId": "UC4c8wkmiQyBnzqSJUlZaNOw",
-    "handle": "@3cushionbilliards769"
   },
   {
     "name": "CAROM CAFE BILLIARDS (NYC)",
@@ -769,11 +700,6 @@
     "name": "BILLARES GIORGIO 2",
     "channelId": "UCrS0pjHVckaCPha4CCkBgyw",
     "handle": "@billaresgiorgio323"
-  },
-  {
-    "name": "BILLARES GIORGIO 3",
-    "channelId": "UChUoXvNOvfAUL_T_NVvSp4A",
-    "handle": "@billaresgiorgio1867"
   },
   {
     "name": "BILLARES GIORGIO 4",
