@@ -104,3 +104,6 @@ logs
 
 # Local configuration
 config.js
+
+# Wrangler local state
+.wrangler/
