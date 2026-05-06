@@ -19,6 +19,7 @@ const FETCH_TIMEOUT_MS = 15000;
 // audio de forma independent: a partir d'un cert número, mòbils i equips
 // modests perden frames o no acaben de carregar. Calculem un cap segons
 // capacitat detectada; APP_CONFIG.MAX_PLAYERS el pot sobreescriure.
+const MIN_PLAYERS = 6;
 function computeMaxPlayers() {
   const override = Number(window.APP_CONFIG?.MAX_PLAYERS);
   if (Number.isFinite(override) && override > 0) return override;
@@ -26,14 +27,14 @@ function computeMaxPlayers() {
   const cores = navigator.hardwareConcurrency || 4;
   // navigator.deviceMemory no està disponible a Safari/iOS; assumim 4 GB.
   const memGB = navigator.deviceMemory || 4;
+  let cap;
   if (isMobile) {
-    if (cores >= 6 && memGB >= 4) return 4;
-    return 2;
-  }
-  if (cores >= 12 && memGB >= 16) return 16;
-  if (cores >= 8 && memGB >= 8) return 12;
-  if (cores >= 4) return 8;
-  return 4;
+    cap = (cores >= 6 && memGB >= 4) ? 8 : 6;
+  } else if (cores >= 12 && memGB >= 16) cap = 16;
+  else if (cores >= 8 && memGB >= 8) cap = 12;
+  else if (cores >= 4) cap = 8;
+  else cap = 6;
+  return Math.max(cap, MIN_PLAYERS);
 }
 const MAX_PLAYERS = computeMaxPlayers();
 
@@ -611,7 +612,43 @@ async function addPlayer(videoId, name, key) {
     width: '100%',
     videoId,
     playerVars: { autoplay: 1, mute: 1, playsinline: 1, controls: 1 },
+    events: {
+      onError: e => handlePlayerError(key, videoId, name, e?.data),
+    },
   });
+}
+
+// Codis 101/150 = el propietari ha desactivat l'embed; 100 = vídeo
+// privat/eliminat. En tots tres casos l'iframe es queda en negre, així
+// que el substituïm per un enllaç a YouTube perquè l'usuari pugui
+// veure'l fora de l'app.
+function handlePlayerError(key, videoId, name, code) {
+  const slot = playerByKey.get(key);
+  if (!slot || !slot.wrapper) return;
+  const wrapper = slot.wrapper;
+  const blocked = code === 101 || code === 150;
+  const missing = code === 100;
+  if (!blocked && !missing) return;
+
+  try { slot.player?.destroy(); } catch (_) {}
+  slot.player = null;
+
+  const host = wrapper.querySelector('.player-iframe-host');
+  if (host) host.remove();
+
+  const fallback = document.createElement('div');
+  fallback.className = 'player-fallback';
+  const url = `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
+  const message = blocked
+    ? "El canal no permet veure aquest directe incrustat."
+    : "Aquest vídeo ja no està disponible.";
+  fallback.innerHTML = `
+    <p class="player-fallback-msg">${message}</p>
+    <a class="player-fallback-btn" href="${url}" target="_blank" rel="noopener noreferrer">
+      Obrir a YouTube
+    </a>
+  `;
+  wrapper.insertBefore(fallback, wrapper.firstChild);
 }
 
 function removePlayer(key) {
