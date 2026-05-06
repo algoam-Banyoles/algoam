@@ -467,22 +467,26 @@
   {
     "name": "CLUB BILLAR VALLADOLID",
     "channelId": "UCYG3UOPIDT2E0lLxW3bHkQw",
-    "handle": "@clubbillarvalladolid"
+    "handle": "@clubbillarvalladolid",
+    "federation": "RFEB"
   },
   {
     "name": "FEDERACIÓ VALENCIANA",
     "channelId": "UCdYu6HdiSdmnMutvyRV-tSA",
-    "handle": "@federaciondebillarcomunida5284"
+    "handle": "@federaciondebillarcomunida5284",
+    "federation": "RFEB"
   },
   {
     "name": "REAL FEDERACIÓN ESPAÑOLA DE BILLAR",
     "channelId": "UCBHlmC1BslTR5tOTycMBO1Q",
-    "handle": "@realfederacionespanoladebillar"
+    "handle": "@realfederacionespanoladebillar",
+    "federation": "RFEB"
   },
   {
     "name": "FEDERACIÓN ANDALUZA - BILLAR ANDALUCÍA",
     "channelId": "UC6qfDztDBxTlno-lnk_CSiw",
-    "handle": "@BillarAndalucia"
+    "handle": "@BillarAndalucia",
+    "federation": "RFEB"
   },
   {
     "name": "KOZOOM CAROM",
@@ -497,62 +501,74 @@
   {
     "name": "CLUB MADRID ESCUELA NACIONAL DE BILLAR",
     "channelId": "UCzAcYT_zYeb51V5KnrdYjHg",
-    "handle": "@madridescuela"
+    "handle": "@madridescuela",
+    "federation": "RFEB"
   },
   {
     "name": "CLUB BILLAR SEVILLA",
     "channelId": "UC5mkH_KKWXeMgRoF-Zlgo4w",
-    "handle": "@clubbillarsevilla1558"
+    "handle": "@clubbillarsevilla1558",
+    "federation": "RFEB"
   },
   {
     "name": "CLUB BILLAR VALENCIA",
     "channelId": "UC4dwMUmaD1I9d7PDeZw48gw",
-    "handle": "@clubbillarvalencia-v6p"
+    "handle": "@clubbillarvalencia-v6p",
+    "federation": "RFEB"
   },
   {
     "name": "CLUB BILLAR MARACENA 2",
     "channelId": "UCggG8KvDjLs2LhDB8TuAy1g",
-    "handle": "@clubbillarmaracenaGR"
+    "handle": "@clubbillarmaracenaGR",
+    "federation": "RFEB"
   },
   {
     "name": "CLUB BILLAR MARACENA 3",
     "channelId": "UC_h9zs9B6FcpO_HXmjU7e5A",
-    "handle": "@josemanueldomingo6171"
+    "handle": "@josemanueldomingo6171",
+    "federation": "RFEB"
   },
   {
     "name": "CLUB BILLAR ÚBEDA",
     "channelId": "UCe43sIim4alLSvfaXK1IEeQ",
-    "handle": ""
+    "handle": "",
+    "federation": "RFEB"
   },
   {
     "name": "CLUB BILLAR PAIPORTA 1",
     "channelId": "UC9R5N-UrYcxW-FCYdmhdqAA",
-    "handle": "@cbpaiporta7090"
+    "handle": "@cbpaiporta7090",
+    "federation": "RFEB"
   },
   {
     "name": "CLUB BILLAR PAIPORTA 2",
     "channelId": "UCdEcGjFQJp5V0iJ2VgtnQlA",
-    "handle": "@antonioortiz8530"
+    "handle": "@antonioortiz8530",
+    "federation": "RFEB"
   },
   {
     "name": "CLUB BILLAR MÓSTOLES",
     "channelId": "UClPb3P4bHQkhWvtBuaXwCNg",
-    "handle": "@BillarMostoles"
+    "handle": "@BillarMostoles",
+    "federation": "RFEB"
   },
   {
     "name": "CLUB BILLAR NERVA",
     "channelId": "UClZHBalhAdDiA_6iP61l4sA",
-    "handle": "@NERVABILLARR"
+    "handle": "@NERVABILLARR",
+    "federation": "RFEB"
   },
   {
     "name": "CLUB BILLAR CÓRDOBA",
     "channelId": "UCuumNJ6s3fFg9nxEjJNvtjA",
-    "handle": "@acbillar"
+    "handle": "@acbillar",
+    "federation": "RFEB"
   },
   {
     "name": "CLUB BILLAR BENACAZÓN",
     "channelId": "UCwHJwOaQ2qtOfC1seSY659Q",
-    "handle": "@billarbenacazon"
+    "handle": "@billarbenacazon",
+    "federation": "RFEB"
   },
   {
     "name": "FEDERACIÓ CATALANA DE BILLAR",
@@ -563,27 +579,32 @@
   {
     "name": "C.D. BILLAR MIJAS",
     "channelId": "UC-YPd10q3SECGxyDpmvug-g",
-    "handle": "@CDBILLARMIJAS"
+    "handle": "@CDBILLARMIJAS",
+    "federation": "RFEB"
   },
   {
     "name": "BILLAR SUECA",
     "channelId": "UC1DBNANfxHKPq6iGQvdVxwg",
-    "handle": "@billarsueca8304"
+    "handle": "@billarsueca8304",
+    "federation": "RFEB"
   },
   {
     "name": "CLUB BILLAR ALCALÁ",
     "channelId": "UCAwhAr0UJrAOFQKAAilRhEg",
-    "handle": "@clubbillaralcala9571"
+    "handle": "@clubbillaralcala9571",
+    "federation": "RFEB"
   },
   {
     "name": "CLUB BILLAR NOVELDA",
     "channelId": "UCByss4QQnxZd-kBmNeJT5RA",
-    "handle": "@ClubBillarNovelda"
+    "handle": "@ClubBillarNovelda",
+    "federation": "RFEB"
   },
   {
     "name": "CLUB BILLAR CARAVACA",
     "channelId": "UCEK4JIyVW7OEJSKjMzxJHmg",
-    "handle": "@ClubBillarCaravaca"
+    "handle": "@ClubBillarCaravaca",
+    "federation": "RFEB"
   },
   {
     "name": "C.B. MONFORTE",
@@ -594,37 +615,44 @@
   {
     "name": "FMB VALLECAS MADRID",
     "channelId": "UCMe7BWxuJs9nPYcDbS04gPA",
-    "handle": "@fmbvallecasmadrid6669"
+    "handle": "@fmbvallecasmadrid6669",
+    "federation": "RFEB"
   },
   {
     "name": "ASOCIACIÓN BILLAR PALMA",
     "channelId": "UCSPKJtODPJQNByDOPimZeRw",
-    "handle": "@asociacionbillarpalma"
+    "handle": "@asociacionbillarpalma",
+    "federation": "RFEB"
   },
   {
     "name": "CLUB BILLAR AYAMONTE",
     "channelId": "UCkvCZqymisfM0F16Sm3349w",
-    "handle": "@clubbillarayamonte7763"
+    "handle": "@clubbillarayamonte7763",
+    "federation": "RFEB"
   },
   {
     "name": "GANDIA BILLAR CLUB",
     "channelId": "UCn3bwzP8wihXAkBaN_hbUTA",
-    "handle": "@gandiabillarclub"
+    "handle": "@gandiabillarclub",
+    "federation": "RFEB"
   },
   {
     "name": "BAEZA BILLAR",
     "channelId": "UCowNjyJZVYi7AqUwvoDxJqw",
-    "handle": "@baezabillar6310"
+    "handle": "@baezabillar6310",
+    "federation": "RFEB"
   },
   {
     "name": "CLUB BILLAR VALENCIA 1",
     "channelId": "UCO0I4CwABojhuotU8jPZzoA",
-    "handle": "@ClubBillarValenciacam1-m3r"
+    "handle": "@ClubBillarValenciacam1-m3r",
+    "federation": "RFEB"
   },
   {
     "name": "CLUB BILLAR VALENCIA 4",
     "channelId": "UCwQ7_xtpVbhvyshqu30OgVA",
-    "handle": "@ClubBillarValenciacam4-v9d"
+    "handle": "@ClubBillarValenciacam4-v9d",
+    "federation": "RFEB"
   },
   {
     "name": "CLUB BILLAR SANTS",
@@ -648,5 +676,150 @@
     "name": "CENTURY BILLARD (Suwon, Corea)",
     "channelId": "UC-7gVrwEW83r7Rh3SRKtaNA",
     "handle": "@century-billard"
+  },
+  {
+    "name": "BoyBao TV (Vietnam)",
+    "channelId": "UCXh2hyij01gLejZ6vVRYj4w",
+    "handle": "@BoyBao-TV"
+  },
+  {
+    "name": "Yeu Bida 3C (Vietnam)",
+    "channelId": "UCwvL0aQTq-gwPJtWnsuNj0Q",
+    "handle": "@YeuBida3C"
+  },
+  {
+    "name": "3C Billiards BM (Vietnam)",
+    "channelId": "UCp0Avlg0G06qbNsz1SR7iUw",
+    "handle": "@3CBilliardsBM"
+  },
+  {
+    "name": "SY Sports / 에스와이 스포츠 (Corea)",
+    "channelId": "UC5UXUsdRQgliY_3CoKzO6Dg",
+    "handle": ""
+  },
+  {
+    "name": "Hwanju TV / 뽠주TV (Corea)",
+    "channelId": "UC6QmdmVb4T8rKj-SS1Lq3Yw",
+    "handle": "@hwanjuTV"
+  },
+  {
+    "name": "Welcome Sports / 웰컴스포츠 (Corea)",
+    "channelId": "UC7vrs96QT9uq16QWqB3aPyw",
+    "handle": "@welcomesports"
+  },
+  {
+    "name": "3 Cushion Billiards EZ (Corea)",
+    "channelId": "UCd12rKLLeWYU7fFnUqIFttg",
+    "handle": "@3CushionBilliardsEZ"
+  },
+  {
+    "name": "Billiards Hakase / 撞球博士 (Japó)",
+    "channelId": "UCEbNK3YAKIGTLRCtPQvpbTQ",
+    "handle": "@billiard.hakase"
+  },
+  {
+    "name": "Mundo de Billar de 3 Cojines",
+    "channelId": "UCbrPrCRcQKZSmK3lZ7VxNJQ",
+    "handle": "@cherry10059"
+  },
+  {
+    "name": "HT Billiards Channels",
+    "channelId": "UCRzcLQNBq9NLPQro3Fztzdw",
+    "handle": "@htbilliards"
+  },
+  {
+    "name": "GJ Billiards",
+    "channelId": "UCH9dC2kl_uUwWdTUaBJSgOg",
+    "handle": "@GJBilliards"
+  },
+  {
+    "name": "3 Cushion Billiards",
+    "channelId": "UC4c8wkmiQyBnzqSJUlZaNOw",
+    "handle": "@3cushionbilliards769"
+  },
+  {
+    "name": "Fone Jr.",
+    "channelId": "UClDCDgWvhOiLDgl-HCr87kw",
+    "handle": "@fone_jr"
+  },
+  {
+    "name": "CAROM CAFE BILLIARDS (NYC)",
+    "channelId": "UCDDy0Iwng5nZAG4jLPpu2_g",
+    "handle": "@CaromCafeBilliards"
+  },
+  {
+    "name": "CAROM CAFE TABLE 1",
+    "channelId": "UC4GP92y9xtugWJph4XFO60Q",
+    "handle": "@CaromCafeTable01-ek4gl"
+  },
+  {
+    "name": "CAROM CAFE TABLE 2",
+    "channelId": "UCkKqwZwBEyWPC5Ts9gUMgGQ",
+    "handle": "@CaromCafeTable02-uq7kc"
+  },
+  {
+    "name": "CAROM CAFE TABLE 3",
+    "channelId": "UCtF_c5SACHiTCRjqL8us--g",
+    "handle": "@CaromCafeTable03-zg5ge"
+  },
+  {
+    "name": "CAROM CAFE TABLE 4",
+    "channelId": "UC3NCr5yTy-2doIpZa3deqjQ",
+    "handle": "@CaromCafeTable04-rn7ti"
+  },
+  {
+    "name": "CAROM CAFE TABLE 5",
+    "channelId": "UCSWHDO3XdtfwL54OHkDdEiQ",
+    "handle": "@CaromCafeTable05-vv8in"
+  },
+  {
+    "name": "CAROM CAFE TABLE 6",
+    "channelId": "UCmpsrbZEaF0VvClQNdQknzQ",
+    "handle": "@CaromCafeTable06-gz1fo"
+  },
+  {
+    "name": "CAROM CAFE TABLE 7",
+    "channelId": "UCxJ5OiNJIK4txqLkhLu4Y0g",
+    "handle": "@CaromCafeTable07-rl1jd"
+  },
+  {
+    "name": "CAROM CAFE TABLE 8",
+    "channelId": "UCCU1ctNT2jFALaDO-HScCUg",
+    "handle": "@CaromCafeTable08-kf4ee"
+  },
+  {
+    "name": "CAROM CAFE TABLE 9",
+    "channelId": "UCRzLSZ130aGymoYfph-sTZw",
+    "handle": "@CaromCafeTable09-cq6xm"
+  },
+  {
+    "name": "CAROM CAFE TABLE 10",
+    "channelId": "UC2Jshopft4m8v0yd7Ww5wiQ",
+    "handle": "@CaromCafeTable10-qd9ie"
+  },
+  {
+    "name": "BILLARES GIORGIO 1",
+    "channelId": "UCUqNjH3ZsnRDFlvx8zM0ObQ",
+    "handle": "@billaresgiorgio"
+  },
+  {
+    "name": "BILLARES GIORGIO 2",
+    "channelId": "UCrS0pjHVckaCPha4CCkBgyw",
+    "handle": "@billaresgiorgio323"
+  },
+  {
+    "name": "BILLARES GIORGIO 3",
+    "channelId": "UChUoXvNOvfAUL_T_NVvSp4A",
+    "handle": "@billaresgiorgio1867"
+  },
+  {
+    "name": "BILLARES GIORGIO 4",
+    "channelId": "UC5Xr-xyq4W0QQb16JJHaXMA",
+    "handle": "@billaresgiorgio9977"
+  },
+  {
+    "name": "BILLARES GIORGIO 5",
+    "channelId": "UCNE8a9OC2xU0kC_0gj-x4ng",
+    "handle": "@billaresgiorgio4141"
   }
 ]

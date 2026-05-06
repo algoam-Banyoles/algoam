@@ -215,6 +215,10 @@ main {
 .federation-group > summary::-webkit-details-marker { display: none; }
 .federation-group > summary::marker { content: ''; }
 
+.federation-group[data-federation="RFEB"] > summary {
+  background: linear-gradient(90deg, rgba(255, 165, 0, 0.18), transparent 70%);
+}
+
 .federation-group[data-federation="OTHERS"] > summary {
   background: linear-gradient(90deg, rgba(160, 160, 175, 0.10), transparent 70%);
 }

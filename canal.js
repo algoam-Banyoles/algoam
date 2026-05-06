@@ -33,10 +33,11 @@ const LIVE_GROUP_LABEL = 'Ara en directe';
 const OTHERS_FED_KEY = 'OTHERS';
 const FEDERATION_LABELS = {
   FCB: 'Federació Catalana de Billar',
-  [OTHERS_FED_KEY]: 'Altres',
+  RFEB: 'Federació Espanyola de Billar',
+  [OTHERS_FED_KEY]: 'Internacionals',
 };
 // Ordre dels macro grups (live no compta, té el seu lloc fix al top).
-const FEDERATION_ORDER = ['FCB', OTHERS_FED_KEY];
+const FEDERATION_ORDER = ['FCB', 'RFEB', OTHERS_FED_KEY];
 
 // Ordre dels grups: live primer, Banyoles segon, resta alfabèticament.
 function groupOrder(key) {
