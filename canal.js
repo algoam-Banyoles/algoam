@@ -15,6 +15,28 @@ const RESCAN_INTERVAL_MS = 90 * 1000;
 const FETCH_CONCURRENCY = 12;
 const FETCH_TIMEOUT_MS = 15000;
 
+// Sostre de reproductors simultanis. Cada YT IFrame descodifica vídeo i
+// audio de forma independent: a partir d'un cert número, mòbils i equips
+// modests perden frames o no acaben de carregar. Calculem un cap segons
+// capacitat detectada; APP_CONFIG.MAX_PLAYERS el pot sobreescriure.
+function computeMaxPlayers() {
+  const override = Number(window.APP_CONFIG?.MAX_PLAYERS);
+  if (Number.isFinite(override) && override > 0) return override;
+  const isMobile = window.matchMedia('(max-width: 767px)').matches;
+  const cores = navigator.hardwareConcurrency || 4;
+  // navigator.deviceMemory no està disponible a Safari/iOS; assumim 4 GB.
+  const memGB = navigator.deviceMemory || 4;
+  if (isMobile) {
+    if (cores >= 6 && memGB >= 4) return 4;
+    return 2;
+  }
+  if (cores >= 12 && memGB >= 16) return 16;
+  if (cores >= 8 && memGB >= 8) return 12;
+  if (cores >= 4) return 8;
+  return 4;
+}
+const MAX_PLAYERS = computeMaxPlayers();
+
 // Identificador estable que un usuari pot seleccionar:
 //   - Per un stream live: el videoId (canvia quan canvia l'emissió)
 //   - Per un canal offline o en comprovació: la channelKey (channelId o handle)
@@ -435,6 +457,13 @@ function selectStream(videoId) {
   const channelKeyVal = card.dataset.channelKey;
   const ch = channelByKey.get(channelKeyVal);
   if (!ch) return;
+  if (playerByKey.size >= MAX_PLAYERS && !playerByKey.has(videoId)) {
+    alert(
+      `Has arribat al màxim de ${MAX_PLAYERS} reproductors simultanis. ` +
+      `Atura'n algun per afegir-ne d'altres.`
+    );
+    return;
+  }
   selectedSet.add(videoId);
   saveSelected();
   card.dataset.selected = 'true';
@@ -537,6 +566,9 @@ function updateGridCols() {
 
 async function addPlayer(videoId, name, key) {
   if (playerByKey.has(key)) return;
+  // Última barrera contra la saturació: maybeRestoreSelected/playFromNotification
+  // poden saltar-se la comprovació de selectStream.
+  if (playerByKey.size >= MAX_PLAYERS) return;
   // Reserva l'slot abans del await perquè el comptador sigui correcte i no
   // es dupliqui un mateix vídeo si addPlayer s'invoca dues vegades de pressa.
   const slot = { wrapper: null, player: null };
@@ -594,7 +626,9 @@ function removePlayer(key) {
 
 function updatePlayerCount() {
   const el = document.getElementById('playerCount');
-  if (el) el.textContent = playerByKey.size > 0 ? `(${playerByKey.size})` : '';
+  if (!el) return;
+  const n = playerByKey.size;
+  el.textContent = n > 0 ? `(${n}/${MAX_PLAYERS})` : '';
 }
 
 // ---------- Tabs ----------
