@@ -666,5 +666,35 @@
     "channelId": "UC80aWvQH_0EH9dHsPWqiQFg",
     "handle": "@pyramidbilliards536",
     "modality": "altres"
+  },
+  {
+    "name": "World Billiards (English Billiards)",
+    "channelId": "UCwan1g_8gB4c4gL0o8xVl1Q",
+    "handle": "@WorldBilliards",
+    "modality": "altres"
+  },
+  {
+    "name": "FISBB Boccette",
+    "channelId": "UCGE7CXmCDMYr5BmlEi8q9Nw",
+    "handle": "@fisbb-boccette",
+    "modality": "altres"
+  },
+  {
+    "name": "Massimo Berselli Diretta FISBB (Boccette/Goriziana)",
+    "channelId": "UCK340ynTfMY3hz8zWxkv8TQ",
+    "handle": "@massimobersellidirettafisbb275",
+    "modality": "altres"
+  },
+  {
+    "name": "Boccette WEB TV",
+    "channelId": "UCLlqvh1unqyx5wa9Ut4fuLw",
+    "handle": "@boccette",
+    "modality": "altres"
+  },
+  {
+    "name": "Billiard Channel (FIBiS)",
+    "channelId": "UCHervNLRlfnNSxCJMLc0hjQ",
+    "handle": "@BilliardChannel-fisbb",
+    "modality": "altres"
   }
 ]
