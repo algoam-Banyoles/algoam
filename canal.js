@@ -50,6 +50,7 @@ const channelByKey = new Map();  // channelKey -> channel object
 const cardsByChannel = new Map(); // channelKey -> Set<cardKey>
 const groupElByKey = new Map();  // groupKey (LIVE_GROUP_KEY | clubName) -> <details>
 const federationGroupByKey = new Map(); // federationKey -> <details> (macro group)
+const modalityGroupByKey = new Map(); // modalityKey -> <details> (macro group, flat)
 
 const LIVE_GROUP_KEY = '__live__';
 const LIVE_GROUP_LABEL = 'Ara en directe';
@@ -61,6 +62,16 @@ const FEDERATION_LABELS = {
 };
 // Ordre dels macro grups (live no compta, té el seu lloc fix al top).
 const FEDERATION_ORDER = ['FCB', 'RFEB', OTHERS_FED_KEY];
+
+// Modalitats no-carom: cada una és un macro grup pla (sense subgrups
+// per club). Les targetes en directe segueixen anant al grup global
+// "Ara en directe"; les offline van directament al grid del modality.
+const MODALITY_LABELS = {
+  pool: 'Pool',
+  snooker: 'Snooker',
+  altres: 'Altres modalitats',
+};
+const MODALITY_ORDER = ['pool', 'snooker', 'altres'];
 
 // Ordre dels grups: live primer, Banyoles segon, resta alfabèticament.
 function groupOrder(key) {
@@ -218,6 +229,41 @@ function ensureFederationGroup(root, fed) {
   return el;
 }
 
+function ensureModalityGroup(root, modality) {
+  let el = modalityGroupByKey.get(modality);
+  if (el) return el;
+  el = document.createElement('details');
+  el.className = 'modality-group';
+  el.dataset.modality = modality;
+  el.open = true;
+  el.innerHTML = `
+    <summary>
+      <span class="club-arrow" aria-hidden="true"></span>
+      <span class="club-title"></span>
+      <span class="club-count"></span>
+    </summary>
+    <div class="club-grid"></div>
+  `;
+  el.querySelector('.club-title').textContent = MODALITY_LABELS[modality] || modality;
+  modalityGroupByKey.set(modality, el);
+
+  // Modality groups van al final, després de les federacions, en l'ordre
+  // definit per MODALITY_ORDER.
+  const desiredIdx = MODALITY_ORDER.indexOf(modality);
+  const existing = Array.from(root.querySelectorAll(':scope > details.modality-group'));
+  let inserted = false;
+  for (const g of existing) {
+    const gIdx = MODALITY_ORDER.indexOf(g.dataset.modality);
+    if (gIdx > desiredIdx) {
+      root.insertBefore(el, g);
+      inserted = true;
+      break;
+    }
+  }
+  if (!inserted) root.appendChild(el);
+  return el;
+}
+
 function ensureGroup(root, key, label, fed) {
   let el = groupElByKey.get(key);
   if (el) return el;
@@ -273,6 +319,14 @@ function placeCardInLiveGroup(root, card) {
 }
 
 function placeCardInClubGroup(root, channel, card) {
+  // Channels with a modality (pool/snooker/altres) viuen en un grup pla
+  // dedicat — sense subgrups per club.
+  if (channel.modality && MODALITY_LABELS[channel.modality]) {
+    const g = ensureModalityGroup(root, channel.modality);
+    const grid = g.querySelector('.club-grid');
+    if (card.parentElement !== grid) grid.appendChild(card);
+    return;
+  }
   const club = clubNameFor(channel);
   const fed = federationKey(channel);
   const g = ensureGroup(root, club, club, fed);
@@ -294,6 +348,13 @@ function updateAllGroupCounts() {
     const countEl = fg.querySelector(':scope > summary > .club-count');
     countEl.textContent = totalCards > 0 ? `(${totalCards})` : '';
     fg.classList.toggle('group-empty', totalCards === 0);
+  }
+  for (const mg of modalityGroupByKey.values()) {
+    const grid = mg.querySelector('.club-grid');
+    const total = grid.children.length;
+    const countEl = mg.querySelector(':scope > summary > .club-count');
+    countEl.textContent = total > 0 ? `(${total})` : '';
+    mg.classList.toggle('group-empty', total === 0);
   }
   updateAppBadge();
 }
@@ -321,6 +382,7 @@ function renderChannelCards(channels) {
   cardsByChannel.clear();
   groupElByKey.clear();
   federationGroupByKey.clear();
+  modalityGroupByKey.clear();
 
   // Live group sempre present, primer i visible (encara que estigui buit).
   ensureGroup(root, LIVE_GROUP_KEY, LIVE_GROUP_LABEL);
@@ -483,8 +545,7 @@ function deselectStream(videoId) {
 }
 
 function sortCards() {
-  for (const group of groupElByKey.values()) {
-    const grid = groupGrid(group);
+  const sortGrid = grid => {
     const cards = Array.from(grid.querySelectorAll(':scope > .ch-card'));
     cards.sort((a, b) => {
       const na = a.querySelector('.ch-name').textContent;
@@ -492,7 +553,9 @@ function sortCards() {
       return na.localeCompare(nb, undefined, { numeric: true, sensitivity: 'base' });
     });
     cards.forEach(c => grid.appendChild(c));
-  }
+  };
+  for (const group of groupElByKey.values()) sortGrid(groupGrid(group));
+  for (const mg of modalityGroupByKey.values()) sortGrid(mg.querySelector('.club-grid'));
 }
 
 // ---------- Filters ----------
@@ -529,6 +592,14 @@ function applySearchFilter() {
       ':scope > details.club-group:not(.group-search-hidden):not(.group-empty)'
     ).length;
     fg.classList.toggle('group-search-hidden', visible === 0);
+  }
+  // Modality groups: similar a club-group però sense subgrups (grid pla).
+  for (const mg of modalityGroupByKey.values()) {
+    const grid = mg.querySelector('.club-grid');
+    const total = grid.children.length;
+    if (total === 0) continue;
+    const hidden = grid.querySelectorAll(':scope > .ch-card.search-hidden').length;
+    mg.classList.toggle('group-search-hidden', hidden === total);
   }
 }
 

@@ -632,53 +632,39 @@
     "handle": "@billiard.hakase"
   },
   {
-    "name": "CAROM CAFE BILLIARDS (NYC)",
-    "channelId": "UCDDy0Iwng5nZAG4jLPpu2_g",
-    "handle": "@CaromCafeBilliards"
+    "name": "Matchroom Pool",
+    "channelId": "UC-YHhXeWjF80OkVxR-HE2Xw",
+    "handle": "@MatchroomPool1",
+    "modality": "pool"
   },
   {
-    "name": "CAROM CAFE TABLE 2",
-    "channelId": "UCkKqwZwBEyWPC5Ts9gUMgGQ",
-    "handle": "@CaromCafeTable02-uq7kc"
+    "name": "Pro Billiard TV",
+    "channelId": "UCcNJ3Z708plAMWVkcluIDmA",
+    "handle": "@ProBilliardTV",
+    "modality": "pool"
   },
   {
-    "name": "CAROM CAFE TABLE 3",
-    "channelId": "UCtF_c5SACHiTCRjqL8us--g",
-    "handle": "@CaromCafeTable03-zg5ge"
+    "name": "PoolActionTV",
+    "channelId": "UCI6R2dargsn6o5eteEDAJ3Q",
+    "handle": "@PoolActionTV",
+    "modality": "pool"
   },
   {
-    "name": "CAROM CAFE TABLE 4",
-    "channelId": "UC3NCr5yTy-2doIpZa3deqjQ",
-    "handle": "@CaromCafeTable04-rn7ti"
+    "name": "World Snooker Tour",
+    "channelId": "UC5lTEvtwu6SR3LMSmU9VZ2Q",
+    "handle": "@worldsnookertour",
+    "modality": "snooker"
   },
   {
-    "name": "CAROM CAFE TABLE 5",
-    "channelId": "UCSWHDO3XdtfwL54OHkDdEiQ",
-    "handle": "@CaromCafeTable05-vv8in"
+    "name": "TNT Sports Snooker",
+    "channelId": "UCexJsWmC7rvfRaqK8MF3JFA",
+    "handle": "@TNTSportsSnooker",
+    "modality": "snooker"
   },
   {
-    "name": "CAROM CAFE TABLE 6",
-    "channelId": "UCmpsrbZEaF0VvClQNdQknzQ",
-    "handle": "@CaromCafeTable06-gz1fo"
-  },
-  {
-    "name": "CAROM CAFE TABLE 7",
-    "channelId": "UCxJ5OiNJIK4txqLkhLu4Y0g",
-    "handle": "@CaromCafeTable07-rl1jd"
-  },
-  {
-    "name": "CAROM CAFE TABLE 8",
-    "channelId": "UCCU1ctNT2jFALaDO-HScCUg",
-    "handle": "@CaromCafeTable08-kf4ee"
-  },
-  {
-    "name": "CAROM CAFE TABLE 9",
-    "channelId": "UCRzLSZ130aGymoYfph-sTZw",
-    "handle": "@CaromCafeTable09-cq6xm"
-  },
-  {
-    "name": "CAROM CAFE TABLE 10",
-    "channelId": "UC2Jshopft4m8v0yd7Ww5wiQ",
-    "handle": "@CaromCafeTable10-qd9ie"
+    "name": "Pyramid Billiards (Russian Pyramid)",
+    "channelId": "UC80aWvQH_0EH9dHsPWqiQFg",
+    "handle": "@pyramidbilliards536",
+    "modality": "altres"
   }
 ]

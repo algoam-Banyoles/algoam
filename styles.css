@@ -265,6 +265,55 @@ main {
 .federation-group.group-empty { display: none; }
 .federation-group.group-search-hidden { display: none; }
 
+/* Modality groups (Pool, Snooker, Altres modalitats): macro groups com
+   les federacions però amb un grid pla a dins (sense subgrups per club). */
+.modality-group {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  transition: border-color 0.2s;
+}
+
+.modality-group:hover { border-color: var(--border-strong); }
+
+.modality-group > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+  color: var(--text-0);
+  user-select: none;
+  background: linear-gradient(90deg, rgba(46, 204, 113, 0.16), transparent 70%);
+  font-size: 1.1rem;
+  letter-spacing: -0.015em;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s;
+}
+
+.modality-group[open] > summary { border-bottom-color: var(--border); }
+.modality-group > summary::-webkit-details-marker { display: none; }
+.modality-group > summary::marker { content: ''; }
+
+.modality-group[data-modality="snooker"] > summary {
+  background: linear-gradient(90deg, rgba(40, 120, 80, 0.22), transparent 70%);
+}
+.modality-group[data-modality="altres"] > summary {
+  background: linear-gradient(90deg, rgba(200, 130, 60, 0.18), transparent 70%);
+}
+
+.modality-group > .club-grid {
+  padding: 12px;
+}
+
+.modality-group.group-empty { display: none; }
+.modality-group.group-search-hidden { display: none; }
+body.only-live .modality-group { display: none; }
+
 .club-group {
   background: rgba(255, 255, 255, 0.015);
   border: 1px solid var(--border);

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'algoam-cache-v8';
+const CACHE_NAME = 'algoam-cache-v9';
 const ASSETS = [
   './',
   './index.html',
