@@ -800,7 +800,8 @@ body:not(.push-enabled) .bell-btn { display: none !important; }
   #searchInput { flex-basis: 100%; }
   .club-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; padding: 6px 10px 12px; }
   .club-group > summary { padding: 10px 12px; font-size: 0.95rem; }
-  .federation-group > summary { padding: 12px; font-size: 1rem; }
+  .federation-group > summary,
+  .modality-group > summary { padding: 12px; font-size: 1rem; }
   .ch-name { font-size: 0.9rem; padding: 8px 10px 3px; }
   .ch-title { font-size: 0.78rem; padding: 0 10px 10px; }
 }
