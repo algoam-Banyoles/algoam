@@ -733,11 +733,13 @@ function attachLiveSync(slot) {
     if (cur > 0) lastObservedTime = cur;
   }
 
-  slot.snapToLive = () => {
+  slot.snapToLive = ({ force = false } = {}) => {
     // Cada vegada que entrem a PLAYING comprovem primer si l'usuari acaba
     // de rebobinar (timeline clicada): en aquest cas no hem de desfer-li
-    // el salt.
+    // el salt — tret que la crida sigui forçada (botó "DIRECTE"), que
+    // expressament neteja el flag perquè l'usuari demana el salt.
     noteUserRewindIfAny();
+    if (force) userRewound = false;
     if (userRewound) return;
     const player = slot.player;
     if (!player || typeof player.seekTo !== 'function') return;
@@ -747,6 +749,7 @@ function attachLiveSync(slot) {
     const target = Math.max(0, dur - SAFETY_GAP_S);
     weJustSeeked = true;
     try { player.seekTo(target, true); } catch (_) {}
+    try { player.playVideo?.(); } catch (_) {}
     lastObservedTime = target;
   };
 
@@ -818,6 +821,23 @@ function updatePlayerCount() {
   if (!el) return;
   const n = playerByKey.size;
   el.textContent = n > 0 ? `(${n}/${MAX_PLAYERS})` : '';
+}
+
+// Sincronitza tots els reproductors al directe alhora. Útil quan algun
+// stream s'ha quedat enrere (rewind manual, buffer recuperat tard, ad
+// que ha endarrerit l'edge): força el salt encara que detectéssim un
+// rewind manual previ, perquè aquí l'usuari l'està demanant explícitament.
+function snapAllToLive() {
+  for (const slot of playerByKey.values()) {
+    if (typeof slot?.snapToLive === 'function') {
+      try { slot.snapToLive({ force: true }); } catch (_) {}
+    }
+  }
+  const btn = document.getElementById('goLiveBtn');
+  if (btn) {
+    btn.classList.add('pulsing');
+    setTimeout(() => btn.classList.remove('pulsing'), 600);
+  }
 }
 
 // ---------- Tabs ----------
@@ -1254,6 +1274,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('searchInput')?.addEventListener('input', applySearchFilter);
   document.getElementById('onlyLive')?.addEventListener('change', applyOnlyLiveFilter);
   document.getElementById('hardRefreshBtn')?.addEventListener('click', hardRefresh);
+  document.getElementById('goLiveBtn')?.addEventListener('click', snapAllToLive);
   applyOnlyLiveFilter();
   window.addEventListener('resize', updateGridCols);
 

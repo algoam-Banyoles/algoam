@@ -120,6 +120,66 @@ main,
   to { transform: rotate(360deg); }
 }
 
+/* "DIRECTE": força tots els reproductors a saltar al live edge.
+   Només té sentit a la pestanya de Reproducció i amb players actius;
+   canal.js pot canviar el visible state via body[data-active-tab]. */
+.go-live-btn {
+  position: fixed;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  right: calc(80px + env(safe-area-inset-right, 0px));
+  height: 52px;
+  padding: 0 16px 0 14px;
+  border-radius: 999px;
+  border: 0;
+  background: var(--accent-live);
+  color: #fff;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  z-index: 60;
+  box-shadow: 0 4px 12px rgba(255, 71, 87, 0.45), 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: background 0.15s, transform 0.2s ease, box-shadow 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body[data-active-tab="players"] .go-live-btn { display: inline-flex; }
+
+.go-live-btn:hover {
+  background: #e0394a;
+  box-shadow: 0 6px 16px rgba(255, 71, 87, 0.55), 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+.go-live-btn:active { transform: scale(0.94); }
+.go-live-btn.pulsing { animation: goLivePulse 0.6s ease-out; }
+
+.go-live-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+  animation: liveDot 2s infinite;
+}
+
+@keyframes goLivePulse {
+  0%   { box-shadow: 0 4px 12px rgba(255, 71, 87, 0.45), 0 0 0 0 rgba(255, 71, 87, 0.55); }
+  60%  { box-shadow: 0 4px 12px rgba(255, 71, 87, 0.45), 0 0 0 14px rgba(255, 71, 87, 0); }
+  100% { box-shadow: 0 4px 12px rgba(255, 71, 87, 0.45), 0 0 0 0 rgba(255, 71, 87, 0); }
+}
+
+@media (max-width: 767px) {
+  .go-live-btn {
+    height: 46px;
+    padding: 0 14px 0 12px;
+    font-size: 0.78rem;
+    right: calc(76px + env(safe-area-inset-right, 0px));
+  }
+}
+
 .tabs {
   display: inline-flex;
   gap: 4px;
