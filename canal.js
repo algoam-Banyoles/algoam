@@ -710,15 +710,35 @@ async function addPlayer(videoId, name, key) {
 // algun reproductor es queda parat. Ara la poll-loop només observa si
 // currentTime ha caigut sense la nostra intervenció (= rewind manual);
 // el snap real només passa quan onStateChange ens avisa que tornem a play.
+// APP_CONFIG.LIVESYNC_DISABLED desactiva tota la sincronia automàtica per
+// si l'usuari prefereix la reproducció lliure (i fer servir el botó
+// "DIRECTE" manualment). Útil com a vàlvula d'escapada quan algun stream
+// es comporta malament i prefereixes no rebre seeks automàtics.
+const LIVESYNC_DISABLED = !!window.APP_CONFIG?.LIVESYNC_DISABLED;
+
 function attachLiveSync(slot) {
+  if (LIVESYNC_DISABLED) {
+    slot.snapToLive = () => {};
+    return;
+  }
   let userRewound = false;
   let weJustSeeked = false;
   let lastObservedTime = 0;
+  let lastAutoSnapMs = 0;
   const REWIND_THRESHOLD_S = 3;
-  const DRIFT_THRESHOLD_S = 8;
-  const SAFETY_GAP_S = 2; // saltar a duration directament fa que el player es
-                          // quedi fent buffer perquè el live edge encara no
-                          // està servit. Deixar 2 s de marge evita aquest cas.
+  const DRIFT_THRESHOLD_S = 15; // pujat de 8s perquè la latència normal
+                                // d'un live YT pot ser de 10-15s i no
+                                // volem snap-thrashing per tan poc.
+  const SAFETY_GAP_S = 2;
+  const AUTO_SNAP_COOLDOWN_MS = 30000; // No més d'un snap automàtic cada
+                                        // 30s. Cada seekTo provoca un
+                                        // BUFFERING; encadenar diversos
+                                        // (BUFFERING -> PLAYING dispara
+                                        // un altre snap si el drift va
+                                        // créixer durant el buffer)
+                                        // congela visualment l'iframe.
+                                        // El botó "DIRECTE" passa
+                                        // {force:true} i salta el cooldown.
 
   function safe(fn) {
     try { return fn(); } catch (_) { return null; }
@@ -741,6 +761,8 @@ function attachLiveSync(slot) {
     noteUserRewindIfAny();
     if (force) userRewound = false;
     if (userRewound) return;
+    const now = Date.now();
+    if (!force && now - lastAutoSnapMs < AUTO_SNAP_COOLDOWN_MS) return;
     const player = slot.player;
     if (!player || typeof player.seekTo !== 'function') return;
     const dur = safe(() => player.getDuration()) || 0;
@@ -751,12 +773,13 @@ function attachLiveSync(slot) {
     try { player.seekTo(target, true); } catch (_) {}
     try { player.playVideo?.(); } catch (_) {}
     lastObservedTime = target;
+    lastAutoSnapMs = now;
   };
 
   // Salt inicial. Si la metadata encara no està carregada, getDuration()
   // val 0 i no es fa res — la transició a PLAYING que vindrà tot seguit
   // tornarà a invocar snapToLive amb la durada ja disponible.
-  slot.snapToLive();
+  slot.snapToLive({ force: true });
 
   // Poll-loop només per detectar rewind manual mentre està en marxa, no
   // per fer seeks: clicar la timeline no genera onStateChange, així que

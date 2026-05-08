@@ -16,6 +16,10 @@
 //                 llegeix d'aquesta ruta relativa, així que només funciona
 //                 quan serveixes el directori amb el poller corrent. Quan
 //                 cablegem el worker, apunta'l a /scores.
+// LIVESYNC_DISABLED  Posa a true per desactivar el "snap al directe"
+//                 automàtic. El botó flotant "DIRECTE" segueix funcionant
+//                 per fer-ho manualment. Útil si algun reproductor es
+//                 queda encallat per culpa dels seeks.
 //
 // window.APP_CONFIG = {
 //   CORS_PROXY: 'https://el-teu-proxy/?',
