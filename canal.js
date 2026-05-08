@@ -976,15 +976,49 @@ function urlB64ToUint8Array(b64) {
   return arr;
 }
 
+// Race a promise against a timeout. Firefox de vegades es queda penjat
+// indefinidament a navigator.serviceWorker.ready si el SW no s'ha registrat
+// (errors d'HTTPS, restriccions del perfil...). Sense límit l'usuari clica
+// la campaneta i no veu res — ni alerta — i no sap què passa.
+function withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(
+      () => reject(new Error(`Timeout esperant ${label}.`)),
+      ms,
+    )),
+  ]);
+}
+
 async function ensurePushSubscription() {
   if (!WORKER_URL) throw new Error('Backend de notificacions no configurat (WORKER_URL).');
+  if (typeof Notification === 'undefined') {
+    throw new Error('Aquest navegador no exposa l\'API de notificacions.');
+  }
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     throw new Error('El teu navegador no suporta notificacions push.');
   }
-  const perm = await Notification.requestPermission();
-  if (perm !== 'granted') throw new Error('Permís de notificacions denegat.');
+  if (!window.isSecureContext) {
+    throw new Error('Les notificacions push només funcionen sobre HTTPS o localhost.');
+  }
 
-  const reg = await navigator.serviceWorker.ready;
+  // Firefox tracta com a "denegat" el cas en què l'usuari descarta la
+  // bombolla sense triar — la promesa resol amb 'default'. Distingim els
+  // dos casos perquè l'usuari sàpiga si l'ha de canviar des dels permisos
+  // del navegador (denied) o si simplement no ha clicat allow (default).
+  const perm = await Notification.requestPermission();
+  if (perm === 'denied') {
+    throw new Error('Has denegat les notificacions. Obre el cadenat de la barra d\'adreces i permet-les.');
+  }
+  if (perm !== 'granted') {
+    throw new Error('Cal acceptar el permís de notificacions a la bombolla del navegador.');
+  }
+
+  const reg = await withTimeout(
+    navigator.serviceWorker.ready,
+    8000,
+    'el service worker (revisa que estigui registrat sense errors)',
+  );
   let sub = await reg.pushManager.getSubscription();
   if (sub) return sub;
 
@@ -1030,7 +1064,9 @@ async function toggleBellForChannel(channelKeyVal) {
     try {
       await ensurePushSubscription();
     } catch (err) {
-      alert(err.message || String(err));
+      console.warn('ensurePushSubscription failed', err);
+      const detail = err?.name && err?.message ? `${err.name}: ${err.message}` : (err?.message || String(err));
+      alert(`No s'han pogut activar les notificacions.\n\n${detail}`);
       return;
     }
     subscribedChannels.add(channelKeyVal);
