@@ -11,10 +11,16 @@
 // MAX_PLAYERS     Sostre de reproductors simultanis. Per defecte es calcula
 //                 segons cores/memòria del dispositiu (mòbil 2-4, escriptori
 //                 4-16). Sobreescriu-lo per pujar/baixar manualment.
+// SCORES_URL      URL del snapshot de marcadors (mateix format que
+//                 scoreboard/out/scores_latest.json). Per defecte la PWA el
+//                 llegeix d'aquesta ruta relativa, així que només funciona
+//                 quan serveixes el directori amb el poller corrent. Quan
+//                 cablegem el worker, apunta'l a /scores.
 //
 // window.APP_CONFIG = {
 //   CORS_PROXY: 'https://el-teu-proxy/?',
 //   WORKER_URL: 'https://algoam-push.xxxx.workers.dev',
 //   VAPID_PUBLIC: 'BLn7N6...',
 //   MAX_PLAYERS: 9,
+//   SCORES_URL: 'https://algoam-push.xxxx.workers.dev/scores',
 // };
