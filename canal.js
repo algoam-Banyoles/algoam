@@ -690,9 +690,68 @@ async function addPlayer(videoId, name, key) {
     videoId,
     playerVars: { autoplay: 1, mute: 1, playsinline: 1, controls: 1 },
     events: {
+      onReady: () => attachLiveSync(slot),
+      onStateChange: e => {
+        // Quan el player torna a PLAYING (ad acabat, buffer recuperat, l'usuari
+        // ha despausat...) saltem al directe llevat que ja hagi rebobinat
+        // manualment. PLAYING == 1 a la YT IFrame API.
+        if (e?.data === 1 && typeof slot.snapToLive === 'function') slot.snapToLive();
+      },
       onError: e => handlePlayerError(key, videoId, name, e?.data),
     },
   });
+}
+
+// Manté el reproductor pegat a l'edge de l'emissió en directe. Cada 1.5 s
+// comprova l'estat: si currentTime cau enrere sense que nosaltres hi hàgim
+// fet seek, és que l'usuari ha clicat la timeline → marquem userRewound i
+// deixem de tocar. Mentre no rebobini, qualsevol drift de més de 10 s respecte
+// a la durada disponible es corregeix amb seekTo(duration). VOD i directes
+// que han acabat es comporten igual: getDuration() esdevé estable, no hi ha
+// drift, i el bucle no fa res.
+function attachLiveSync(slot) {
+  let userRewound = false;
+  let weJustSeeked = false;
+  let lastObservedTime = 0;
+  const DRIFT_THRESHOLD_S = 10;
+  const REWIND_THRESHOLD_S = 3;
+
+  function safe(fn) {
+    try { return fn(); } catch (_) { return null; }
+  }
+
+  slot.snapToLive = () => {
+    if (userRewound) return;
+    const player = slot.player;
+    if (!player || typeof player.seekTo !== 'function') return;
+    const dur = safe(() => player.getDuration()) || 0;
+    const cur = safe(() => player.getCurrentTime()) || 0;
+    if (dur <= 0 || dur - cur <= DRIFT_THRESHOLD_S) return;
+    weJustSeeked = true;
+    try { player.seekTo(dur, true); } catch (_) {}
+    lastObservedTime = dur;
+  };
+
+  // Primer salt en quant el player està llest. seekTo just després de la
+  // creació pot no fer res si el stream encara no ha carregat metadata, però
+  // el bucle següent ho corregirà a la primera iteració amb dur > 0.
+  slot.snapToLive();
+
+  slot.liveSyncInterval = setInterval(() => {
+    const player = slot.player;
+    if (!player || !slot.wrapper || !slot.wrapper.isConnected) {
+      clearInterval(slot.liveSyncInterval);
+      slot.liveSyncInterval = null;
+      return;
+    }
+    const cur = safe(() => player.getCurrentTime()) || 0;
+    if (!weJustSeeked && lastObservedTime - cur > REWIND_THRESHOLD_S) {
+      userRewound = true;
+    }
+    weJustSeeked = false;
+    lastObservedTime = cur;
+    if (!userRewound) slot.snapToLive();
+  }, 1500);
 }
 
 // Codis 101/150 = el propietari ha desactivat l'embed; 100 = vídeo
@@ -707,6 +766,7 @@ function handlePlayerError(key, videoId, name, code) {
   const missing = code === 100;
   if (!blocked && !missing) return;
 
+  if (slot.liveSyncInterval) { clearInterval(slot.liveSyncInterval); slot.liveSyncInterval = null; }
   try { slot.player?.destroy(); } catch (_) {}
   slot.player = null;
 
@@ -731,6 +791,7 @@ function handlePlayerError(key, videoId, name, code) {
 function removePlayer(key) {
   const entry = playerByKey.get(key);
   if (!entry) return;
+  if (entry.liveSyncInterval) { clearInterval(entry.liveSyncInterval); entry.liveSyncInterval = null; }
   try { entry.player?.destroy(); } catch (_) {}
   entry.wrapper?.remove();
   playerByKey.delete(key);
