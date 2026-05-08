@@ -702,56 +702,70 @@ async function addPlayer(videoId, name, key) {
   });
 }
 
-// Manté el reproductor pegat a l'edge de l'emissió en directe. Cada 1.5 s
-// comprova l'estat: si currentTime cau enrere sense que nosaltres hi hàgim
-// fet seek, és que l'usuari ha clicat la timeline → marquem userRewound i
-// deixem de tocar. Mentre no rebobini, qualsevol drift de més de 10 s respecte
-// a la durada disponible es corregeix amb seekTo(duration). VOD i directes
-// que han acabat es comporten igual: getDuration() esdevé estable, no hi ha
-// drift, i el bucle no fa res.
+// Manté el reproductor pegat a l'edge de l'emissió en directe sense fer
+// thrashing: només saltem en moments naturals (transició a PLAYING — ad
+// acabat, buffer recuperat, l'usuari despausa) i deixem fora el rewind
+// manual. Una versió anterior feia seekTo cada 1.5 s, però amb múltiples
+// players oberts cada seek provoca un BUFFERING i el conjunt s'estanca:
+// algun reproductor es queda parat. Ara la poll-loop només observa si
+// currentTime ha caigut sense la nostra intervenció (= rewind manual);
+// el snap real només passa quan onStateChange ens avisa que tornem a play.
 function attachLiveSync(slot) {
   let userRewound = false;
   let weJustSeeked = false;
   let lastObservedTime = 0;
-  const DRIFT_THRESHOLD_S = 10;
   const REWIND_THRESHOLD_S = 3;
+  const DRIFT_THRESHOLD_S = 8;
+  const SAFETY_GAP_S = 2; // saltar a duration directament fa que el player es
+                          // quedi fent buffer perquè el live edge encara no
+                          // està servit. Deixar 2 s de marge evita aquest cas.
 
   function safe(fn) {
     try { return fn(); } catch (_) { return null; }
   }
 
+  function noteUserRewindIfAny() {
+    const cur = safe(() => slot.player?.getCurrentTime()) || 0;
+    if (!weJustSeeked && lastObservedTime - cur > REWIND_THRESHOLD_S) {
+      userRewound = true;
+    }
+    weJustSeeked = false;
+    if (cur > 0) lastObservedTime = cur;
+  }
+
   slot.snapToLive = () => {
+    // Cada vegada que entrem a PLAYING comprovem primer si l'usuari acaba
+    // de rebobinar (timeline clicada): en aquest cas no hem de desfer-li
+    // el salt.
+    noteUserRewindIfAny();
     if (userRewound) return;
     const player = slot.player;
     if (!player || typeof player.seekTo !== 'function') return;
     const dur = safe(() => player.getDuration()) || 0;
     const cur = safe(() => player.getCurrentTime()) || 0;
     if (dur <= 0 || dur - cur <= DRIFT_THRESHOLD_S) return;
+    const target = Math.max(0, dur - SAFETY_GAP_S);
     weJustSeeked = true;
-    try { player.seekTo(dur, true); } catch (_) {}
-    lastObservedTime = dur;
+    try { player.seekTo(target, true); } catch (_) {}
+    lastObservedTime = target;
   };
 
-  // Primer salt en quant el player està llest. seekTo just després de la
-  // creació pot no fer res si el stream encara no ha carregat metadata, però
-  // el bucle següent ho corregirà a la primera iteració amb dur > 0.
+  // Salt inicial. Si la metadata encara no està carregada, getDuration()
+  // val 0 i no es fa res — la transició a PLAYING que vindrà tot seguit
+  // tornarà a invocar snapToLive amb la durada ja disponible.
   slot.snapToLive();
 
+  // Poll-loop només per detectar rewind manual mentre està en marxa, no
+  // per fer seeks: clicar la timeline no genera onStateChange, així que
+  // cal observar currentTime directament.
   slot.liveSyncInterval = setInterval(() => {
-    const player = slot.player;
-    if (!player || !slot.wrapper || !slot.wrapper.isConnected) {
+    if (!slot.player || !slot.wrapper || !slot.wrapper.isConnected) {
       clearInterval(slot.liveSyncInterval);
       slot.liveSyncInterval = null;
       return;
     }
-    const cur = safe(() => player.getCurrentTime()) || 0;
-    if (!weJustSeeked && lastObservedTime - cur > REWIND_THRESHOLD_S) {
-      userRewound = true;
-    }
-    weJustSeeked = false;
-    lastObservedTime = cur;
-    if (!userRewound) slot.snapToLive();
-  }, 1500);
+    noteUserRewindIfAny();
+  }, 2000);
 }
 
 // Codis 101/150 = el propietari ha desactivat l'embed; 100 = vídeo
