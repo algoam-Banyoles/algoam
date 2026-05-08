@@ -10,18 +10,15 @@
 // Endpoints:
 //   GET  /vapid-public       -> {key}
 //   GET  /all-live           -> {ts, channels:[{channelKey,name,streams}]}
-//   GET  /scores             -> {ts, scoreboards:[…]} for the PWA Marcadors tab
 //   POST /subscribe          -> body {subscription, channels:[]}
 //   POST /unsubscribe        -> body {endpoint}
 //   POST /update-channels    -> body {endpoint, channels:[]}
 //   POST /poll  (auth)       -> body {channels:[{channelKey,name,streams:[{videoId,title}]}]}
 //                                stores state, sends pushes for new lives
-//   POST /score-poll (auth)  -> body {ts, scoreboards:[…]} from scoreboard/poll_loop.py
 //
 // KV layout:
 //   sub:<sha256(endpoint)>   -> {endpoint,keys,channels:[channelKey],ts}
 //   live:state               -> {ts, channels:{channelKey:{name,streams}}}
-//   scores:state             -> {ts, scoreboards:[…]}
 
 import webpush from 'web-push';
 
@@ -219,32 +216,6 @@ export default {
       } catch (err) {
         return json({ error: err?.message || 'poll failed' }, { status: 500 }, origin);
       }
-    }
-
-    // Scoreboard snapshot ingest. Called by scoreboard/poll_loop.py once
-    // per cycle with the same shape the PWA reads from /scores. Reuses
-    // POLL_SECRET so we don't add yet another credential to manage.
-    if (request.method === 'POST' && url.pathname === '/score-poll') {
-      const auth = request.headers.get('Authorization') || '';
-      if (auth !== `Bearer ${env.POLL_SECRET}`) {
-        return json({ error: 'unauthorized' }, { status: 401 }, origin);
-      }
-      const body = await request.json().catch(() => null);
-      if (!body || !Array.isArray(body.scoreboards)) {
-        return json({ error: 'invalid payload' }, { status: 400 }, origin);
-      }
-      const state = {
-        ts: body.ts || new Date().toISOString(),
-        scoreboards: body.scoreboards,
-      };
-      await env.ALGOAM_KV.put('scores:state', JSON.stringify(state));
-      return json({ ok: true, scoreboards: state.scoreboards.length }, {}, origin);
-    }
-
-    if (request.method === 'GET' && url.pathname === '/scores') {
-      const state = (await env.ALGOAM_KV.get('scores:state', 'json')) ||
-                    { ts: 0, scoreboards: [] };
-      return json(state, {}, origin);
     }
 
     return json({ error: 'not found' }, { status: 404 }, origin);

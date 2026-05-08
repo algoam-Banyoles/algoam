@@ -105,9 +105,3 @@ logs
 
 # Wrangler local state
 .wrangler/
-
-# Scoreboard POC: Python venv + captured frames + OCR dumps are all
-# reproducible and large; never check them in.
-scoreboard/.venv/
-scoreboard/out/
-scoreboard/__pycache__/
