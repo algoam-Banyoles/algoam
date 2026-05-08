@@ -199,10 +199,22 @@ def discover_lives(channels):
 # ---------- Polling ----------
 
 def signature(payload):
+    """Confirmation signature.
+
+    Only includes (names, scores) — *not* innings, modality or race-to.
+    The previous version included innings, but innings increment every
+    ~30 s of game time; with the poll interval matching that pace, two
+    consecutive readings rarely had identical innings, so the pairing
+    rule never matched and tables that progressed fast (Table 1, Table 3
+    in our test session) stayed stuck on stale data even when the OCR
+    was returning clean numbers.
+
+    Names are kept in the signature so a new match (different players)
+    forces re-confirmation; scores are obviously the thing we care about.
+    """
     p1 = payload.get("player1") or {}
     p2 = payload.get("player2") or {}
     return (
-        payload.get("modality"), payload.get("race_to"), payload.get("innings"),
         p1.get("name"), p1.get("score"),
         p2.get("name"), p2.get("score"),
     )
@@ -353,14 +365,29 @@ def main():
                 continue
 
             sig = signature(payload)
+            now = datetime.now(timezone.utc).isoformat()
             if pending.get(vid) == sig:
                 if confirmed_sig.get(vid) != sig:
-                    rec = {"ts": datetime.now(timezone.utc).isoformat(), **payload}
+                    rec = {"ts": now, **payload}
                     with LOG.open("a", encoding="utf-8") as f:
                         f.write(json.dumps(rec, ensure_ascii=False) + "\n")
                     confirmed_sig[vid] = sig
                     confirmed_payload[vid] = rec
                     print(f"[#{cycle}] {fmt_row(payload)}")
+                else:
+                    # Score state matches what's already confirmed.
+                    # Refresh the innings field opportunistically — it
+                    # increments mid-match without changing the score
+                    # signature, and the snapshot consumer (PWA) wants to
+                    # see "entrada N" advance live. Monotonic guard keeps
+                    # OCR misreads from rolling it back.
+                    prev = confirmed_payload.get(vid) or {}
+                    prev_inn = prev.get("innings")
+                    new_inn = payload.get("innings")
+                    if isinstance(new_inn, int) and (
+                            not isinstance(prev_inn, int) or new_inn > prev_inn):
+                        prev["innings"] = new_inn
+                        prev["ts"] = now
             else:
                 pending[vid] = sig
 
