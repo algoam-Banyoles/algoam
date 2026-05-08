@@ -48,23 +48,63 @@ def detections_in(items, roi):
     return hits
 
 
-def ocr_full_frame(frame_path: Path):
-    img = cv2.imread(str(frame_path))
-    if img is None:
-        raise RuntimeError(f"could not load {frame_path}")
-    ocr = RapidOCR()
-    result, _ = ocr(img)
+_ocr_singleton = None
+
+
+def _ocr():
+    """RapidOCR instances cost ~1s to construct (ONNX session warm-up).
+    Reuse one across calls in the same process."""
+    global _ocr_singleton
+    if _ocr_singleton is None:
+        _ocr_singleton = RapidOCR()
+    return _ocr_singleton
+
+
+def _detections_to_items(result, scale=1.0, dx=0, dy=0):
     items = []
     for entry in result or []:
         bbox, text, conf = entry
         xs = [p[0] for p in bbox]
         ys = [p[1] for p in bbox]
         items.append({
-            "bbox": [int(min(xs)), int(min(ys)), int(max(xs)), int(max(ys))],
+            "bbox": [
+                int(min(xs) / scale + dx),
+                int(min(ys) / scale + dy),
+                int(max(xs) / scale + dx),
+                int(max(ys) / scale + dy),
+            ],
             "text": text,
             "conf": float(conf),
         })
     return items
+
+
+def ocr_full_frame(frame_path: Path, scoreboard_box=None, scale=3):
+    """Run OCR on the frame.
+
+    If scoreboard_box=[x1,y1,x2,y2] is provided, the function crops that
+    region, upscales 3x with cubic interpolation and runs OCR there: at
+    720p the small single-digit scores ('0', '1') sit at the resolution
+    limit and are routinely missed by RapidOCR's text detector. The 3x
+    crop closes that gap. Returned bboxes are mapped back to original
+    frame coordinates.
+    """
+    img = cv2.imread(str(frame_path))
+    if img is None:
+        raise RuntimeError(f"could not load {frame_path}")
+
+    if scoreboard_box is not None:
+        x1, y1, x2, y2 = scoreboard_box
+        crop = img[y1:y2, x1:x2]
+        if crop.size == 0:
+            return []
+        big = cv2.resize(crop, None, fx=scale, fy=scale,
+                         interpolation=cv2.INTER_CUBIC)
+        result, _ = _ocr()(big)
+        return _detections_to_items(result, scale=scale, dx=x1, dy=y1)
+
+    result, _ = _ocr()(img)
+    return _detections_to_items(result)
 
 
 _int_re = re.compile(r"\d+")
@@ -93,19 +133,17 @@ _trailing_digits = re.compile(r"^(.*?)\s*(\d+)\s*$")
 
 
 def split_name_and_trailing_score(raw_name, current_score):
-    """Handle the case where OCR glued name and score into one box.
+    """Strip trailing digits off the player name.
 
-    Names like "MITTERBOCK12" are produced when the score sits flush
-    against the name and rapidocr decides they belong to the same line.
-    The clean ROI separation can't recover them because the bounding-box
-    center falls inside the name region. If the name ends with digits
-    *and* we don't have a score from the score ROI, peel the trailing
-    digits off and use them as the score. Player names containing real
-    digits would be unusual; the cost of getting that wrong is low here.
+    OCR routinely glues the score field into the name bounding box —
+    "MITTERBOCK12", "JUAREZ 0", "P.BEERSMA 8" — even after we tightened
+    the spatial ROIs. Billiard player surnames don't carry trailing
+    numeric suffixes in practice, so we always peel them off. If the
+    score ROI failed to detect anything we use the stripped digits as
+    a fallback; otherwise we trust the dedicated score detection and
+    just clean the name.
     """
     if not raw_name:
-        return raw_name, current_score
-    if current_score is not None:
         return raw_name, current_score
     m = _trailing_digits.match(raw_name)
     if not m:
@@ -113,7 +151,7 @@ def split_name_and_trailing_score(raw_name, current_score):
     head, digits = m.group(1).rstrip(), int(m.group(2))
     if not head:
         return raw_name, current_score
-    return head, digits
+    return head, current_score if current_score is not None else digits
 
 
 def extract_payload(items, layout):
@@ -176,7 +214,7 @@ def main():
                else f"https://www.youtube.com/watch?v={args.video}")
         grab_one_frame(url, frame_path)
 
-    items = ocr_full_frame(frame_path)
+    items = ocr_full_frame(frame_path, scoreboard_box=LAYOUTS[layout].get("scoreboard_box"))
     payload = extract_payload(items, layout)
     payload["videoId"] = vid
     payload["layout"] = layout

@@ -25,7 +25,7 @@ from pathlib import Path
 
 from grab_frame import grab_one_frame
 from extract_score import ocr_full_frame, extract_payload
-from templates import CHANNEL_LAYOUTS
+from templates import CHANNEL_LAYOUTS, LAYOUTS
 
 ROOT = Path(__file__).parent
 ALGOAM = ROOT.parent
@@ -225,7 +225,10 @@ def poll_one(live):
     target_dir.mkdir(parents=True, exist_ok=True)
     frame_path = target_dir / "frame.jpg"
     grab_one_frame(f"https://www.youtube.com/watch?v={vid}", frame_path)
-    items = ocr_full_frame(frame_path)
+    items = ocr_full_frame(
+        frame_path,
+        scoreboard_box=LAYOUTS[live["layout"]].get("scoreboard_box"),
+    )
     payload = extract_payload(items, live["layout"])
     payload["videoId"] = vid
     payload["channelKey"] = live["channelKey"]

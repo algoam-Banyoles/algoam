@@ -19,15 +19,23 @@ detections list, then add a new dict here keyed by a layout name.
 #  | F | TITZE         | 14    |  0   |   <- player2
 #  +---+---------------+-------+------+
 KOZOOM_CEB = {
+    # Generous bbox covering the whole scoreboard. The extractor crops
+    # this and upscales 3x before running OCR, which is the only way
+    # single-digit scores ('0', '1') get picked up reliably at 720p.
+    "scoreboard_box": [80, 595, 320, 685],
     "modality_race": [100, 600, 175, 625],
     "innings":       [200, 600, 295, 625],
     # Names can extend almost up to the score column; the score boxes start
     # around x=247 so we cap the name ROI at 240 — anything beyond is the
     # score and would otherwise be glued to the name (e.g. "P.BEERSMA 8").
     "p1_name":       [105, 617, 240, 647],
-    "p1_score":      [243, 617, 305, 647],
+    # The score row also has a second column (high-run / running average
+    # or similar). It sits at x≈275-290. We keep the ROI wide enough for
+    # 2-digit primary scores (up to ~286) and rely on the extractor to
+    # pick the *leftmost* detection within the ROI.
+    "p1_score":      [243, 617, 295, 647],
     "p2_name":       [105, 645, 240, 672],
-    "p2_score":      [243, 645, 305, 672],
+    "p2_score":      [243, 645, 295, 672],
 }
 
 LAYOUTS = {
