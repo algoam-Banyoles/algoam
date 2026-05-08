@@ -44,7 +44,27 @@ body {
   -moz-osx-font-smoothing: grayscale;
   font-feature-settings: 'cv11', 'ss01';
   line-height: 1.45;
+  position: relative;
 }
+
+/* Marca d'aigua del logo: fixada, centrada, molt subtil. No interactiva. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url('icons/logo-isotip.png');
+  background-repeat: no-repeat;
+  background-position: center 38%;
+  background-size: min(55vmin, 520px);
+  opacity: 0.05;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Pugem el contingut principal i el footer per sobre de la marca d'aigua.
+ * (El header ja té z-index:50 propi i el botó flotant té el seu posicionament.) */
+main,
+.app-footer { position: relative; z-index: 1; }
 
 /* ---------- Header & tabs ---------- */
 
