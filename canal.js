@@ -786,45 +786,59 @@ function extractYtInitialData(html) {
   return null;
 }
 
-function isVideoRendererLive(vr) {
-  const overlays = vr.thumbnailOverlays || [];
-  for (const overlay of overlays) {
-    const tos = overlay.thumbnailOverlayTimeStatusRenderer;
-    if (tos && tos.style === 'LIVE') return true;
-  }
-  const badges = vr.badges || [];
-  for (const badge of badges) {
-    const mbr = badge.metadataBadgeRenderer;
-    if (mbr && (mbr.label === 'LIVE NOW' || mbr.style === 'BADGE_STYLE_TYPE_LIVE_NOW')) return true;
-  }
-  return false;
-}
-
-function walkVideoRenderers(obj, cb) {
-  if (Array.isArray(obj)) {
-    for (const item of obj) walkVideoRenderers(item, cb);
-    return;
-  }
-  if (obj && typeof obj === 'object') {
-    if (obj.videoRenderer) cb(obj.videoRenderer);
-    if (obj.gridVideoRenderer) cb(obj.gridVideoRenderer);
-    for (const key of Object.keys(obj)) {
-      if (key === 'videoRenderer' || key === 'gridVideoRenderer') continue;
-      walkVideoRenderers(obj[key], cb);
+// YouTube canvia el shape de /streams sense avisar. Suportem dos formats:
+//  - Antic videoRenderer/gridVideoRenderer (encara servit en alguns canals).
+//  - Nou lockupViewModel (rollout des de finals de 2024) que ja no porta cap
+//    "Renderer" reconeixible: contentId és el videoId, i el badge LIVE viu en
+//    un thumbnailBadgeViewModel amb badgeStyle="THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE".
+// Si només mantenim el primer, els canals migrats apareixen com a offline.
+function isLiveSubtree(node) {
+  const stack = [node];
+  while (stack.length) {
+    const x = stack.pop();
+    if (Array.isArray(x)) { for (const y of x) stack.push(y); continue; }
+    if (!x || typeof x !== 'object') continue;
+    for (const [k, v] of Object.entries(x)) {
+      if (k === 'thumbnailOverlayTimeStatusRenderer' && v?.style === 'LIVE') return true;
+      if (k === 'metadataBadgeRenderer' &&
+          (v?.label === 'LIVE NOW' || v?.style === 'BADGE_STYLE_TYPE_LIVE_NOW')) return true;
+      if (k === 'thumbnailBadgeViewModel' &&
+          v?.badgeStyle === 'THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE') return true;
+      if (v && typeof v === 'object') stack.push(v);
     }
   }
+  return false;
 }
 
 function findLiveStreams(ytData) {
   const streams = [];
   const seen = new Set();
-  walkVideoRenderers(ytData, vr => {
-    if (!vr.videoId || seen.has(vr.videoId)) return;
-    if (!isVideoRendererLive(vr)) return;
-    seen.add(vr.videoId);
-    const title = vr.title?.runs?.[0]?.text || vr.title?.simpleText || '';
-    streams.push({ videoId: vr.videoId, title });
-  });
+  function visit(obj) {
+    if (Array.isArray(obj)) { for (const x of obj) visit(x); return; }
+    if (!obj || typeof obj !== 'object') return;
+
+    const old = obj.videoRenderer || obj.gridVideoRenderer;
+    if (old?.videoId && !seen.has(old.videoId) && isLiveSubtree(old)) {
+      seen.add(old.videoId);
+      const title = old.title?.runs?.[0]?.text || old.title?.simpleText || '';
+      streams.push({ videoId: old.videoId, title });
+    }
+
+    const lvm = obj.lockupViewModel;
+    if (lvm?.contentId && !seen.has(lvm.contentId) &&
+        (!lvm.contentType || lvm.contentType === 'LOCKUP_CONTENT_TYPE_VIDEO') &&
+        isLiveSubtree(lvm)) {
+      seen.add(lvm.contentId);
+      const title = lvm.metadata?.lockupMetadataViewModel?.title?.content || '';
+      streams.push({ videoId: lvm.contentId, title });
+    }
+
+    for (const [k, v] of Object.entries(obj)) {
+      if (k === 'videoRenderer' || k === 'gridVideoRenderer' || k === 'lockupViewModel') continue;
+      visit(v);
+    }
+  }
+  visit(ytData);
   return streams;
 }
 
