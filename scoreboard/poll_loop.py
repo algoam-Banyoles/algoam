@@ -16,9 +16,11 @@ Press Ctrl+C to stop cleanly. Use --once to run a single cycle.
 """
 import argparse
 import json
+import os
 import signal
 import sys
 import time
+import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -35,6 +37,11 @@ LATEST = OUT / "scores_latest.json"
 
 POLL_INTERVAL_S = 30
 DISCOVERY_INTERVAL_S = 300
+
+# When set, every cycle POSTs the latest snapshot to the Cloudflare Worker
+# so the deployed PWA can read it without each visitor running this script.
+WORKER_URL = os.environ.get("WORKER_URL", "").rstrip("/")
+POLL_SECRET = os.environ.get("POLL_SECRET", "")
 
 _stop = False
 def _on_sigint(_signum=None, _frame=None):
@@ -258,13 +265,45 @@ def is_score_regression(prev, new):
 
 
 def write_latest(confirmed_payloads):
+    snapshot = {
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "scoreboards": list(confirmed_payloads.values()),
+    }
     LATEST.write_text(
-        json.dumps({
-            "ts": datetime.now(timezone.utc).isoformat(),
-            "scoreboards": list(confirmed_payloads.values()),
-        }, ensure_ascii=False, indent=2),
+        json.dumps(snapshot, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+    return snapshot
+
+
+def post_to_worker(snapshot):
+    """Push the latest snapshot to the Cloudflare Worker.
+
+    No-op when WORKER_URL or POLL_SECRET aren't set in the environment —
+    that's how the local-only mode keeps working while we layer the
+    remote backend on top. We swallow network failures and log to stderr
+    so a flapping worker can't take down the local poller.
+    """
+    if not WORKER_URL or not POLL_SECRET:
+        return
+    body = json.dumps(snapshot, ensure_ascii=False).encode("utf-8")
+    req = urllib.request.Request(
+        f"{WORKER_URL}/score-poll",
+        data=body,
+        method="POST",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {POLL_SECRET}",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as res:
+            if res.status >= 300:
+                print(f"  [worker post] HTTP {res.status}", file=sys.stderr)
+    except urllib.error.HTTPError as e:
+        print(f"  [worker post] HTTP {e.code}: {e.reason}", file=sys.stderr)
+    except Exception as e:
+        print(f"  [worker post] {e}", file=sys.stderr)
 
 
 def poll_one(live):
@@ -317,6 +356,10 @@ def main():
     print(f"[boot] {len(channels)} channels with a known layout:")
     for c in channels:
         print(f"  - {c['name']}  ({c['layout']})")
+    if WORKER_URL and POLL_SECRET:
+        print(f"[boot] publishing snapshots to {WORKER_URL}/score-poll")
+    else:
+        print("[boot] WORKER_URL/POLL_SECRET not set — local snapshot only")
     if not channels:
         print("Nothing to poll. Add a CHANNEL_LAYOUTS entry first.", file=sys.stderr)
         return
@@ -391,7 +434,8 @@ def main():
             else:
                 pending[vid] = sig
 
-        write_latest(confirmed_payload)
+        snapshot = write_latest(confirmed_payload)
+        post_to_worker(snapshot)
 
         if args.once:
             break
