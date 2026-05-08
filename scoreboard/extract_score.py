@@ -89,6 +89,33 @@ def parse_modality_race(s: str):
     return m.group(1), int(m.group(2))
 
 
+_trailing_digits = re.compile(r"^(.*?)\s*(\d+)\s*$")
+
+
+def split_name_and_trailing_score(raw_name, current_score):
+    """Handle the case where OCR glued name and score into one box.
+
+    Names like "MITTERBOCK12" are produced when the score sits flush
+    against the name and rapidocr decides they belong to the same line.
+    The clean ROI separation can't recover them because the bounding-box
+    center falls inside the name region. If the name ends with digits
+    *and* we don't have a score from the score ROI, peel the trailing
+    digits off and use them as the score. Player names containing real
+    digits would be unusual; the cost of getting that wrong is low here.
+    """
+    if not raw_name:
+        return raw_name, current_score
+    if current_score is not None:
+        return raw_name, current_score
+    m = _trailing_digits.match(raw_name)
+    if not m:
+        return raw_name, current_score
+    head, digits = m.group(1).rstrip(), int(m.group(2))
+    if not head:
+        return raw_name, current_score
+    return head, digits
+
+
 def extract_payload(items, layout):
     rois = LAYOUTS[layout]
 
@@ -102,18 +129,20 @@ def extract_payload(items, layout):
     modality, race_to = parse_modality_race(join_text(mod_hits))
     innings = first_int(join_text(innings_hits))
 
+    p1_name = join_text(p1_name_hits) or None
+    p1_score = first_int(join_text(p1_score_hits))
+    p1_name, p1_score = split_name_and_trailing_score(p1_name, p1_score)
+
+    p2_name = join_text(p2_name_hits) or None
+    p2_score = first_int(join_text(p2_score_hits))
+    p2_name, p2_score = split_name_and_trailing_score(p2_name, p2_score)
+
     return {
         "modality": modality,
         "race_to": race_to,
         "innings": innings,
-        "player1": {
-            "name": join_text(p1_name_hits) or None,
-            "score": first_int(join_text(p1_score_hits)),
-        },
-        "player2": {
-            "name": join_text(p2_name_hits) or None,
-            "score": first_int(join_text(p2_score_hits)),
-        },
+        "player1": {"name": p1_name, "score": p1_score},
+        "player2": {"name": p2_name, "score": p2_score},
     }
 
 
