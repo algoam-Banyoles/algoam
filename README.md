@@ -1,6 +1,10 @@
 # Billar en Directe
 
-> Desenvolupat per **Albert Gómez** amb [Claude (Anthropic)](https://claude.com/claude-code) · © 2026
+<p align="center">
+  <img src="icons/logo-full.png" alt="Albert Gómez Ametller" width="320" />
+</p>
+
+> Desenvolupat per **Albert Gómez Ametller** amb [Claude (Anthropic)](https://claude.com/claude-code) · © 2026
 
 PWA per veure simultàniament tots els canals de YouTube de `canals.json` que estan emetent en directe. Es pot instal·lar gràcies al manifest i al service worker.
 
