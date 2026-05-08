@@ -352,7 +352,14 @@ def main():
     ap.add_argument("--once", action="store_true", help="one cycle then exit")
     ap.add_argument("--interval", type=int, default=POLL_INTERVAL_S,
                     help=f"poll interval seconds (default {POLL_INTERVAL_S})")
+    ap.add_argument(
+        "--max-runtime", type=int, default=0,
+        help="exit cleanly after N seconds (0 = run forever). Used by the "
+             "GitHub Actions runner so it can stop before the 6h workflow "
+             "timeout and let the next cron run pick up seamlessly.",
+    )
     args = ap.parse_args()
+    deadline = time.monotonic() + args.max_runtime if args.max_runtime > 0 else None
 
     OUT.mkdir(parents=True, exist_ok=True)
     LOG.touch()
@@ -382,9 +389,36 @@ def main():
     confirmed_payload = {}  # videoId -> last confirmed payload
 
     cycle = 0
+    idle_announced = False
     while not _stop:
+        if deadline is not None and time.monotonic() > deadline:
+            print(f"[max-runtime {args.max_runtime}s reached, exiting]")
+            break
         cycle += 1
         cycle_t0 = time.monotonic()
+
+        if not lives:
+            # Cap canal en directe — no toquem yt-dlp/ffmpeg/OCR ni
+            # publiquem cap snapshot al worker. La descoberta ja estava
+            # per recuperar nous directes; ens limitem a esperar que
+            # arribi el següent cicle de re-discovery.
+            if not idle_announced:
+                print("[idle] no live streams; waiting for re-discovery")
+                idle_announced = True
+            elapsed = time.monotonic() - cycle_t0
+            sleep_for = max(0.0, args.interval - elapsed)
+            end = time.monotonic() + sleep_for
+            while not _stop and time.monotonic() < end:
+                time.sleep(0.5)
+            if time.monotonic() - last_discovery > DISCOVERY_INTERVAL_S:
+                lives = discover_lives(channels)
+                last_discovery = time.monotonic()
+                if lives:
+                    print(f"[rediscovery] {len(lives)} live streams (now active)")
+                    idle_announced = False
+            if args.once:
+                break
+            continue
 
         for live in lives:
             vid = live["videoId"]
@@ -455,6 +489,8 @@ def main():
                     confirmed_sig.pop(vid, None)
                     pending.pop(vid, None)
             print(f"[rediscovery] {len(lives)} live streams")
+            if not lives:
+                idle_announced = False  # reset so we re-announce once
 
         # Sleep up to the next tick, but stay responsive to Ctrl+C.
         elapsed = time.monotonic() - cycle_t0
