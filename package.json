@@ -2,6 +2,7 @@
   "name": "billar-en-directe",
   "version": "1.0.0",
   "description": "Billar en Directe — PWA per veure simultàniament els canals de billar de YouTube en directe",
+  "author": "Albert Gómez",
   "scripts": {
     "fetch-channels": "node scripts/fetch_channels.js",
     "check-live": "node scripts/check_live.js",

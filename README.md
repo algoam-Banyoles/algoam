@@ -1,5 +1,7 @@
 # Billar en Directe
 
+> Desenvolupat per **Albert Gómez** amb [Claude (Anthropic)](https://claude.com/claude-code) · © 2026
+
 PWA per veure simultàniament tots els canals de YouTube de `canals.json` que estan emetent en directe. Es pot instal·lar gràcies al manifest i al service worker.
 
 ## Ús
@@ -83,3 +85,7 @@ Un cop desplegat:
 - **403 / 429 al servidor proxy CORS**: configureu un `CORS_PROXY` propi (vegeu *Configuració opcional*).
 - **Cap reproductor no apareix tot i tenir directes coneguts**: comproveu la consola del navegador. Si el proxy està bloquejat, totes les peticions fallen.
 - **El reproductor mostra "vídeo no disponible"**: el directe pot haver acabat. Aturar el reproductor amb × (no es torna a engegar fins que recarregueu la pestanya).
+
+## Crèdits
+
+Copyright © 2026 Albert Gómez. Desenvolupat amb assistència de [Claude (Anthropic)](https://claude.com/claude-code).

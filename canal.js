@@ -1,3 +1,9 @@
+/*!
+ * Billar en Directe
+ * Copyright (c) 2026 Albert Gómez
+ * Desenvolupat amb Claude (Anthropic) — https://claude.com/claude-code
+ */
+
 // Billar en Directe — selector i reproducció de directes sense API de Google.
 // Detecció via /streams + scrape HTML (CORS proxy). Un canal pot tenir
 // múltiples directes simultanis: en sortirà una targeta per stream.

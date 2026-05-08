@@ -1,3 +1,9 @@
+/*!
+ * Billar en Directe
+ * Copyright (c) 2026 Albert Gómez
+ * Desenvolupat amb Claude (Anthropic) — https://claude.com/claude-code
+ */
+
 // Servidor WebSub/PubSubHubbub per a notificacions push de canals YouTube.
 // Es manté com a referència — la PWA no en depèn. La verificació de directe
 // es fa via scrape públic (sense API de Google).

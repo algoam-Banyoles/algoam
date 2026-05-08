@@ -1,3 +1,9 @@
+/*!
+ * Billar en Directe
+ * Copyright (c) 2026 Albert Gómez
+ * Desenvolupat amb Claude (Anthropic) — https://claude.com/claude-code
+ */
+
 :root {
   --primary: #7a5cff;
   --primary-dark: #4528c9;
@@ -804,4 +810,30 @@ body:not(.push-enabled) .bell-btn { display: none !important; }
   .modality-group > summary { padding: 12px; font-size: 1rem; }
   .ch-name { font-size: 0.9rem; padding: 8px 10px 3px; }
   .ch-title { font-size: 0.78rem; padding: 0 10px 10px; }
+}
+
+/* ---------- Footer / crèdits ---------- */
+
+.app-footer {
+  text-align: center;
+  padding: 20px 12px 28px;
+  color: var(--text-2);
+  font-size: 0.78rem;
+  opacity: 0.78;
+  border-top: 1px solid var(--border);
+  margin-top: 24px;
+}
+
+.app-footer strong {
+  color: var(--text-1);
+  font-weight: 600;
+}
+
+.app-footer a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.app-footer a:hover {
+  text-decoration: underline;
 }
