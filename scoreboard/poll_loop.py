@@ -294,6 +294,11 @@ def post_to_worker(snapshot):
         headers={
             "Content-Type": "application/json",
             "Authorization": f"Bearer {POLL_SECRET}",
+            # Cloudflare's bot-fight layer blocks the default
+            # "Python-urllib/3.x" UA with a 403 *before* the request ever
+            # reaches our worker (which would otherwise return 401 for
+            # bad creds). A normal-looking UA avoids that filter.
+            "User-Agent": "algoam-scoreboard-poller/1.0",
         },
     )
     try:
