@@ -40,11 +40,16 @@ jobs:
           cache: 'pip'
           cache-dependency-path: scoreboard/requirements.txt
 
-      - name: Install ffmpeg + yt-dlp
+      - name: Install ffmpeg + yt-dlp + deno
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends ffmpeg
           pip install --upgrade --quiet yt-dlp
+          # yt-dlp prints a deprecation warning without a JS runtime and
+          # for some YouTube clients can no longer fetch URLs without
+          # one. Deno is the default it looks for.
+          curl -fsSL https://deno.land/install.sh | sh -s -- -y --no-modify-path
+          echo "$HOME/.deno/bin" >> $GITHUB_PATH
 
       - name: Install scoreboard deps
         run: pip install --quiet -r scoreboard/requirements.txt
@@ -53,6 +58,12 @@ jobs:
         env:
           WORKER_URL: ${{ secrets.WORKER_URL }}
           POLL_SECRET: ${{ secrets.POLL_SECRET }}
+          # Bot-detection workaround: GHA runners run on Azure IPs, which
+          # YouTube treats as datacenter traffic and blocks the default
+          # `web` player_client. The mobile-web client tends to pass
+          # without cookies. Android is a fallback. If both stop working
+          # we'll need to add a cookies.txt secret.
+          YTDLP_EXTRA: '--extractor-args youtube:player_client=mweb,android'
           PYTHONUNBUFFERED: '1'
         working-directory: scoreboard
         run: |

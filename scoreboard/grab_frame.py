@@ -15,6 +15,8 @@ Usage:
 """
 import argparse
 import json
+import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -38,27 +40,31 @@ def find(cmd: str) -> str:
 YTDLP = find("yt-dlp")
 FFMPEG = find("ffmpeg")
 
+# Extra arguments passed to *every* yt-dlp invocation. Set by the GitHub
+# Actions workflow to apply bot-detection workarounds (e.g.
+# `--extractor-args "youtube:player_client=android,mweb"`) without
+# affecting local runs that don't need them.
+YTDLP_EXTRA = shlex.split(os.environ.get("YTDLP_EXTRA", ""))
+
 
 def grab_one_frame(video_url: str, dest: Path) -> None:
     """Pull a 720p frame near the live edge using yt-dlp + ffmpeg.
 
-    -f selects 720p mp4 if available; falls back to best <=720p.
-    --live-from-start would replay from the beginning, we want the now —
-    so we use ffmpeg's input flag to seek 0s into whatever yt-dlp serves.
+    yt-dlp resolves the playable manifest URL (handles n-sig decipher,
+    URL signing and any client-specific transforms YouTube applies);
+    ffmpeg then reads one frame from the live edge. We tried bypassing
+    yt-dlp by parsing /watch directly, but the segment URLs returned by
+    that path 403 even with browser-like headers — yt-dlp does extra
+    session work we don't easily replicate.
     """
-    # Resolve the direct media URL via yt-dlp -g (gets the playable URL).
-    # For a live HLS stream this returns the manifest URL.
     proc = subprocess.run(
-        [YTDLP, "-f", "best[height<=720]/best", "-g", video_url],
+        [YTDLP, *YTDLP_EXTRA, "-f", "best[height<=720]/best", "-g", video_url],
         capture_output=True, text=True, check=True,
     )
     direct = proc.stdout.strip().splitlines()[-1]
     if not direct:
         raise RuntimeError("yt-dlp -g returned no URL")
 
-    # ffmpeg: take exactly one frame from the most recent segment.
-    # -live_start_index -1 starts at the latest segment (HLS), -t 0.1
-    # bounds reads, -frames:v 1 dumps a single frame, -y overwrites.
     subprocess.run(
         [
             FFMPEG, "-hide_banner", "-loglevel", "error",
