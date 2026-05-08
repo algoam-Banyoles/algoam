@@ -33,7 +33,7 @@ OUT = ROOT / "out"
 LOG = OUT / "scores.jsonl"
 LATEST = OUT / "scores_latest.json"
 
-POLL_INTERVAL_S = 10
+POLL_INTERVAL_S = 30
 DISCOVERY_INTERVAL_S = 300
 
 _stop = False
@@ -335,11 +335,13 @@ def main():
                 continue
 
             if is_score_regression(confirmed_payload.get(vid), payload):
-                # Likely OCR misread (6/9 -> 0, or a dropped digit). Discard
-                # the reading entirely so the previous confirmed value
-                # stays visible. We also drop any pending so a single bad
-                # frame can't pair with the next bad frame to confirm.
-                pending.pop(vid, None)
+                # Likely OCR misread (6/9 -> 0, dropped digit, or a fully
+                # null reading because someone walked through the
+                # scoreboard). Discard the reading but *keep* whatever
+                # was in pending: an earlier bad-then-good interleaving
+                # was making us drop the pending too, so two correct
+                # readings separated by one bad frame never paired up
+                # and we got stuck on stale data for many minutes.
                 p1 = (payload.get("player1") or {})
                 p2 = (payload.get("player2") or {})
                 print(
