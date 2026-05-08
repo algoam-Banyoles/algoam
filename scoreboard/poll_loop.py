@@ -208,6 +208,43 @@ def signature(payload):
     )
 
 
+def is_score_regression(prev, new):
+    """Reject readings whose score or inning went *down* mid-match.
+
+    The OCR confuses 6 and 9 with 0 fairly regularly at 720p — the
+    upscale crop helps but doesn't eliminate it. A drop is the cleanest
+    signal that a reading is bogus: caroms accumulate, they never go
+    backwards within a single match. Innings only increment too. When
+    the player names change, that's a new match and the score resets
+    legitimately, so we don't apply the check there.
+
+    A None score on the new reading when the previous one had a number
+    counts as a regression too (OCR failed to read what was visible).
+    """
+    if not prev:
+        return False
+    p_prev = prev.get("player1") or {}
+    p_new = new.get("player1") or {}
+    q_prev = prev.get("player2") or {}
+    q_new = new.get("player2") or {}
+    if (p_prev.get("name") or "") != (p_new.get("name") or "") \
+            or (q_prev.get("name") or "") != (q_new.get("name") or ""):
+        return False
+    s_p_prev = p_prev.get("score")
+    s_p_new = p_new.get("score")
+    s_q_prev = q_prev.get("score")
+    s_q_new = q_new.get("score")
+    if s_p_prev is not None and (s_p_new is None or s_p_new < s_p_prev):
+        return True
+    if s_q_prev is not None and (s_q_new is None or s_q_new < s_q_prev):
+        return True
+    inn_prev = prev.get("innings")
+    inn_new = new.get("innings")
+    if isinstance(inn_prev, int) and isinstance(inn_new, int) and inn_new < inn_prev:
+        return True
+    return False
+
+
 def write_latest(confirmed_payloads):
     LATEST.write_text(
         json.dumps({
@@ -295,6 +332,22 @@ def main():
                 payload = poll_one(live)
             except Exception as e:
                 print(f"  [poll fail] {vid}: {e}", file=sys.stderr)
+                continue
+
+            if is_score_regression(confirmed_payload.get(vid), payload):
+                # Likely OCR misread (6/9 -> 0, or a dropped digit). Discard
+                # the reading entirely so the previous confirmed value
+                # stays visible. We also drop any pending so a single bad
+                # frame can't pair with the next bad frame to confirm.
+                pending.pop(vid, None)
+                p1 = (payload.get("player1") or {})
+                p2 = (payload.get("player2") or {})
+                print(
+                    f"  [reject regress] {vid}: "
+                    f"{p1.get('name','?')} {p1.get('score')} - "
+                    f"{p2.get('score')} {p2.get('name','?')}",
+                    file=sys.stderr,
+                )
                 continue
 
             sig = signature(payload)

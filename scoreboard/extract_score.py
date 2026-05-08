@@ -133,15 +133,22 @@ _trailing_digits = re.compile(r"^(.*?)\s*(\d+)\s*$")
 
 
 def split_name_and_trailing_score(raw_name, current_score):
-    """Strip trailing digits off the player name.
+    """Strip trailing digits off the player name and treat them as the score.
 
-    OCR routinely glues the score field into the name bounding box —
-    "MITTERBOCK12", "JUAREZ 0", "P.BEERSMA 8" — even after we tightened
-    the spatial ROIs. Billiard player surnames don't carry trailing
-    numeric suffixes in practice, so we always peel them off. If the
-    score ROI failed to detect anything we use the stripped digits as
-    a fallback; otherwise we trust the dedicated score detection and
-    just clean the name.
+    Two failure modes drove this design:
+      1) OCR glues the score into the name bounding box ("MITTERBOCK12",
+         "JUAREZ 0") even after the spatial ROIs were tightened.
+      2) When the primary score is a single digit close to the name (e.g.
+         "ECKEL 3"), its bbox center falls just inside the name ROI, so
+         the score ROI sees only the *secondary* column (a high-run / 0)
+         and we'd return that as the primary — wrong.
+
+    Both fail the same way: the real primary score is sitting at the end
+    of the name string. Billiard surnames don't carry trailing digits in
+    practice, so any number glued to the end of the name is the score.
+    The score detected inside the score ROI is only kept as a fallback
+    for the case where OCR cleanly separated name and primary score (so
+    the name has no trailing digits at all).
     """
     if not raw_name:
         return raw_name, current_score
@@ -151,7 +158,7 @@ def split_name_and_trailing_score(raw_name, current_score):
     head, digits = m.group(1).rstrip(), int(m.group(2))
     if not head:
         return raw_name, current_score
-    return head, current_score if current_score is not None else digits
+    return head, digits
 
 
 def extract_payload(items, layout):
