@@ -66,6 +66,27 @@ npm run fetch-channels
 
 Genera/actualitza `canals.json` amb identificadors i handles.
 
+## Afegir un canal pel handle
+
+```bash
+npm run add-channel -- @nomdelcanal
+```
+
+El script fa fetch a `https://www.youtube.com/@nomdelcanal`, n'extreu el `channelId` i el nom, i afegeix una entrada nova a `canals.json` (salta duplicats). Accepta també la URL completa (`https://www.youtube.com/@nomdelcanal`).
+
+Opcions:
+
+- `--federation FCB|RFEB` — assigna el canal a una federació.
+- `--modality pool|snooker|altres` — assigna una modalitat (els canals amb modality apareixen en grup pla).
+- `--name "Nom personalitzat"` — sobreescriu el nom detectat des de YouTube.
+
+Exemple:
+
+```bash
+npm run add-channel -- @clubbillarvic3334 --federation FCB
+npm run add-channel -- @MatchroomPool1 --modality pool
+```
+
 ## WebSub listener (opcional, no usat per la PWA)
 
 `websub_server.js` se subscriu al feed WebSub d'un canal concret i registra quan comença un directe. Verificació també sense API:

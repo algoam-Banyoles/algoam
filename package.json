@@ -5,6 +5,7 @@
   "author": "Albert Gómez",
   "scripts": {
     "fetch-channels": "node scripts/fetch_channels.js",
+    "add-channel": "node scripts/add_channel.js",
     "check-live": "node scripts/check_live.js",
     "websub-server": "node websub_server.js"
   },
