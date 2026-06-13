@@ -96,9 +96,14 @@ function scorePair(words) {
     const nameAbove = names.some((t) => t.cy < Math.min(left.cy, right.cy)
       && t.cx > left.cx - left.h && t.cx < right.cx + right.h);
     const minH = Math.min(left.h, right.h);
-    const ent = nums.find((n) => n !== left && n !== right
-      && n.cx > left.cx && n.cx < right.cx && n.h < minH * 0.8
-      && n.cy >= Math.min(left.cy, right.cy) - minH * 0.3);
+    // Entrades: número ENTRE les dues caramboles, més petit, i a la MATEIXA
+    // alçada (el més proper al centre vertical de les caramboles).
+    const midY = (left.cy + right.cy) / 2;
+    const entCands = nums.filter((n) => n !== left && n !== right
+      && n.cx > left.cx && n.cx < right.cx
+      && n.h >= minH * 0.2 && n.h < minH * 0.85);
+    entCands.sort((a, b) => Math.abs(a.cy - midY) - Math.abs(b.cy - midY));
+    const ent = entCands[0] || null;
     // Nom de cada jugador: en carombooks l'ordre vertical és [CLUB]/[JUGADOR]/
     // [NÚMERO], així que agafem el text a sobre del número, del costat correcte
     // (més a prop d'aquesta columna que de l'altra) i el MÉS BAIX (més a prop del

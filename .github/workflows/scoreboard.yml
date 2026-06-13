@@ -2,12 +2,14 @@ name: Live scoreboards (OCR)
 
 # Llegeix per OCR els marcadors dels directes de YouTube dels opens en curs i els
 # publica a Supabase (fcbillar.open_live_scores), perquè el web de FCBillar els
-# mostri en viu. Auto-ritmat: GitHub estrangula els crons freqüents, així que cada
-# execució fa un BUCLE INTERN (una passada cada ~1 min) durant ~55 min.
+# mostri en viu. Bucle llarg (no s'acaba abans del següent tret → sense forats).
 #
-# REQUISIT: secrets al repo (Settings → Secrets and variables → Actions):
-#   - SUPABASE_URL
-#   - SUPABASE_SERVICE_ROLE_KEY
+# REQUISITS (Settings → Secrets and variables → Actions):
+#   - SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+#   - YOUTUBE_COOKIES: contingut d'un cookies.txt (format Netscape) exportat del
+#     navegador. CAL perquè YouTube bloqueja les IPs de datacenter de GitHub
+#     ("Sign in to confirm you're not a bot"). Useu un compte de Google dedicat;
+#     les cookies caduquen i s'han de refrescar de tant en tant.
 #
 # Finestra: dv/ds/dg 9:00–22:00 local (07–20 UTC estiu; hivern CET → '8-21').
 
@@ -23,7 +25,7 @@ concurrency:
 jobs:
   ocr:
     runs-on: ubuntu-latest
-    timeout-minutes: 65
+    timeout-minutes: 355
     steps:
       - uses: actions/checkout@v4
 
@@ -31,8 +33,9 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Install yt-dlp (ffmpeg ja ve preinstal·lat al runner)
+      - name: Install ffmpeg + yt-dlp
         run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
           sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
           sudo chmod a+rx /usr/local/bin/yt-dlp
           yt-dlp --version && ffmpeg -version | head -1
@@ -40,12 +43,20 @@ jobs:
       - name: Install node deps
         run: npm install --no-audit --no-fund
 
-      - name: Read scoreboards (bucle auto-ritmat ~55 min)
+      - name: Read scoreboards (bucle auto-ritmat ~2 min)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          YOUTUBE_COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
         run: |
-          END=$(( SECONDS + 3300 ))
+          if [ -n "$YOUTUBE_COOKIES" ]; then
+            printf '%s' "$YOUTUBE_COOKIES" > /tmp/yt_cookies.txt
+            export YT_COOKIES=/tmp/yt_cookies.txt
+            echo "cookies de YouTube: ACTIVES"
+          else
+            echo "AVÍS: sense YOUTUBE_COOKIES → YouTube bloquejarà les IPs de GitHub i no es podrà llegir cap stream."
+          fi
+          END=$(( SECONDS + 21000 ))   # ~5,5 h de bucle continu
           i=0
           while [ "$SECONDS" -lt "$END" ]; do
             i=$(( i + 1 ))

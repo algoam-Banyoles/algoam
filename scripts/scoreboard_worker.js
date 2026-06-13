@@ -137,9 +137,12 @@ function opponentInGroup(name, matches, players) {
 }
 
 function grabFrames(videoId, n, intervalSec, tmpDir) {
+  // YouTube bloqueja les IPs de datacenter (GitHub Actions) demanant login; amb
+  // un fitxer de cookies (YT_COOKIES) yt-dlp s'autentica i ho evita.
+  const ck = process.env.YT_COOKIES ? ['--cookies', process.env.YT_COOKIES] : [];
   let hls;
   try {
-    hls = execFileSync('yt-dlp', ['-f', 'best[height<=720]/best', '-g', `https://www.youtube.com/watch?v=${videoId}`], { encoding: 'utf8' }).split('\n')[0].trim();
+    hls = execFileSync('yt-dlp', ['-f', 'best[height<=720]/best', ...ck, '-g', `https://www.youtube.com/watch?v=${videoId}`], { encoding: 'utf8' }).split('\n')[0].trim();
   } catch { return []; }
   if (!hls) return [];
   const pat = path.join(tmpDir, `${videoId}_%03d.jpg`);
