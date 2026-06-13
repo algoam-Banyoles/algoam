@@ -116,6 +116,26 @@ function monotonicViolation(prev, row) {
   return row.car_a < oldA - 1 || row.car_b < oldB - 1;
 }
 
+// Totes les partides dels grups (de open_live): [{a, b, group, played}].
+function openMatches(payload) {
+  const out = [];
+  for (const ph of payload?.phases || []) for (const g of ph.groups || []) for (const m of g.matches || []) {
+    if (m.player_a && m.player_b) out.push({ a: m.player_a, b: m.player_b, group: g.label, played: !!m.is_played });
+  }
+  return out;
+}
+
+// Quan un costat no resol, dedueix el rival: si el jugador conegut té UNA sola
+// partida del grup pendent (o una de sola en total), el rival és l'altre.
+function opponentInGroup(name, matches, players) {
+  const inv = matches.filter((m) => sameName(m.a, name) || sameName(m.b, name));
+  const pending = inv.filter((m) => !m.played);
+  const pool = pending.length === 1 ? pending : (inv.length === 1 ? inv : []);
+  if (pool.length !== 1) return null;
+  const oppName = sameName(pool[0].a, name) ? pool[0].b : pool[0].a;
+  return players.find((p) => p.name === oppName) || { name: oppName, group: pool[0].group };
+}
+
 function grabFrames(videoId, n, intervalSec, tmpDir) {
   let hls;
   try {
@@ -177,6 +197,7 @@ async function runOnce({ samples = 5, interval = 3, log = console.error } = {}) 
     streams = streams.filter((s) => !ot || norm(s.title).includes(ot));
     log(`  ${streams.length} directes d'aquest open`);
     const oplayers = openPlayers(open.payload_json);
+    const omatches = openMatches(open.payload_json);
 
     for (const s of streams) {
       liveVideoIds.push(s.videoId);
@@ -201,13 +222,18 @@ async function runOnce({ samples = 5, interval = 3, log = console.error } = {}) 
         if (pL && pR && pL.name === pR.name) pR = (t1 && t1.name !== pL.name) ? t1 : ((t0 && t0.name !== pL.name) ? t0 : null);
         if (!pL && pR) pL = (t0 && t0.name !== pR.name) ? t0 : null;
         if (!pR && pL) pR = (t1 && t1.name !== pL.name) ? t1 : null;
+        // Si un costat encara no resol (títol genèric + OCR del club), dedueix el
+        // rival per la partida del grup a open_live. No mostrem mai el club cru.
+        if (!pR && pL) { const o = opponentInGroup(pL.name, omatches, oplayers); if (o && o.name !== pL.name) pR = o; }
+        if (!pL && pR) { const o = opponentInGroup(pR.name, omatches, oplayers); if (o && o.name !== pR.name) pL = o; }
+        if (!pL && !pR) { log(`  ~ ${s.videoId} no s'ha identificat cap jugador (${c.name_left}/${c.name_right})`); continue; }
         const group = tp.group || pL?.group || pR?.group || null;
 
         const row = {
           video_id: s.videoId, fcb_division_id: open.fcb_division_id, club: tokens[0],
           title: s.title, phase: tp.phase, group_label: group,
-          player_a: pL?.name || tp.players[0] || c.name_left || null,
-          player_b: pR?.name || tp.players[1] || c.name_right || null,
+          player_a: pL ? pL.name : null,
+          player_b: pR ? pR.name : null,
           car_a: c.car_left, car_b: c.car_right, entrades: c.entrades,
           captured_at: nowIso, updated_at: nowIso,
         };
