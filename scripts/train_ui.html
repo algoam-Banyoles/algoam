@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Validació OCR marcadors</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; }
+  header { position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 12px 18px; border-bottom: 1px solid #334155; display: flex; align-items: center; gap: 16px; }
+  header h1 { font-size: 16px; margin: 0; }
+  .prog { font-size: 13px; color: #94a3b8; }
+  .prog b { color: #4ade80; }
+  main { max-width: 920px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; overflow: hidden; }
+  .card.saved { border-color: #16a34a; }
+  .imgwrap { background: #000; text-align: center; }
+  .imgwrap img { max-width: 100%; max-height: 360px; }
+  .body { padding: 12px 14px; }
+  .id { font-weight: 700; font-size: 14px; }
+  .title { font-size: 11px; color: #94a3b8; margin: 2px 0 8px; }
+  .ocr { font-size: 12px; color: #cbd5e1; background: #0f172a; border-radius: 8px; padding: 6px 9px; margin-bottom: 10px; }
+  .ocr .bad { color: #f87171; }
+  .fields { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+  .f { display: flex; flex-direction: column; gap: 3px; }
+  .f label { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: #94a3b8; }
+  .f input { width: 86px; padding: 6px 8px; border-radius: 7px; border: 1px solid #475569; background: #0f172a; color: #e2e8f0; font-size: 14px; }
+  .f input.num { width: 64px; text-align: center; font-weight: 700; }
+  .f.wide input { width: 150px; }
+  .chk { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #cbd5e1; }
+  .actions { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
+  button { border: none; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .ok { background: #16a34a; color: #fff; }
+  .copy { background: #334155; color: #e2e8f0; }
+  .status { font-size: 12px; color: #4ade80; margin-left: auto; }
+  .hint { font-size: 11px; color: #64748b; margin-top: 6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Validació OCR marcadors</h1>
+  <span class="prog">Validats <b id="done">0</b> / <span id="total">0</span></span>
+</header>
+<main id="main"></main>
+
+<script>
+const N = (v) => (v === null || v === undefined || v === '' ? '' : v);
+let DONE = 0, TOTAL = 0;
+
+async function load() {
+  const { manifest, labels } = await (await fetch('/api/data')).json();
+  TOTAL = manifest.length;
+  document.getElementById('total').textContent = TOTAL;
+  DONE = Object.keys(labels).length;
+  document.getElementById('done').textContent = DONE;
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+  for (const m of manifest) main.appendChild(card(m, labels[m.id]));
+}
+
+function card(m, saved) {
+  const o = m.ocr || {};
+  const v = saved || {
+    car_left: o.found ? o.car_left : '', car_right: o.found ? o.car_right : '',
+    entrades: o.found ? o.entrades : '', name_left: o.name_left || '', name_right: o.name_right || '',
+    no_scoreboard: !o.found,
+  };
+  const el = document.createElement('div');
+  el.className = 'card' + (saved ? ' saved' : '');
+  const ocrTxt = o.found
+    ? `${o.car_left}–${o.car_right} · entrades ${N(o.entrades) || '?'} · L='${N(o.name_left)}' R='${N(o.name_right)}'`
+    : `<span class="bad">found=false (${o.state || ''})</span>`;
+  el.innerHTML = `
+    <div class="imgwrap"><img src="/frames/${m.img}" loading="lazy" /></div>
+    <div class="body">
+      <div class="id">${m.id}</div>
+      <div class="title">${m.title || '(sense títol)'}</div>
+      <div class="ocr">OCR: ${ocrTxt}</div>
+      <div class="fields">
+        <div class="f"><label>Caram. esq.</label><input class="num" data-k="car_left" value="${N(v.car_left)}" /></div>
+        <div class="f"><label>Caram. dreta</label><input class="num" data-k="car_right" value="${N(v.car_right)}" /></div>
+        <div class="f"><label>Entrades</label><input class="num" data-k="entrades" value="${N(v.entrades)}" /></div>
+        <div class="f wide"><label>Nom esquerra</label><input data-k="name_left" value="${N(v.name_left)}" /></div>
+        <div class="f wide"><label>Nom dreta</label><input data-k="name_right" value="${N(v.name_right)}" /></div>
+      </div>
+      <label class="chk" style="margin-top:10px"><input type="checkbox" data-k="no_scoreboard" ${v.no_scoreboard ? 'checked' : ''}/> sense marcador / pausa (rellotge)</label>
+      <div class="actions">
+        <button class="copy">Copia OCR</button>
+        <button class="ok">✓ Desa</button>
+        <span class="status">${saved ? '✓ desat' : ''}</span>
+      </div>
+      <div class="hint">Deixa buit el que no es vegi. "Entrades" = número gran del mig (digue'm si vols el de la tacada en curs o el completat).</div>
+    </div>`;
+
+  const get = (k) => el.querySelector(`[data-k="${k}"]`);
+  el.querySelector('.copy').onclick = () => {
+    get('car_left').value = o.found ? N(o.car_left) : '';
+    get('car_right').value = o.found ? N(o.car_right) : '';
+    get('entrades').value = o.found ? N(o.entrades) : '';
+    get('name_left').value = N(o.name_left);
+    get('name_right').value = N(o.name_right);
+    get('no_scoreboard').checked = !o.found;
+  };
+  el.querySelector('.ok').onclick = async () => {
+    const label = {
+      car_left: get('car_left').value.trim(),
+      car_right: get('car_right').value.trim(),
+      entrades: get('entrades').value.trim(),
+      name_left: get('name_left').value.trim(),
+      name_right: get('name_right').value.trim(),
+      no_scoreboard: get('no_scoreboard').checked,
+    };
+    const r = await fetch('/api/label', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: m.id, label }) });
+    if (r.ok) {
+      const wasSaved = el.classList.contains('saved');
+      el.classList.add('saved');
+      el.querySelector('.status').textContent = '✓ desat';
+      if (!wasSaved) { DONE++; document.getElementById('done').textContent = DONE; }
+    } else {
+      el.querySelector('.status').textContent = '✗ error';
+    }
+  };
+  return el;
+}
+load();
+</script>
+</body>
+</html>
