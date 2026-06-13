@@ -83,11 +83,13 @@ async function ocrWords(worker, img) {
 // agrupació de posició, la lectura de MÉS CONFIANÇA — així el soroll d'un llindar
 // dolent no guanya pel sol fet de ser més alt.
 function dedupeWords(words) {
+  // Per posició ens quedem la lectura de MÉS confiança (el soroll d'un llindar
+  // dolent no guanya pel sol fet de ser més alt). El valor final de cada número
+  // NO surt d'aquí sinó del re-OCR amb vot (refineDigit), que és més fiable.
   const sorted = [...words].sort((a, b) => b.conf - a.conf);
   const kept = [];
   for (const w of sorted) {
-    const r = w.h * 0.7;
-    if (!kept.some((k) => Math.abs(k.cx - w.cx) < Math.max(k.h, w.h) * 0.7 && Math.abs(k.cy - w.cy) < r)) {
+    if (!kept.some((k) => Math.abs(k.cx - w.cx) < Math.max(k.h, w.h) * 0.7 && Math.abs(k.cy - w.cy) < w.h * 0.7)) {
       kept.push(w);
     }
   }
@@ -131,7 +133,23 @@ function scorePair(words) {
       && Math.abs(n.cy - midY) < minH * 0.9
       && n.h >= minH * 0.25);
     entCands.sort((a, b) => Math.abs(a.cy - midY) - Math.abs(b.cy - midY));
-    const ent = entCands[0] || null;
+    let ent = entCands[0] || null;
+    if (ent) {
+      // Fusiona els dígits del MATEIX número d'entrades quan l'OCR els ha
+      // segmentat (p.ex. "2"+"0" → "20"): els que són a la mateixa fila que
+      // l'entrada triada. Caixa = unió; text = dígits en ordre d'esquerra a dreta.
+      const sameRow = entCands.filter((n) => Math.abs(n.cy - ent.cy) < ent.h * 0.6);
+      if (sameRow.length > 1) {
+        sameRow.sort((a, b) => a.cx - b.cx);
+        const bb = {
+          x0: Math.min(...sameRow.map((n) => n.b.x0)),
+          y0: Math.min(...sameRow.map((n) => n.b.y0)),
+          x1: Math.max(...sameRow.map((n) => n.b.x1)),
+          y1: Math.max(...sameRow.map((n) => n.b.y1)),
+        };
+        ent = { ...ent, b: bb, text: sameRow.map((n) => n.v).join(''), h: bb.y1 - bb.y0, cx: (bb.x0 + bb.x1) / 2, cy: (bb.y0 + bb.y1) / 2 };
+      }
+    }
     // Nom de cada jugador: en carombooks l'ordre vertical és [CLUB]/[JUGADOR]/
     // [NÚMERO], així que agafem el text a sobre del número, del costat correcte
     // (més a prop d'aquesta columna que de l'altra) i el MÉS BAIX (més a prop del
@@ -228,20 +246,35 @@ async function readScoreboard(img, { debug = false } = {}) {
   const { frac, pair } = best;
   const looseL = parseInt((pair.left.text.match(/\d+/) || ['0'])[0], 10);
   const looseR = parseInt((pair.right.text.match(/\d+/) || ['0'])[0], 10);
+  // Confia en el re-OCR (vot multi-llindar) només si coincideix en nombre de
+  // dígits amb la lectura de cantonada (evita regressions com 20→0); si no, la
+  // de cantonada. Per a les entrades la caixa ja ve fusionada (tots els dígits).
+  const pick = (loose, ref) => (ref != null && String(ref).length === String(loose).length ? ref : loose);
   const refL = await refineDigit(worker, img, frac, size, pair.left.b, tmp, 'L');
   const refR = await refineDigit(worker, img, frac, size, pair.right.b, tmp, 'R');
+  let entrades = null;
+  if (pair.ent) {
+    // Caixa d'entrades per POSICIÓ: centrada horitzontalment entre les dues
+    // caramboles, a la fila de l'entrada, prou ampla per a 2-3 dígits. Així
+    // capturem el número sencer encara que l'OCR de cantonada n'hagi llegit un
+    // sol dígit ("20"→"2"); el valor surt del vot multi-llindar (refineDigit).
+    const minH2 = Math.min(pair.left.h, pair.right.h);
+    const cxMid = (pair.left.cx + pair.right.cx) / 2;
+    const h = Math.max(pair.ent.h, minH2 * 0.5);
+    const halfW = h * 0.95;
+    const entBox = { x0: cxMid - halfW, y0: pair.ent.cy - h * 0.65, x1: cxMid + halfW, y1: pair.ent.cy + h * 0.65 };
+    const refE = await refineDigit(worker, img, frac, size, entBox, tmp, 'E');
+    const looseE = parseInt((pair.ent.text.match(/\d+/) || [''])[0], 10);
+    entrades = refE != null ? refE : (Number.isNaN(looseE) ? null : looseE);
+  }
   fs.rmSync(tmp, { recursive: true, force: true });
-
-  // Confia en el re-OCR només si coincideix en nombre de dígits amb la lectura
-  // de cantonada (evita regressions com 20→0); si no, fes servir la cantonada.
-  const pick = (loose, ref) => (ref != null && String(ref).length === String(loose).length ? ref : loose);
 
   return {
     found: true,
     corner: best.name,
     car_left: pick(looseL, refL),
     car_right: pick(looseR, refR),
-    entrades: pair.ent ? parseInt((pair.ent.text.match(/\d+/) || [''])[0], 10) : null,
+    entrades: entrades ?? null,
     name_left: pair.name_left || null,
     name_right: pair.name_right || null,
   };
