@@ -126,14 +126,25 @@ async function refineDigit(worker, img, frac, size, box, tmp, tag) {
   const oy = Math.max(0, Math.round(sy + box.y0 / SCALE) - pad);
   const ow = Math.round((box.x1 - box.x0) / SCALE) + pad * 2;
   const oh = Math.round((box.y1 - box.y0) / SCALE) + pad * 2;
-  const out = path.join(tmp, `d_${tag}.png`);
-  spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', img, '-vf',
-    `crop=${ow}:${oh}:${ox}:${oy},format=gray,lut=y='if(gt(val,160),255,0)',scale=iw*4:ih*4`, out]);
-  await worker.setParameters({ tessedit_char_whitelist: '0123456789', tessedit_pageseg_mode: '7' });
-  const { data } = await worker.recognize(out);
+  // Diverses combinacions (llindar × segmentació) i VOT majoritari: un dígit es
+  // pot trencar amb un llindar concret (p.ex. 8→3, 6→5), però rarament amb tots.
+  const votes = [];
+  const configs = [[150, '7'], [185, '8'], [120, '7']];
+  for (let i = 0; i < configs.length; i++) {
+    const [thr, psm] = configs[i];
+    const out = path.join(tmp, `d_${tag}_${i}.png`);
+    spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', img, '-vf',
+      `crop=${ow}:${oh}:${ox}:${oy},format=gray,lut=y='if(gt(val,${thr}),255,0)',scale=iw*4:ih*4`, out]);
+    await worker.setParameters({ tessedit_char_whitelist: '0123456789', tessedit_pageseg_mode: psm });
+    const { data } = await worker.recognize(out);
+    const m = (data.text || '').replace(/\s+/g, '').match(/^\d{1,3}/);
+    if (m) votes.push(m[0]);
+  }
   await worker.setParameters({ tessedit_char_whitelist: '', tessedit_pageseg_mode: '11' });
-  const m = (data.text || '').match(/\d+/);
-  return m ? parseInt(m[0], 10) : null;
+  if (!votes.length) return null;
+  const c = {};
+  for (const v of votes) c[v] = (c[v] || 0) + 1;
+  return parseInt(Object.entries(c).sort((a, b) => b[1] - a[1])[0][0], 10);
 }
 
 // Worker de tesseract persistent (reutilitzat entre crides — evita re-inicialitzar

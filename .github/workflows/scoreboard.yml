@@ -50,7 +50,7 @@ jobs:
           while [ "$SECONDS" -lt "$END" ]; do
             i=$(( i + 1 ))
             echo "::group::passada #$i (t=${SECONDS}s)"
-            node scripts/scoreboard_worker.js --samples=6 || true
+            node scripts/scoreboard_worker.js --samples=3 || true
             echo "::endgroup::"
             [ "$SECONDS" -lt "$END" ] && sleep 30
           done
