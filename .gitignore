@@ -108,3 +108,6 @@ logs
 
 # tesseract.js language data (es baixa sol en runtime)
 *.traineddata
+
+# Frames i clips d'entrenament OCR (descarregats de VODs, no es versionen)
+train/
