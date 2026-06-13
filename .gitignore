@@ -105,3 +105,6 @@ logs
 
 # Wrangler local state
 .wrangler/
+
+# tesseract.js language data (es baixa sol en runtime)
+*.traineddata
