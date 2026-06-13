@@ -34,11 +34,17 @@ function ffSize(img) {
   return m ? { w: +m[1], h: +m[2] } : { w: 1280, h: 720 };
 }
 
-function cropCorner(img, frac, size, out) {
+// Llindars de binarització per a l'escaneig de cantonades. Un sol llindar trenca
+// alguns dígits (p.ex. el "5" a 150 → "="); diferents llindars capturen dígits
+// diferents, així que escanegem amb tots i AGRUPEM les paraules abans de buscar
+// la parella. Robust davant temes/càmeres diferents.
+const SCAN_THRESHOLDS = (process.env.SB_THRS || '110,135,165').split(',').map(Number);
+
+function cropCorner(img, frac, size, out, thr = 135) {
   const x = Math.round(frac.x * size.w), y = Math.round(frac.y * size.h);
   const w = Math.round(frac.w * size.w), h = Math.round(frac.h * size.h);
   spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', img, '-vf',
-    `crop=${w}:${h}:${x}:${y},format=gray,lut=y='if(gt(val,150),255,0)',scale=iw*${SCALE}:ih*${SCALE}`, out]);
+    `crop=${w}:${h}:${x}:${y},format=gray,lut=y='if(gt(val,${thr}),255,0)',scale=iw*${SCALE}:ih*${SCALE}`, out]);
   return { x, y, w, h };
 }
 
@@ -71,6 +77,23 @@ async function ocrWords(worker, img) {
     .map((w) => ({ text: w.text.trim(), conf: w.confidence, b: w.bbox, h: w.bbox.y1 - w.bbox.y0, cx: (w.bbox.x0 + w.bbox.x1) / 2, cy: (w.bbox.y0 + w.bbox.y1) / 2 }));
 }
 
+// En agrupar paraules de diversos llindars, un mateix dígit hi surt diverses
+// vegades (a posicions gairebé idèntiques) amb lectures possiblement diferents
+// (p.ex. el "6" net i un "2" trencat al mateix lloc). Ens quedem, per cada
+// agrupació de posició, la lectura de MÉS CONFIANÇA — així el soroll d'un llindar
+// dolent no guanya pel sol fet de ser més alt.
+function dedupeWords(words) {
+  const sorted = [...words].sort((a, b) => b.conf - a.conf);
+  const kept = [];
+  for (const w of sorted) {
+    const r = w.h * 0.7;
+    if (!kept.some((k) => Math.abs(k.cx - w.cx) < Math.max(k.h, w.h) * 0.7 && Math.abs(k.cy - w.cy) < r)) {
+      kept.push(w);
+    }
+  }
+  return kept;
+}
+
 // Parella de caramboles d'una cantonada: dos números d'alçada SIMILAR, de costat
 // (mateixa fila), idealment amb un NOM a sobre. Retorna també una puntuació per
 // triar la cantonada correcta i descartar soroll.
@@ -99,9 +122,14 @@ function scorePair(words) {
     // Entrades: número ENTRE les dues caramboles, més petit, i a la MATEIXA
     // alçada (el més proper al centre vertical de les caramboles).
     const midY = (left.cy + right.cy) / 2;
+    // Entrades = el número del mig a la MATEIXA FILA que les caramboles (no el
+    // rellotge de tacada, que va a sobre amb els noms). Pot ser tan alt com les
+    // caramboles, així que NO el filtrem per alçada màxima; només descartem
+    // soroll petit i exigim que estigui a tocar de la fila de caramboles.
     const entCands = nums.filter((n) => n !== left && n !== right
       && n.cx > left.cx && n.cx < right.cx
-      && n.h >= minH * 0.2 && n.h < minH * 0.85);
+      && Math.abs(n.cy - midY) < minH * 0.9
+      && n.h >= minH * 0.25);
     entCands.sort((a, b) => Math.abs(a.cy - midY) - Math.abs(b.cy - midY));
     const ent = entCands[0] || null;
     // Nom de cada jugador: en carombooks l'ordre vertical és [CLUB]/[JUGADOR]/
@@ -171,11 +199,18 @@ async function readScoreboard(img, { debug = false } = {}) {
 
   let best = null;
   for (const [name, frac] of Object.entries(CORNERS)) {
-    const out = path.join(tmp, `${name}.png`);
-    cropCorner(img, frac, size, out);
-    const words = await ocrWords(worker, out);
+    // Escaneja amb diversos llindars i AGRUPA les paraules: un dígit que es trenca
+    // amb un llindar concret sol llegir-se bé amb un altre. scorePair ignora els
+    // duplicats a la mateixa posició (exigeix separació esquerra-dreta).
+    let words = [];
+    for (const thr of SCAN_THRESHOLDS) {
+      const out = path.join(tmp, `${name}_${thr}.png`);
+      cropCorner(img, frac, size, out, thr);
+      words = words.concat(await ocrWords(worker, out));
+    }
+    words = dedupeWords(words);
     const pair = scorePair(words);
-    if (debug) console.error(`${name}: words=${words.length}${pair ? ` pair ${pair.left.text}/${pair.right.text} score=${Math.round(pair.score)} name=${pair.nameAbove}` : ''}`);
+    if (debug) console.error(`${name}: words=${words.length}${pair ? ` pair ${pair.left.text}/${pair.right.text} ent=${pair.ent ? pair.ent.text : '-'} score=${Math.round(pair.score)} name=${pair.nameAbove}` : ''}`);
     if (pair && (!best || pair.score > best.pair.score)) best = { name, frac, pair, words };
   }
 
