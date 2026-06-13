@@ -213,19 +213,25 @@ async function runOnce({ samples = 5, interval = 3, log = console.error } = {}) 
         // Routing: resol cada costat contra els jugadors reals de l'open. El
         // costat esquerre/dret de l'overlay mana per a les caramboles. Mai dos
         // cops el mateix jugador; ordre de preferència: resolt → títol → OCR.
-        const lc = resolvePlayer(c.name_left, oplayers);
-        const rc = resolvePlayer(c.name_right, oplayers);
         const t0 = resolvePlayer(tp.players[0], oplayers);
         const t1 = resolvePlayer(tp.players[1], oplayers);
-        let pL = lc || t0;
-        let pR = rc || t1;
-        if (pL && pR && pL.name === pR.name) pR = (t1 && t1.name !== pL.name) ? t1 : ((t0 && t0.name !== pL.name) ? t0 : null);
-        if (!pL && pR) pL = (t0 && t0.name !== pR.name) ? t0 : null;
-        if (!pR && pL) pR = (t1 && t1.name !== pL.name) ? t1 : null;
-        // Si un costat encara no resol (títol genèric + OCR del club), dedueix el
-        // rival per la partida del grup a open_live. No mostrem mai el club cru.
-        if (!pR && pL) { const o = opponentInGroup(pL.name, omatches, oplayers); if (o && o.name !== pL.name) pR = o; }
-        if (!pL && pR) { const o = opponentInGroup(pR.name, omatches, oplayers); if (o && o.name !== pR.name) pL = o; }
+        let pL, pR;
+        if (t0 && t1 && t0.name !== t1.name) {
+          // Títol FIABLE: ja tenim els dos jugadors. L'OCR només decideix quin és
+          // a l'esquerra i quin a la dreta del marcador (per a les caramboles).
+          const ocrL = resolvePlayer(c.name_left, [t0, t1]);
+          const ocrR = resolvePlayer(c.name_right, [t0, t1]);
+          const swap = (ocrL && ocrL.name === t1.name) || (ocrR && ocrR.name === t0.name);
+          pL = swap ? t1 : t0;
+          pR = swap ? t0 : t1;
+        } else {
+          // Títol genèric (p.ex. "TAULA N"): OCR de noms + deducció pel grup.
+          pL = resolvePlayer(c.name_left, oplayers);
+          pR = resolvePlayer(c.name_right, oplayers);
+          if (pL && pR && pL.name === pR.name) pR = null;
+          if (!pR && pL) { const o = opponentInGroup(pL.name, omatches, oplayers); if (o && o.name !== pL.name) pR = o; }
+          if (!pL && pR) { const o = opponentInGroup(pR.name, omatches, oplayers); if (o && o.name !== pR.name) pL = o; }
+        }
         if (!pL && !pR) { log(`  ~ ${s.videoId} no s'ha identificat cap jugador (${c.name_left}/${c.name_right})`); continue; }
         const group = tp.group || pL?.group || pR?.group || null;
 
