@@ -263,6 +263,12 @@ async function runOnce({ samples = 5, interval = 3, log = console.error } = {}) 
     const removed = await supa('DELETE', 'open_live_scores', { query: `?video_id=not.in.${keep}`, body: null });
     log(`\nPublicats: ${published} · retirats: ${(removed || []).length}`);
   } catch (e) { log(`Neteja fallida: ${e.message}`); }
+  // Poda de files OBSOLETES: directes que segueixen actius però fa estona que no
+  // donen lectura fiable (pausa/escalfament perllongats) → no mantenir valors vells.
+  try {
+    const staleCut = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    await supa('DELETE', 'open_live_scores', { query: `?updated_at=lt.${encodeURIComponent(staleCut)}` });
+  } catch { /* noop */ }
   await closeWorker();
   return { published, live: liveVideoIds.length };
 }
