@@ -209,7 +209,7 @@ async function getWorker() {
   return _worker;
 }
 
-async function readScoreboard(img, { debug = false } = {}) {
+async function readScoreboard(img, { debug = false, returnBoxes = false } = {}) {
   const size = ffSize(img);
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'sb_'));
   const worker = await getWorker();
@@ -269,7 +269,7 @@ async function readScoreboard(img, { debug = false } = {}) {
   }
   fs.rmSync(tmp, { recursive: true, force: true });
 
-  return {
+  const out = {
     found: true,
     corner: best.name,
     car_left: pick(looseL, refL),
@@ -278,6 +278,20 @@ async function readScoreboard(img, { debug = false } = {}) {
     name_left: pair.name_left || null,
     name_right: pair.name_right || null,
   };
+  if (returnBoxes) {
+    // Caixes dels números en coords de la IMATGE ORIGINAL (per extreure glifs).
+    const toOrig = (b) => {
+      const sx = frac.x * size.w, sy = frac.y * size.h, pad = 4;
+      return {
+        x: Math.max(0, Math.round(sx + b.x0 / SCALE) - pad),
+        y: Math.max(0, Math.round(sy + b.y0 / SCALE) - pad),
+        w: Math.round((b.x1 - b.x0) / SCALE) + pad * 2,
+        h: Math.round((b.y1 - b.y0) / SCALE) + pad * 2,
+      };
+    };
+    out.boxes = { left: toOrig(pair.left.b), right: toOrig(pair.right.b), ent: pair.ent ? toOrig(pair.ent.b) : null };
+  }
+  return out;
 }
 
 async function closeWorker() { if (_worker) { try { await _worker.terminate(); } catch { /* noop */ } _worker = null; } }
