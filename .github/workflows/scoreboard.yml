@@ -1,0 +1,56 @@
+name: Live scoreboards (OCR)
+
+# Llegeix per OCR els marcadors dels directes de YouTube dels opens en curs i els
+# publica a Supabase (fcbillar.open_live_scores), perquè el web de FCBillar els
+# mostri en viu. Auto-ritmat: GitHub estrangula els crons freqüents, així que cada
+# execució fa un BUCLE INTERN (una passada cada ~1 min) durant ~55 min.
+#
+# REQUISIT: secrets al repo (Settings → Secrets and variables → Actions):
+#   - SUPABASE_URL
+#   - SUPABASE_SERVICE_ROLE_KEY
+#
+# Finestra: dv/ds/dg 9:00–22:00 local (07–20 UTC estiu; hivern CET → '8-21').
+
+on:
+  schedule:
+    - cron: '*/20 7-20 * * 5,6,0'
+  workflow_dispatch: {}
+
+concurrency:
+  group: live-scoreboards
+  cancel-in-progress: true
+
+jobs:
+  ocr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install yt-dlp (ffmpeg ja ve preinstal·lat al runner)
+        run: |
+          sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+          sudo chmod a+rx /usr/local/bin/yt-dlp
+          yt-dlp --version && ffmpeg -version | head -1
+
+      - name: Install node deps
+        run: npm install --no-audit --no-fund
+
+      - name: Read scoreboards (bucle auto-ritmat ~55 min)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          END=$(( SECONDS + 3300 ))
+          i=0
+          while [ "$SECONDS" -lt "$END" ]; do
+            i=$(( i + 1 ))
+            echo "::group::passada #$i (t=${SECONDS}s)"
+            node scripts/scoreboard_worker.js --samples=6 || true
+            echo "::endgroup::"
+            [ "$SECONDS" -lt "$END" ] && sleep 30
+          done
