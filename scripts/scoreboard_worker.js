@@ -247,12 +247,19 @@ async function runOnce({ samples = 5, interval = 3, log = console.error } = {}) 
           if (flipped) { const t = row.car_a; row.car_a = row.car_b; row.car_b = t; }
           if (prev.player_a) row.player_a = prev.player_a;
           if (prev.player_b) row.player_b = prev.player_b;
-          // Entrades sempre creixents: si la lectura baixa, és error → mantenim.
-          if (prev.entrades != null && (row.entrades == null || row.entrades < prev.entrades)) {
+          // Un consens FORT (≥3 frames d'acord) pot CORREGIR un pic fals anterior
+          // (p.ex. un "2" llegit de forma estable com a "7" durant una passada):
+          // sense això, un sol misread local s'enganxaria per sempre, perquè la
+          // monotonia rebutjaria totes les lectures correctes posteriors (menors).
+          const strong = c.agree >= 3;
+          // Entrades sempre creixents: si la lectura baixa, és error → mantenim
+          // (tret de consens fort, que pot desfer un pic fals d'entrades).
+          if (prev.entrades != null && (row.entrades == null || row.entrades < prev.entrades) && !strong) {
             row.entrades = prev.entrades;
           }
-          // Caramboles no decreixen (excepte correcció d'àrbitre → tolerància ±1).
-          if (prev.car_a != null && (row.car_a < prev.car_a - 1 || row.car_b < prev.car_b - 1)) {
+          // Caramboles no decreixen (correcció d'àrbitre → tolerància ±1), tret de
+          // consens fort (correcció d'un pic fals).
+          if (prev.car_a != null && !strong && (row.car_a < prev.car_a - 1 || row.car_b < prev.car_b - 1)) {
             log(`  ⤫ [${group || '?'}] ${row.player_a} ${row.car_a}-${row.car_b} (descens vs ${prev.car_a}-${prev.car_b}) → ignorat`);
             continue;
           }
