@@ -42,6 +42,24 @@ function cropCorner(img, frac, size, out) {
   return { x, y, w, h };
 }
 
+// Fracció de píxels vermells a la regió (per detectar el rellotge vermell de
+// l'escalfament / mitja part / pausa, que corromp les lectures). Llegeix RGB
+// cru d'un crop reduït via ffmpeg (sense geq, sense problemes d'escapat).
+function redFraction(img, frac, size) {
+  const x = Math.round(frac.x * size.w), y = Math.round(frac.y * size.h);
+  const w = Math.round(frac.w * size.w), h = Math.round(frac.h * size.h);
+  const r = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', img, '-vf',
+    `crop=${w}:${h}:${x}:${y},scale=80:80,format=rgb24`, '-f', 'rawvideo', '-'],
+    { maxBuffer: 1 << 22 });
+  const buf = r.stdout;
+  if (!buf || buf.length < 3) return 0;
+  let red = 0;
+  for (let i = 0; i + 2 < buf.length; i += 3) {
+    if (buf[i] > 140 && buf[i + 1] < 95 && buf[i + 2] < 95) red++;
+  }
+  return red / (buf.length / 3);
+}
+
 async function ocrWords(worker, img) {
   const { data } = await worker.recognize(img, {}, { blocks: true });
   let words = data.words || [];
@@ -81,8 +99,20 @@ function scorePair(words) {
     const ent = nums.find((n) => n !== left && n !== right
       && n.cx > left.cx && n.cx < right.cx && n.h < minH * 0.8
       && n.cy >= Math.min(left.cy, right.cy) - minH * 0.3);
+    // Nom de cada jugador: en carombooks l'ordre vertical és [CLUB]/[JUGADOR]/
+    // [NÚMERO], així que agafem el text a sobre del número, del costat correcte
+    // (més a prop d'aquesta columna que de l'altra) i el MÉS BAIX (més a prop del
+    // número = el jugador, no el club que té a sobre).
+    const nearName = (col, other) => {
+      const cand = names.filter((t) => t.cy < col.cy
+        && Math.abs(t.cx - col.cx) < col.h * 2.2
+        && Math.abs(t.cx - col.cx) <= Math.abs(t.cx - other.cx));
+      if (!cand.length) return null;
+      cand.sort((a, b) => b.cy - a.cy);
+      return cand[0].text;
+    };
     const score = (left.h + right.h) * (nameAbove ? 1.6 : 1);
-    if (!best || score > best.score) best = { left, right, ent, score, nameAbove };
+    if (!best || score > best.score) best = { left, right, ent, score, nameAbove, name_left: nearName(left, right), name_right: nearName(right, left) };
   }
   return best;
 }
@@ -106,11 +136,22 @@ async function refineDigit(worker, img, frac, size, box, tmp, tag) {
   return m ? parseInt(m[0], 10) : null;
 }
 
+// Worker de tesseract persistent (reutilitzat entre crides — evita re-inicialitzar
+// a cada fotograma, molt més ràpid quan el worker processa molts frames).
+let _worker = null;
+async function getWorker() {
+  if (!_worker) {
+    _worker = await createWorker('eng');
+    await _worker.setParameters({ tessedit_pageseg_mode: '11' });
+  }
+  return _worker;
+}
+
 async function readScoreboard(img, { debug = false } = {}) {
   const size = ffSize(img);
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'sb_'));
-  const worker = await createWorker('eng');
-  await worker.setParameters({ tessedit_pageseg_mode: '11' });
+  const worker = await getWorker();
+  await worker.setParameters({ tessedit_char_whitelist: '', tessedit_pageseg_mode: '11' });
 
   let best = null;
   for (const [name, frac] of Object.entries(CORNERS)) {
@@ -118,12 +159,18 @@ async function readScoreboard(img, { debug = false } = {}) {
     cropCorner(img, frac, size, out);
     const words = await ocrWords(worker, out);
     const pair = scorePair(words);
-    if (debug) console.error(`${name}: words=${words.length} pair=${pair ? pair.pairHeight : '-'}`);
-    if (debug && pair) console.error(`   ${name} pair: ${pair.left.text}/${pair.right.text} score=${Math.round(pair.score)} name=${pair.nameAbove}`);
+    if (debug) console.error(`${name}: words=${words.length}${pair ? ` pair ${pair.left.text}/${pair.right.text} score=${Math.round(pair.score)} name=${pair.nameAbove}` : ''}`);
     if (pair && (!best || pair.score > best.pair.score)) best = { name, frac, pair, words };
   }
 
-  if (!best) { await worker.terminate(); return { found: false, state: 'no_scoreboard' }; }
+  if (!best) { fs.rmSync(tmp, { recursive: true, force: true }); return { found: false, state: 'no_scoreboard' }; }
+
+  // Rellotge vermell (escalfament/mitja part/pausa) → no és una lectura fiable.
+  // Criteri estricte (R>140,G<95,B<95): rellotges ~0.026+, marcadors nets ≤0.019.
+  if (redFraction(img, best.frac, size) > 0.024) {
+    fs.rmSync(tmp, { recursive: true, force: true });
+    return { found: false, state: 'clock' };
+  }
 
   // Re-OCR ajustat dels dos números grans (precisió 0/6/9). Si falla o dóna un
   // resultat menys fiable, ens quedem amb la lectura de cantonada.
@@ -132,7 +179,7 @@ async function readScoreboard(img, { debug = false } = {}) {
   const looseR = parseInt((pair.right.text.match(/\d+/) || ['0'])[0], 10);
   const refL = await refineDigit(worker, img, frac, size, pair.left.b, tmp, 'L');
   const refR = await refineDigit(worker, img, frac, size, pair.right.b, tmp, 'R');
-  await worker.terminate();
+  fs.rmSync(tmp, { recursive: true, force: true });
 
   // Confia en el re-OCR només si coincideix en nombre de dígits amb la lectura
   // de cantonada (evita regressions com 20→0); si no, fes servir la cantonada.
@@ -144,15 +191,21 @@ async function readScoreboard(img, { debug = false } = {}) {
     car_left: pick(looseL, refL),
     car_right: pick(looseR, refR),
     entrades: pair.ent ? parseInt((pair.ent.text.match(/\d+/) || [''])[0], 10) : null,
+    name_left: pair.name_left || null,
+    name_right: pair.name_right || null,
   };
 }
 
-module.exports = { readScoreboard };
+async function closeWorker() { if (_worker) { try { await _worker.terminate(); } catch { /* noop */ } _worker = null; } }
+
+module.exports = { readScoreboard, closeWorker };
 
 if (require.main === module) {
   const img = process.argv[2];
   const debug = process.argv.includes('--debug');
   if (!img) { console.error('ús: node scripts/read_scoreboard.js <imatge> [--debug]'); process.exit(1); }
-  readScoreboard(img, { debug }).then((r) => console.log(JSON.stringify(r, null, 2)))
-    .catch((e) => { console.error('ERR', e.message); process.exit(1); });
+  readScoreboard(img, { debug })
+    .then((r) => console.log(JSON.stringify(r, null, 2)))
+    .catch((e) => { console.error('ERR', e.message); })
+    .finally(() => closeWorker());
 }

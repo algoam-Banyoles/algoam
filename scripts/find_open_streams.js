@@ -88,20 +88,33 @@ async function channelLive(ch) {
   return [];
 }
 
-async function main() {
-  const tokens = process.argv.slice(2).map(norm);
-  if (!tokens.length) { console.error('cal almenys un token de seu'); process.exit(1); }
-  const chans = JSON.parse(fs.readFileSync('canals.json', 'utf8'));
-  const targets = chans.filter((c) => tokens.some((t) => norm(c.name).includes(t)));
-  console.error(`Canals candidats: ${targets.length} (de ${chans.length})`);
+const path = require('path');
+const CANALS = path.join(__dirname, '..', 'canals.json');
+
+// Directes dels canals el nom dels quals conté algun token de seu.
+// Retorna [{channel, videoId, url, title}].
+async function liveStreamsForTokens(tokens, { canalsPath = CANALS, onLog = () => {} } = {}) {
+  const T = tokens.map(norm);
+  const chans = JSON.parse(fs.readFileSync(canalsPath, 'utf8'));
+  const targets = chans.filter((c) => T.some((t) => norm(c.name).includes(t)));
+  onLog(`Canals candidats: ${targets.length} (de ${chans.length})`);
   const results = [];
   for (const ch of targets) {
     const streams = await channelLive(ch);
     for (const s of streams) {
       results.push({ channel: ch.name, videoId: s.videoId, url: `https://www.youtube.com/watch?v=${s.videoId}`, title: s.title });
     }
-    console.error(`${streams.length ? 'LIVE' : ' -- '} ${ch.name}${streams.length ? ' -> ' + streams.map((s) => s.videoId).join(',') : ''}`);
+    onLog(`${streams.length ? 'LIVE' : ' -- '} ${ch.name}${streams.length ? ' -> ' + streams.map((s) => s.videoId).join(',') : ''}`);
   }
-  console.log(JSON.stringify(results, null, 2));
+  return results;
 }
-main().catch((e) => { console.error('ERR', e.message); process.exit(1); });
+
+module.exports = { liveStreamsForTokens, channelLive, norm };
+
+if (require.main === module) {
+  const tokens = process.argv.slice(2);
+  if (!tokens.length) { console.error('cal almenys un token de seu'); process.exit(1); }
+  liveStreamsForTokens(tokens, { onLog: (m) => console.error(m) })
+    .then((r) => console.log(JSON.stringify(r, null, 2)))
+    .catch((e) => { console.error('ERR', e.message); process.exit(1); });
+}

@@ -1,0 +1,243 @@
+// Worker de marcadors en VIU dels opens.
+//
+// Per cada open en curs (taula fcbillar.open_live a Supabase):
+//   1) Deriva les seus (venues) i troba els directes dels clubs (find_open_streams).
+//   2) Per cada directe el títol dóna open+fase+grup+jugadors.
+//   3) Mostreja N fotogrames i pren el CONSENS de caramboles (read_scoreboard);
+//      així es descarten glitches i moments de rellotge vermell (escalfament/
+//      mitja part) que no llegeixen.
+//   4) Publica/actualitza a fcbillar.open_live_scores (upsert per video_id) i
+//      retira les files de directes que ja no estan en emissió.
+//
+// Cal SUPABASE_URL i SUPABASE_SERVICE_ROLE_KEY a l'entorn.
+//   node scripts/scoreboard_worker.js [--once] [--samples N]
+
+const { spawnSync, execFileSync } = require('child_process');
+const os = require('os');
+const path = require('path');
+const fs = require('fs');
+const { readScoreboard, closeWorker } = require('./read_scoreboard');
+const { liveStreamsForTokens, norm } = require('./find_open_streams');
+
+const SUPA_URL = process.env.SUPABASE_URL;
+const SUPA_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SCHEMA = 'fcbillar';
+
+async function supa(method, table, { query = '', body = null, upsert = false } = {}) {
+  if (!SUPA_URL || !SUPA_KEY) throw new Error('Falten SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY');
+  const headers = {
+    apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`,
+    'Content-Type': 'application/json', 'Accept-Profile': SCHEMA, 'Content-Profile': SCHEMA,
+  };
+  if (upsert) headers.Prefer = 'resolution=merge-duplicates';
+  const res = await fetch(`${SUPA_URL}/rest/v1/${table}${query}`, {
+    method, headers, body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) throw new Error(`${method} ${table} ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  const txt = await res.text();
+  return txt ? JSON.parse(txt) : null;
+}
+
+// Token distintiu del nom de l'open (sense paraules genèriques) per validar que
+// el títol de l'stream és d'aquest open.
+function openToken(name) {
+  return norm(name).replace(/OPEN|TRES BANDES|3 BANDES|3B|QUADRE 47\/2|QUADRE 71\/2|Q47\/2|FEMENI/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function venueTokens(payload) {
+  const v = new Set();
+  for (const ph of payload?.phases || []) for (const g of ph.groups || []) if (g.venue) v.add(g.venue.trim());
+  return [...v];
+}
+
+// Parseig heurístic del títol → {players:[a,b], group, phase}.
+function parseTitle(title) {
+  const t = title.replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim(); // treu (clubs)
+  const group = (t.match(/GRUP\s+([A-Z0-9]+)/i) || [])[1] || null;
+  const phase = (t.match(/PRE[\s-]*PRE?V[IÍ]?[AES]*|PR[EÈ]VI[AES]+|SETZENS|VUITENS|QUARTS|SEMIFINALS?|FINAL/i) || [])[0] || null;
+  let players = [];
+  const idx = t.search(/\sVS\s|\s[-–]\s/i);
+  if (idx >= 0) {
+    let left = t.slice(0, idx).trim();
+    let right = t.slice(idx).replace(/^\s*(VS|[-–])\s*/i, '').trim();
+    // Treu el prefix (open/fase/grup) de l'esquerra: quedar-nos amb el nom.
+    const cut = left.search(/GRUP\s+[A-Z0-9]+\s+|PRE[\s-]*PREV\w*\s+|PR[EÈ]VI[AES]+\s+|PREV\s+/i);
+    if (cut >= 0) left = left.replace(/.*(GRUP\s+[A-Z0-9]+|PRE[\s-]*PREV\w*|PR[EÈ]VI[AES]+|PREV)\s+/i, '');
+    right = right.split(/\s{2,}/)[0].trim();
+    players = [left, right].map((s) => s.trim()).filter(Boolean);
+  }
+  return { players, group, phase: phase ? phase.toUpperCase() : null };
+}
+
+// Jugadors reals de l'open (de open_live): [{name, group}].
+function openPlayers(payload) {
+  const out = [];
+  for (const ph of payload?.phases || []) for (const g of ph.groups || []) for (const s of g.standings || []) {
+    if (s.player_name) out.push({ name: s.player_name, group: g.label });
+  }
+  return out;
+}
+
+// Resol un nom (OCR o títol, sovint només cognom) al jugador canònic de l'open
+// per solapament de tokens. Retorna {name, group} o null.
+function resolvePlayer(name, players) {
+  if (!name) return null;
+  const n = norm(name).replace(/[^A-Z ]/g, '').trim();
+  const ntoks = n.split(/\s+/).filter((t) => t.length >= 3);
+  if (!ntoks.length) return null;
+  let best = null, bestScore = 0;
+  for (const p of players) {
+    const ptoks = norm(p.name).replace(/[^A-Z ]/g, '').split(/\s+/).filter((t) => t.length >= 3);
+    let s = 0;
+    for (const nt of ntoks) for (const pt of ptoks) {
+      if (pt === nt) s += 2; else if (pt.includes(nt) || nt.includes(pt)) s += 1;
+    }
+    if (s > bestScore) { bestScore = s; best = p; }
+  }
+  return bestScore >= 1 ? best : null;
+}
+
+// Mateix jugador (per solapament de tokens del cognom).
+function sameName(a, b) {
+  if (!a || !b) return false;
+  const ta = norm(a).replace(/[^A-Z ]/g, '').split(/\s+/).filter((t) => t.length >= 3);
+  const tb = norm(b).replace(/[^A-Z ]/g, '').split(/\s+/).filter((t) => t.length >= 3);
+  return ta.some((x) => tb.includes(x));
+}
+
+// Les caramboles no poden BAIXAR dins d'una mateixa partida: si la lectura nova
+// és inferior a l'anterior (alineant per jugador), és un error (rellotge/glitch).
+function monotonicViolation(prev, row) {
+  let oldA, oldB;
+  if (sameName(prev.player_a, row.player_a)) { oldA = prev.car_a; oldB = prev.car_b; }
+  else if (sameName(prev.player_b, row.player_a)) { oldA = prev.car_b; oldB = prev.car_a; }
+  else return false; // jugadors diferents → partida nova, no s'aplica
+  if (oldA == null || oldB == null) return false;
+  return row.car_a < oldA - 1 || row.car_b < oldB - 1;
+}
+
+function grabFrames(videoId, n, intervalSec, tmpDir) {
+  let hls;
+  try {
+    hls = execFileSync('yt-dlp', ['-f', 'best[height<=720]/best', '-g', `https://www.youtube.com/watch?v=${videoId}`], { encoding: 'utf8' }).split('\n')[0].trim();
+  } catch { return []; }
+  if (!hls) return [];
+  const pat = path.join(tmpDir, `${videoId}_%03d.jpg`);
+  spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', hls, '-vf', `fps=1/${intervalSec}`, '-frames:v', String(n), pat]);
+  return fs.readdirSync(tmpDir).filter((f) => f.startsWith(`${videoId}_`)).map((f) => path.join(tmpDir, f));
+}
+
+function mode(arr) {
+  const c = {};
+  for (const x of arr) if (x != null && x !== '') c[x] = (c[x] || 0) + 1;
+  const e = Object.entries(c).sort((a, b) => b[1] - a[1])[0];
+  return e ? e[0] : null;
+}
+
+function consensus(reads) {
+  const valid = reads.filter((r) => r && r.found && Number.isInteger(r.car_left) && Number.isInteger(r.car_right));
+  if (valid.length < 2) return null;
+  const key = (r) => `${r.car_left}|${r.car_right}`;
+  const counts = {};
+  for (const r of valid) counts[key(r)] = (counts[key(r)] || 0) + 1;
+  const [bestKey, agree] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  if (agree < 2) return null; // cal almenys 2 fotogrames que coincideixin
+  const [cl, cr] = bestKey.split('|').map(Number);
+  const agreeing = valid.filter((r) => key(r) === bestKey);
+  const entMode = mode(agreeing.map((r) => r.entrades).filter(Number.isInteger).map(String));
+  return {
+    car_left: cl, car_right: cr,
+    entrades: entMode != null ? Number(entMode) : null,
+    name_left: mode(agreeing.map((r) => r.name_left)),
+    name_right: mode(agreeing.map((r) => r.name_right)),
+    agree, total: valid.length,
+  };
+}
+
+async function runOnce({ samples = 5, interval = 3, log = console.error } = {}) {
+  const opens = await supa('GET', 'open_live', { query: '?select=fcb_division_id,name,payload_json' });
+  // Marcadors previs (per la guarda monotònica: les caramboles no baixen).
+  let prevByVid = {};
+  try {
+    const prevRows = await supa('GET', 'open_live_scores', { query: '?select=video_id,player_a,player_b,car_a,car_b' });
+    for (const r of prevRows || []) prevByVid[r.video_id] = r;
+  } catch { /* primera vegada */ }
+  const nowIso = new Date().toISOString();
+  const liveVideoIds = [];
+  let published = 0;
+
+  for (const open of opens || []) {
+    const tokens = venueTokens(open.payload_json);
+    if (!tokens.length) continue;
+    const ot = openToken(open.name);
+    log(`\n# ${open.name} (#${open.fcb_division_id}) seus=${tokens.join(', ')}`);
+    let streams = [];
+    try { streams = await liveStreamsForTokens(tokens, { onLog: () => {} }); } catch (e) { log(`  ! streams: ${e.message}`); continue; }
+    // Només streams el títol dels quals confirma aquest open.
+    streams = streams.filter((s) => !ot || norm(s.title).includes(ot));
+    log(`  ${streams.length} directes d'aquest open`);
+    const oplayers = openPlayers(open.payload_json);
+
+    for (const s of streams) {
+      liveVideoIds.push(s.videoId);
+      const tp = parseTitle(s.title);
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'wk_'));
+      try {
+        const frames = grabFrames(s.videoId, samples, interval, tmp);
+        const reads = [];
+        for (const f of frames) { try { reads.push(await readScoreboard(f)); } catch { /* skip */ } }
+        const c = consensus(reads);
+        if (!c) { log(`  ~ ${s.videoId} sense consens (${reads.filter((r) => r?.found).length}/${frames.length} llegits) — ${tp.players.join(' vs ')}`); continue; }
+
+        // Routing: resol cada costat contra els jugadors reals de l'open. El
+        // costat esquerre/dret de l'overlay mana per a les caramboles. Mai dos
+        // cops el mateix jugador; ordre de preferència: resolt → títol → OCR.
+        const lc = resolvePlayer(c.name_left, oplayers);
+        const rc = resolvePlayer(c.name_right, oplayers);
+        const t0 = resolvePlayer(tp.players[0], oplayers);
+        const t1 = resolvePlayer(tp.players[1], oplayers);
+        let pL = lc || t0;
+        let pR = rc || t1;
+        if (pL && pR && pL.name === pR.name) pR = (t1 && t1.name !== pL.name) ? t1 : ((t0 && t0.name !== pL.name) ? t0 : null);
+        if (!pL && pR) pL = (t0 && t0.name !== pR.name) ? t0 : null;
+        if (!pR && pL) pR = (t1 && t1.name !== pL.name) ? t1 : null;
+        const group = tp.group || pL?.group || pR?.group || null;
+
+        const row = {
+          video_id: s.videoId, fcb_division_id: open.fcb_division_id, club: tokens[0],
+          title: s.title, phase: tp.phase, group_label: group,
+          player_a: pL?.name || tp.players[0] || c.name_left || null,
+          player_b: pR?.name || tp.players[1] || c.name_right || null,
+          car_a: c.car_left, car_b: c.car_right, entrades: c.entrades,
+          captured_at: nowIso, updated_at: nowIso,
+        };
+        const prev = prevByVid[s.videoId];
+        if (prev && monotonicViolation(prev, row)) {
+          log(`  ⤫ [${group || '?'}] ${row.player_a} ${row.car_a}-${row.car_b} (descens vs ${prev.car_a}-${prev.car_b}) → ignorat`);
+          continue;
+        }
+        await supa('POST', 'open_live_scores', { body: [row], upsert: true });
+        published++;
+        log(`  ✓ [${group || '?'}] ${row.player_a} ${c.car_left}-${c.car_right} ${row.player_b} (ocr ${c.name_left}/${c.name_right}, consens ${c.agree}/${c.total})`);
+      } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+      }
+    }
+  }
+
+  // Retira marcadors de directes que ja no emeten.
+  const keep = liveVideoIds.length ? `(${liveVideoIds.map((v) => `"${v}"`).join(',')})` : '("")';
+  try {
+    const removed = await supa('DELETE', 'open_live_scores', { query: `?video_id=not.in.${keep}`, body: null });
+    log(`\nPublicats: ${published} · retirats: ${(removed || []).length}`);
+  } catch (e) { log(`Neteja fallida: ${e.message}`); }
+  await closeWorker();
+  return { published, live: liveVideoIds.length };
+}
+
+module.exports = { runOnce, parseTitle, consensus };
+
+if (require.main === module) {
+  const samples = Number((process.argv.find((a) => a.startsWith('--samples=')) || '').split('=')[1]) || 5;
+  runOnce({ samples }).then((r) => console.error('FET', JSON.stringify(r))).catch((e) => { console.error('ERR', e.message); process.exit(1); });
+}
