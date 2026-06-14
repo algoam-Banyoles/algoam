@@ -33,6 +33,13 @@ jobs:
         with:
           node-version: '22'
 
+      # Runtime JS (Deno): el yt-dlp nou el necessita per resoldre el repte "n"
+      # (nsig) de YouTube; sense ell → "No video formats found". El PO-token
+      # (bgutil) ja passa el control de bot; això completa la baixada cookieless.
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
       - name: Install ffmpeg
         run: |
           sudo apt-get update && sudo apt-get install -y ffmpeg
