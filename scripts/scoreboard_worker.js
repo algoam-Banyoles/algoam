@@ -156,7 +156,10 @@ function grabFrames(videoId, n, intervalSec, tmpDir) {
     // (nsig) de YouTube, que el yt-dlp nou no baixa per defecte; amb Deno + el
     // PO-token, completa la baixada de frames a GitHub SENSE cookies.
     // TIMEOUT imprescindible: si yt-dlp es penja, el worker no s'encalla.
-    hls = execFileSync('yt-dlp', ['-f', 'best[height<=720]/best', '--remote-components', 'ejs:github', ...ck, '-g', `https://www.youtube.com/watch?v=${videoId}`], { encoding: 'utf8', timeout: 60000 }).split('\n')[0].trim();
+    // --match-filter is_live: només extreu si el vídeo està EN DIRECTE ARA; un VOD
+    // o directe acabat (encara amb el badge LIVE enganxat a /streams) es filtra i
+    // no en llegim un marcador antic. Fiable a GitHub (yt-dlp via PO-token).
+    hls = execFileSync('yt-dlp', ['-f', 'best[height<=720]/best', '--match-filter', 'is_live', '--remote-components', 'ejs:github', ...ck, '-g', `https://www.youtube.com/watch?v=${videoId}`], { encoding: 'utf8', timeout: 60000 }).split('\n')[0].trim();
   } catch { return []; }
   if (!hls) return [];
   const pat = path.join(tmpDir, `${videoId}_%03d.jpg`);

@@ -118,14 +118,10 @@ async function liveStreamsForTokens(tokens, { canalsPath = CANALS, onLog = () =>
   const results = [];
   for (const ch of targets) {
     const streams = await channelLive(ch);
-    const liveIds = [];
     for (const s of streams) {
-      // Confirma que emet EN DIRECTE ARA (descarta VODs/directes acabats).
-      if (!(await verifyLiveNow(s.videoId))) { onLog(`  (descartat, no és directe ara: ${s.videoId})`); continue; }
       results.push({ channel: ch.name, videoId: s.videoId, url: `https://www.youtube.com/watch?v=${s.videoId}`, title: s.title });
-      liveIds.push(s.videoId);
     }
-    onLog(`${liveIds.length ? 'LIVE' : ' -- '} ${ch.name}${liveIds.length ? ' -> ' + liveIds.join(',') : ''}`);
+    onLog(`${streams.length ? 'LIVE' : ' -- '} ${ch.name}${streams.length ? ' -> ' + streams.map((s) => s.videoId).join(',') : ''}`);
   }
   return results;
 }
