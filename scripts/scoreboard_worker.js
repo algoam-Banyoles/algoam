@@ -219,6 +219,16 @@ function consensus(reads) {
   };
 }
 
+// Candidats a REINICI de marcador: una caiguda brusca a ~0 amb els MATEIXOS
+// jugadors és, gairebé sempre, un VOD/replay que s'ha colat o un directe reiniciat
+// (no una partida nova: una de nova porta jugadors diferents). No ens ho creiem a
+// l'instant —ni amb consens fort, que un VOD dona 5/5 estable a 0-0— sinó que
+// mantenim el marcador alt previ fins que el reinici PERSISTEIXI ~5 min. Estat en
+// memòria (el worker viu en bucle); si el procés es reinicia, com a molt es reinicia
+// el comptador (cap resultat real esborrat de cop).
+const resetPending = {};               // video_id -> ms del primer cop que s'hi veu el reinici
+const RESET_GRACE_MS = 5 * 60 * 1000;  // cal que el 0-0 duri 5 min abans d'acceptar-lo
+
 async function runOnce({ samples = 5, interval = 3, log = console.error } = {}) {
   await ensureReader(log);
   const opens = await supa('GET', 'open_live', { query: '?select=fcb_division_id,name,payload_json' });
@@ -328,16 +338,38 @@ async function runOnce({ samples = 5, interval = 3, log = console.error } = {}) 
           // sense això, un sol misread local s'enganxaria per sempre, perquè la
           // monotonia rebutjaria totes les lectures correctes posteriors (menors).
           const strong = c.agree >= 3;
-          // Entrades sempre creixents: si la lectura baixa, és error → mantenim
-          // (tret de consens fort, que pot desfer un pic fals d'entrades).
-          if (prev.entrades != null && (row.entrades == null || row.entrades < prev.entrades) && !strong) {
-            row.entrades = prev.entrades;
-          }
-          // Caramboles no decreixen (correcció d'àrbitre → tolerància ±1), tret de
-          // consens fort (correcció d'un pic fals).
-          if (prev.car_a != null && !strong && (row.car_a < prev.car_a - 1 || row.car_b < prev.car_b - 1)) {
-            log(`  ⤫ [${group || '?'}] ${row.player_a} ${row.car_a}-${row.car_b} (descens vs ${prev.car_a}-${prev.car_b}) → ignorat`);
-            continue;
+          // REINICI BRUSC (probable VOD/replay colat o directe reiniciat): caiguda
+          // forta de caramboles o tornada a ~0. NO l'acceptem a l'instant (ni amb
+          // consens fort); mantenim el marcador alt previ fins que persisteixi ~5 min.
+          const bigReset = prev.car_a != null && (
+            (prev.car_a - row.car_a) + (prev.car_b - row.car_b) >= 4 ||
+            (row.car_a <= 1 && row.car_b <= 1 && (prev.car_a + prev.car_b) >= 5)
+          );
+          if (bigReset) {
+            const since = resetPending[s.videoId];
+            if (since && Date.now() - since >= RESET_GRACE_MS) {
+              delete resetPending[s.videoId];  // persisteix >5 min → reinici real/partida nova: acceptem
+              log(`  ↺ [${group || '?'}] reinici acceptat (persisteix >5min) ${row.player_a} ${row.car_a}-${row.car_b}`);
+            } else {
+              if (!since) resetPending[s.videoId] = Date.now();
+              row.car_a = prev.car_a; row.car_b = prev.car_b;        // mantenim l'alt
+              if (prev.entrades != null) row.entrades = prev.entrades;
+              const waited = since ? Math.round((Date.now() - since) / 1000) : 0;
+              log(`  ⏸ [${group || '?'}] possible VOD/reinici ${prev.car_a}-${prev.car_b}→${c.car_left}-${c.car_right}: mantinc l'alt (${waited}/${RESET_GRACE_MS / 1000}s)`);
+            }
+          } else {
+            delete resetPending[s.videoId];  // lectura coherent → fora candidat a reinici
+            // Entrades sempre creixents: si la lectura baixa, és error → mantenim
+            // (tret de consens fort, que pot desfer un pic fals d'entrades).
+            if (prev.entrades != null && (row.entrades == null || row.entrades < prev.entrades) && !strong) {
+              row.entrades = prev.entrades;
+            }
+            // Caramboles no decreixen (correcció d'àrbitre → tolerància ±1), tret de
+            // consens fort (correcció d'un pic fals petit).
+            if (prev.car_a != null && !strong && (row.car_a < prev.car_a - 1 || row.car_b < prev.car_b - 1)) {
+              log(`  ⤫ [${group || '?'}] ${row.player_a} ${row.car_a}-${row.car_b} (descens vs ${prev.car_a}-${prev.car_b}) → ignorat`);
+              continue;
+            }
           }
         }
         await supa('POST', 'open_live_scores', { body: [row], upsert: true });
