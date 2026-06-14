@@ -94,5 +94,21 @@ def read(img):
 
 
 if __name__ == "__main__":
-    for img in sys.argv[1:]:
-        print(json.dumps({"img": os.path.basename(img), **read(img)}, ensure_ascii=False))
+    if "--serve" in sys.argv:
+        # Mode SIDECAR persistent: el model es carrega un cop; el worker Node hi
+        # envia un camí de frame per línia (stdin) i rep un JSON per línia (stdout).
+        print(json.dumps({"ready": True}), flush=True)
+        for line in sys.stdin:
+            p = line.strip()
+            if not p:
+                continue
+            if p == "__quit__":
+                break
+            try:
+                r = read(p)
+            except Exception as e:
+                r = {"found": False, "state": "error", "error": str(e)}
+            print(json.dumps(r, ensure_ascii=False), flush=True)
+    else:
+        for img in sys.argv[1:]:
+            print(json.dumps({"img": os.path.basename(img), **read(img)}, ensure_ascii=False))

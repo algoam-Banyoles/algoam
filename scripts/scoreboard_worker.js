@@ -18,6 +18,27 @@ const path = require('path');
 const fs = require('fs');
 const { readScoreboard, closeWorker } = require('./read_scoreboard');
 const { liveStreamsForTokens, norm } = require('./find_open_streams');
+const paddle = require('./paddle_client');
+
+// Lector OCR: PaddleOCR (sidecar persistent — molt millor amb la font carombooks,
+// llegeix el "7" corbat i multi-dígit que tesseract confon) si arrenca; si no,
+// tesseract.js com a alternativa. El sidecar es manté viu entre passades (mode --loop).
+let _readFrame = readScoreboard;
+let _readerInited = false;
+async function ensureReader(log) {
+  if (_readerInited) return;
+  _readerInited = true;
+  try {
+    paddle.start({ onLog: log });
+    await paddle.waitReady(150000);
+    _readFrame = (f) => paddle.read(f);
+    log('OCR: PaddleOCR (sidecar) actiu');
+  } catch (e) {
+    _readFrame = readScoreboard;
+    log(`OCR: tesseract.js (PaddleOCR no disponible: ${e.message})`);
+  }
+}
+function closeReaders() { try { paddle.close(); } catch { /* noop */ } closeWorker().catch(() => {}); }
 
 const SUPA_URL = process.env.SUPABASE_URL;
 const SUPA_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -167,6 +188,7 @@ function consensus(reads) {
 }
 
 async function runOnce({ samples = 5, interval = 3, log = console.error } = {}) {
+  await ensureReader(log);
   const opens = await supa('GET', 'open_live', { query: '?select=fcb_division_id,name,payload_json' });
   // Marcadors previs (per la guarda monotònica: les caramboles no baixen).
   let prevByVid = {};
@@ -198,7 +220,7 @@ async function runOnce({ samples = 5, interval = 3, log = console.error } = {}) 
       try {
         const frames = grabFrames(s.videoId, samples, interval, tmp);
         const reads = [];
-        for (const f of frames) { try { reads.push(await readScoreboard(f)); } catch { /* skip */ } }
+        for (const f of frames) { try { const rr = await _readFrame(f); if (rr) reads.push(rr); } catch { /* skip */ } }
         const c = consensus(reads);
         if (!c) { log(`  ~ ${s.videoId} sense consens (${reads.filter((r) => r?.found).length}/${frames.length} llegits) — ${tp.players.join(' vs ')}`); continue; }
 
@@ -285,13 +307,32 @@ async function runOnce({ samples = 5, interval = 3, log = console.error } = {}) 
     const staleCut = new Date(Date.now() - 15 * 60 * 1000).toISOString();
     await supa('DELETE', 'open_live_scores', { query: `?updated_at=lt.${encodeURIComponent(staleCut)}` });
   } catch { /* noop */ }
-  await closeWorker();
   return { published, live: liveVideoIds.length };
 }
 
-module.exports = { runOnce, parseTitle, consensus };
+// Bucle intern: manté el sidecar PaddleOCR viu entre passades (el model es
+// carrega un sol cop). El workflow crida `node ... --loop` UN COP, en lloc de
+// re-invocar node cada vegada (que recarregaria el model a cada passada).
+async function runLoop({ samples = 5, intervalSec = 25, maxSec = 21000 } = {}) {
+  await ensureReader(console.error);
+  const end = Date.now() + maxSec * 1000;
+  let i = 0;
+  while (Date.now() < end) {
+    i++;
+    console.error(`\n::: passada #${i} :::`);
+    try { await runOnce({ samples }); } catch (e) { console.error('pass err', e.message); }
+    if (Date.now() < end) await new Promise((r) => setTimeout(r, intervalSec * 1000));
+  }
+  closeReaders();
+}
+
+module.exports = { runOnce, runLoop, parseTitle, consensus };
 
 if (require.main === module) {
   const samples = Number((process.argv.find((a) => a.startsWith('--samples=')) || '').split('=')[1]) || 5;
-  runOnce({ samples }).then((r) => console.error('FET', JSON.stringify(r))).catch((e) => { console.error('ERR', e.message); process.exit(1); });
+  if (process.argv.includes('--loop')) {
+    runLoop({ samples }).catch((e) => { console.error('ERR', e.message); process.exit(1); });
+  } else {
+    runOnce({ samples }).then((r) => console.error('FET', JSON.stringify(r))).finally(() => closeReaders());
+  }
 }

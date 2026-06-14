@@ -40,6 +40,13 @@ jobs:
           sudo chmod a+rx /usr/local/bin/yt-dlp
           yt-dlp --version && ffmpeg -version | head -1
 
+      - name: Set up Python + PaddleOCR
+        run: |
+          python3 -m venv .venv-paddle
+          .venv-paddle/bin/python -m pip install --quiet --upgrade pip
+          .venv-paddle/bin/python -m pip install --quiet paddlepaddle paddleocr
+          .venv-paddle/bin/python -c "import paddleocr; print('paddleocr', paddleocr.__version__)"
+
       - name: Install node deps
         run: npm install --no-audit --no-fund
 
@@ -56,12 +63,6 @@ jobs:
           else
             echo "AVÍS: sense YOUTUBE_COOKIES → YouTube bloquejarà les IPs de GitHub i no es podrà llegir cap stream."
           fi
-          END=$(( SECONDS + 21000 ))   # ~5,5 h de bucle continu
-          i=0
-          while [ "$SECONDS" -lt "$END" ]; do
-            i=$(( i + 1 ))
-            echo "::group::passada #$i (t=${SECONDS}s)"
-            node scripts/scoreboard_worker.js --samples=5 || true
-            echo "::endgroup::"
-            [ "$SECONDS" -lt "$END" ] && sleep 30
-          done
+          # El worker fa el BUCLE INTERN (~5,5 h) mantenint el sidecar PaddleOCR
+          # viu (model carregat un sol cop); no re-invoquem node a cada passada.
+          node scripts/scoreboard_worker.js --loop --samples=5 || true
