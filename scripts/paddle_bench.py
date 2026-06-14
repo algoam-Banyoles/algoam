@@ -11,9 +11,13 @@ from paddleocr import PaddleOCR
 
 ROOT = os.path.join(os.path.dirname(__file__), "..", "train")
 try:
-    OCR = PaddleOCR(lang="en", use_textline_orientation=False, enable_mkldnn=False)
+    OCR = PaddleOCR(lang="en", use_textline_orientation=False, enable_mkldnn=False,
+                    text_det_box_thresh=0.3, text_det_unclip_ratio=2.0)
 except TypeError:
-    OCR = PaddleOCR(lang="en", use_textline_orientation=False)
+    try:
+        OCR = PaddleOCR(lang="en", use_textline_orientation=False, enable_mkldnn=False)
+    except TypeError:
+        OCR = PaddleOCR(lang="en", use_textline_orientation=False)
 
 
 def detect(img):
@@ -100,7 +104,7 @@ def main():
             continue
         cases.append((vodf, t, t["t_clip"]))
 
-    car = ent = side = tot = 0
+    car = caru = ent = side = tot = 0
     fails = []
     tmp = tempfile.mkdtemp()
     for src, t, tclip in cases:
@@ -114,9 +118,12 @@ def main():
         gtA, gtB = str(t["car_left"]), str(t["car_right"])
         gtE = str(t["entrades"]) if t["entrades"] != "" else None
         cok = r and str(r["car_left"]) == gtA and str(r["car_right"]) == gtB
+        coku = r and sorted([str(r["car_left"]), str(r["car_right"])]) == sorted([gtA, gtB])
         eok = r and (gtE is None or str(r["entrades"]) == gtE)
         if cok:
             car += 1
+        if coku:
+            caru += 1
         if eok:
             ent += 1
         if r and t.get("name_left") and t.get("name_right"):
@@ -126,7 +133,7 @@ def main():
         if not cok:
             tag = os.path.basename(src) + (f"@{tclip}" if tclip is not None else "")
             fails.append(f"{tag}: OCR {r and (str(r['car_left'])+'-'+str(r['car_right'])+'/e'+str(r['entrades'])) or 'None'} | cal {gtA}-{gtB}/e{gtE}")
-    print(f"PaddleOCR → CARAMBOLES {car}/{tot}  ENTRADES {ent}/{tot}  COSTAT {side}/{tot}")
+    print(f"PaddleOCR CARAMBOLES(ordre) {car}/{tot}  CARAMBOLES(sense ordre) {caru}/{tot}  ENTRADES {ent}/{tot}  COSTAT {side}/{tot}")
     for f in fails:
         print("  " + f)
 

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VOD + OCR en viu</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, Segoe UI, Roboto, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; }
+  header { padding: 10px 16px; background: #1e293b; border-bottom: 1px solid #334155; display: flex; gap: 16px; align-items: baseline; }
+  header h1 { font-size: 15px; margin: 0; }
+  .muted { color: #94a3b8; font-size: 12px; }
+  main { max-width: 900px; margin: 0 auto; padding: 16px; }
+  .vidwrap { position: relative; background: #000; border-radius: 12px; overflow: hidden; }
+  video { width: 100%; display: block; }
+  .live { position: absolute; top: 8px; left: 8px; background: rgba(15,23,42,.82); border: 1px solid #334155; border-radius: 10px; padding: 8px 12px; min-width: 230px; }
+  .live .row { display: flex; align-items: baseline; gap: 8px; justify-content: center; }
+  .live .nm { font-size: 12px; color: #cbd5e1; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .live .car { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .live .ent { font-size: 16px; color: #fbbf24; font-weight: 700; }
+  .live .st { text-align: center; font-size: 10px; color: #64748b; margin-top: 3px; }
+  .live.clock .st { color: #f87171; }
+  .panel { margin-top: 14px; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 14px; }
+  .panel h2 { font-size: 13px; margin: 0 0 10px; color: #cbd5e1; }
+  .fields { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+  .f { display: flex; flex-direction: column; gap: 3px; }
+  .f label { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: #94a3b8; }
+  .f input { padding: 6px 8px; border-radius: 7px; border: 1px solid #475569; background: #0f172a; color: #e2e8f0; font-size: 14px; }
+  .f input.num { width: 60px; text-align: center; font-weight: 700; }
+  .f.wide input { width: 140px; }
+  .chk { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+  .actions { display: flex; gap: 10px; align-items: center; margin-top: 12px; }
+  button { border: none; border-radius: 8px; padding: 8px 14px; font-weight: 600; cursor: pointer; }
+  .save { background: #16a34a; color: #fff; }
+  .status { font-size: 12px; color: #4ade80; }
+  .hint { font-size: 11px; color: #64748b; margin-top: 8px; }
+  .dl { padding: 30px; text-align: center; color: #94a3b8; }
+</style>
+</head>
+<body>
+<header>
+  <h1>VOD + OCR en viu</h1>
+  <span class="muted" id="meta">…</span>
+</header>
+<main>
+  <div id="app" class="dl">Comprovant el vídeo…</div>
+</main>
+
+<script>
+const $ = (s) => document.querySelector(s);
+let inflight = false, autofill = true, OFFSET = 0;
+
+function fmt(s){ s=Math.max(0,Math.round(s)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+
+async function boot() {
+  const info = await (await fetch('/api/info')).json();
+  OFFSET = info.offset || 0;
+  $('#meta').textContent = `correccions desades: ${info.corrections}`;
+  if (!info.ready) {
+    $('#app').innerHTML = "El vídeo encara s'està descarregant… recarrega d'aquí a una estona.";
+    setTimeout(boot, 8000);
+    return;
+  }
+  $('#app').className = '';
+  $('#app').innerHTML = `
+    <div class="vidwrap">
+      <video id="v" src="/video" controls preload="auto"></video>
+      <div class="live" id="live">
+        <div class="row">
+          <span class="nm" id="nl">—</span>
+          <span class="car" id="cl">·</span>
+          <span class="ent" id="en">·</span>
+          <span class="car" id="cr">·</span>
+          <span class="nm" id="nr">—</span>
+        </div>
+        <div class="st" id="st">esperant…</div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Correcció en aquest moment</h2>
+      <div class="fields">
+        <div class="f"><label>Caram. esq.</label><input class="num" id="i_cl" /></div>
+        <div class="f"><label>Caram. dreta</label><input class="num" id="i_cr" /></div>
+        <div class="f"><label>Entrades</label><input class="num" id="i_en" /></div>
+        <div class="f wide"><label>Nom esquerra</label><input id="i_nl" /></div>
+        <div class="f wide"><label>Nom dreta</label><input id="i_nr" /></div>
+        <label class="chk"><input type="checkbox" id="i_pause" /> pausa / sense marcador</label>
+      </div>
+      <div class="actions">
+        <button class="save" id="save">✓ Desa correcció</button>
+        <span class="status" id="savemsg"></span>
+      </div>
+      <div class="hint">Mentre es reprodueix, els camps segueixen l'OCR. Quan vulguis corregir: pausa el vídeo, edita i desa (es desa amb el segon exacte). "Entrades" = número gran del mig.</div>
+    </div>`;
+
+  const v = $('#v');
+  const setF = (id, val) => { if (autofill) $(id).value = (val === null || val === undefined ? '' : val); };
+  function render(r) {
+    const live = $('#live');
+    live.classList.toggle('clock', r.state === 'clock');
+    if (!r.found) {
+      $('#cl').textContent = '·'; $('#cr').textContent = '·'; $('#en').textContent = '';
+      $('#nl').textContent = '—'; $('#nr').textContent = '—';
+      $('#st').textContent = (r.state === 'clock' ? 'rellotge / pausa' : 'sense marcador') + ' · t=' + fmt(OFFSET + (r.t || 0));
+      setF('#i_cl',''); setF('#i_cr',''); setF('#i_en',''); setF('#i_nl',''); setF('#i_nr','');
+      if (autofill) $('#i_pause').checked = true;
+      return;
+    }
+    $('#cl').textContent = r.car_left; $('#cr').textContent = r.car_right;
+    $('#en').textContent = r.entrades ?? '·';
+    $('#nl').textContent = r.name_left || '—'; $('#nr').textContent = r.name_right || '—';
+    $('#st').textContent = `corner ${r.corner} · t=${fmt(OFFSET + (r.t || 0))} (VOD)`;
+    setF('#i_cl', r.car_left); setF('#i_cr', r.car_right); setF('#i_en', r.entrades);
+    setF('#i_nl', r.name_left || ''); setF('#i_nr', r.name_right || '');
+    if (autofill) $('#i_pause').checked = false;
+  }
+  async function ocrNow() {
+    if (inflight) return; inflight = true;
+    try {
+      const t = v.currentTime;
+      const r = await (await fetch('/api/ocr?t=' + t.toFixed(1))).json();
+      if (!r.busy) render(r);
+    } catch (e) { /* ignore */ } finally { inflight = false; }
+  }
+  // Mentre es reprodueix, segueix l'OCR; en pausar/cercar, una lectura immediata.
+  setInterval(() => { if (!v.paused && !v.seeking) ocrNow(); }, 2500);
+  v.addEventListener('pause', ocrNow);
+  v.addEventListener('seeked', ocrNow);
+  v.addEventListener('play', () => { autofill = true; });
+  // Si l'usuari toca un camp, deixem de sobreescriure (està corregint).
+  ['#i_cl','#i_cr','#i_en','#i_nl','#i_nr','#i_pause'].forEach((id) => {
+    $(id).addEventListener('focus', () => { autofill = false; });
+  });
+  $('#save').onclick = async () => {
+    const label = {
+      car_left: $('#i_cl').value.trim(), car_right: $('#i_cr').value.trim(),
+      entrades: $('#i_en').value.trim(), name_left: $('#i_nl').value.trim(),
+      name_right: $('#i_nr').value.trim(), no_scoreboard: $('#i_pause').checked,
+    };
+    const r = await fetch('/api/correct', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ t: v.currentTime, label }) });
+    const j = await r.json();
+    $('#savemsg').textContent = `✓ desat a t=${fmt(OFFSET + v.currentTime)} (${j.n} en total)`;
+    autofill = true;
+  };
+}
+boot();
+</script>
+</body>
+</html>

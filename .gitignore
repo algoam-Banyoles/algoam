@@ -111,3 +111,9 @@ logs
 
 # Frames i clips d'entrenament OCR (descarregats de VODs, no es versionen)
 train/
+
+# Entorns virtuals de Python (PaddleOCR, etc.)
+.venv-paddle/
+.venv/
+venv/
+__pycache__/
