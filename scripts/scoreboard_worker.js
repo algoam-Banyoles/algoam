@@ -152,9 +152,11 @@ function grabFrames(videoId, n, intervalSec, tmpDir) {
   const ck = process.env.YT_COOKIES ? ['--cookies', process.env.YT_COOKIES] : [];
   let hls;
   try {
-    // TIMEOUT imprescindible: si yt-dlp es penja (IP throttlejada/bloquejada),
-    // sense límit el worker s'encallaria per sempre en aquest stream.
-    hls = execFileSync('yt-dlp', ['-f', 'best[height<=720]/best', ...ck, '-g', `https://www.youtube.com/watch?v=${videoId}`], { encoding: 'utf8', timeout: 30000 }).split('\n')[0].trim();
+    // --remote-components ejs:github: baixa el script solucionador del repte "n"
+    // (nsig) de YouTube, que el yt-dlp nou no baixa per defecte; amb Deno + el
+    // PO-token, completa la baixada de frames a GitHub SENSE cookies.
+    // TIMEOUT imprescindible: si yt-dlp es penja, el worker no s'encalla.
+    hls = execFileSync('yt-dlp', ['-f', 'best[height<=720]/best', '--remote-components', 'ejs:github', ...ck, '-g', `https://www.youtube.com/watch?v=${videoId}`], { encoding: 'utf8', timeout: 60000 }).split('\n')[0].trim();
   } catch { return []; }
   if (!hls) return [];
   const pat = path.join(tmpDir, `${videoId}_%03d.jpg`);
