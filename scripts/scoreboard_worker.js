@@ -367,7 +367,7 @@ async function runOnce({ samples = 5, interval = 3, log = console.error } = {}) 
 // Bucle intern: manté el sidecar PaddleOCR viu entre passades (el model es
 // carrega un sol cop). El workflow crida `node ... --loop` UN COP, en lloc de
 // re-invocar node cada vegada (que recarregaria el model a cada passada).
-async function runLoop({ samples = 5, intervalSec = 25, maxSec = 21000 } = {}) {
+async function runLoop({ samples = 5, intervalSec = 8, maxSec = 21000 } = {}) {
   await ensureReader(console.error);
   const end = Date.now() + maxSec * 1000;
   let i = 0;
