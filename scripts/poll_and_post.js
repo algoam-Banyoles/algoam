@@ -148,7 +148,7 @@ async function pLimit(limit, items, fn) {
   await Promise.all(workers);
 }
 
-async function main() {
+async function runCycle() {
   const channels = JSON.parse(await fs.readFile('canals.json', 'utf8'));
   const results = new Array(channels.length);
   const t0 = Date.now();
@@ -177,7 +177,37 @@ async function main() {
   });
   const body = await res.text();
   console.log(`Worker /poll -> ${res.status} ${body}`);
-  if (!res.ok) process.exit(1);
+  if (!res.ok) throw new Error(`worker /poll ${res.status}: ${body}`);
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// GitHub estrangula els 'schedule' (es disparen amb hores de marge, no cada
+// 5 min), de manera que un job per tret deixa forats llargs sense actualitzar
+// el snapshot ni les notificacions. Amb --loop, una sola execució sondeja en
+// bucle cada ~5 min durant ~5,5 h i després surt perquè el schedule n'arrenqui
+// una de fresca; així la cobertura és contínua encara que el cron es dispari
+// poques vegades. Mateix patró que scripts/scoreboard_worker.js.
+async function main() {
+  if (!process.argv.includes('--loop')) {
+    await runCycle();
+    return;
+  }
+  const INTERVAL = parseInt(process.env.POLL_INTERVAL_MS || '300000', 10);          // 5 min
+  const WINDOW = parseInt(process.env.POLL_WINDOW_MS || String(5.5 * 3600 * 1000), 10); // 5,5 h
+  const deadline = Date.now() + WINDOW;
+  console.log(`Loop: cicle cada ${INTERVAL / 1000}s durant ${(WINDOW / 3600000).toFixed(1)} h.`);
+  let n = 0;
+  while (Date.now() < deadline) {
+    n++;
+    const t = Date.now();
+    try { await runCycle(); }
+    catch (err) { console.error(`Cicle ${n} ha fallat:`, err.message); }
+    const wait = Math.max(0, INTERVAL - (Date.now() - t));
+    if (Date.now() + wait >= deadline) break;
+    await sleep(wait);
+  }
+  console.log(`Finestra acabada (${n} cicles); surto perquè el schedule arrenqui un runner nou.`);
 }
 
 main().catch(err => { console.error('Fatal:', err); process.exit(1); });

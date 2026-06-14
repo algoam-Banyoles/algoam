@@ -1,15 +1,28 @@
 name: Live notifications poll
 
+# Sondeja /streams de tots els canals i POSTa l'estat al Cloudflare Worker, que
+# desa el snapshot (/all-live, que llegeix la PWA) i dispara les Web Push dels
+# directes nous.
+#
+# GitHub estrangula molt els 'schedule': un cron '*/5' es dispara realment amb
+# HORES de marge, deixant el snapshot obsolet i sense notificacions. Per evitar-
+# ho, cada execució entra en un BUCLE intern (~5,5 h) sondejant cada 5 min; el
+# schedule només cal que reengegui el bucle de tant en tant. Mateix patró que
+# scoreboard.yml. Repo públic => minuts d'Actions il·limitats.
+
 on:
   schedule:
-    # Minimum granularity on GitHub Actions is 5 minutes.
-    - cron: '*/5 * * * *'
+    - cron: '*/30 * * * *'
   workflow_dispatch:
+
+concurrency:
+  group: live-notifications-poll
+  cancel-in-progress: true
 
 jobs:
   poll:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
 
@@ -18,7 +31,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Scrape /streams of every channel and POST to worker
+      - name: Scrape /streams in a long internal loop and POST to worker
         working-directory: ./
         env:
           WORKER_URL: ${{ secrets.WORKER_URL }}
@@ -28,4 +41,4 @@ jobs:
             echo "WORKER_URL or POLL_SECRET not set; skipping."
             exit 0
           fi
-          node scripts/poll_and_post.js
+          node scripts/poll_and_post.js --loop
