@@ -99,6 +99,18 @@ function openPlayers(payload) {
   return out;
 }
 
+// Grup REAL de la partida: l'etiqueta on apareixen ELS DOS jugadors. El títol del
+// vídeo pot ser erroni i un jugador pot constar en grups de fases diferents (i els
+// noms de grup es poden solapar entre fases), així que el grup fiable és el que
+// COMPARTEIXEN tots dos. Prioritza l'última aparició (fase més avançada).
+function matchGroup(aName, bName, players) {
+  if (!aName || !bName) return null;
+  const aG = players.filter((p) => sameName(p.name, aName)).map((p) => p.group);
+  const bG = new Set(players.filter((p) => sameName(p.name, bName)).map((p) => p.group));
+  const shared = aG.filter((g) => bG.has(g));
+  return shared.length ? shared[shared.length - 1] : null;
+}
+
 // Resol un nom (OCR o títol, sovint només cognom) al jugador canònic de l'open
 // per solapament de tokens. Retorna {name, group} o null.
 function resolvePlayer(name, players) {
@@ -238,7 +250,7 @@ async function runOnce({ samples = 5, interval = 3, log = console.error } = {}) 
           const w0 = resolvePlayer(tp.players[0], oplayers);
           const w1 = resolvePlayer(tp.players[1], oplayers);
           if (clockish && w0 && w1 && w0.name !== w1.name) {
-            const wg = tp.group || w0.group || w1.group || null;
+            const wg = matchGroup(w0.name, w1.name, oplayers) || tp.group || w0.group || w1.group || null;
             await supa('POST', 'open_live_scores', { body: [{
               video_id: s.videoId, fcb_division_id: open.fcb_division_id, club: tokens[0],
               title: s.title, phase: tp.phase, group_label: wg,
@@ -276,7 +288,7 @@ async function runOnce({ samples = 5, interval = 3, log = console.error } = {}) 
           if (!pL && pR) { const o = opponentInGroup(pR.name, omatches, oplayers); if (o && o.name !== pR.name) pL = o; }
         }
         if (!pL && !pR) { log(`  ~ ${s.videoId} no s'ha identificat cap jugador (${c.name_left}/${c.name_right})`); continue; }
-        const group = tp.group || pL?.group || pR?.group || null;
+        const group = (pL && pR && matchGroup(pL.name, pR.name, oplayers)) || tp.group || pL?.group || pR?.group || null;
 
         const row = {
           video_id: s.videoId, fcb_division_id: open.fcb_division_id, club: tokens[0],
