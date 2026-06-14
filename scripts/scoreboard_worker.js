@@ -115,10 +115,17 @@ function openPlayers(payload) {
 // vídeo pot ser erroni i un jugador pot constar en grups de fases diferents (i els
 // noms de grup es poden solapar entre fases), així que el grup fiable és el que
 // COMPARTEIXEN tots dos. Prioritza l'última aparició (fase més avançada).
+// Igualtat ESTRICTA de jugadors canònics (noms complets de l'open). NO usem el
+// solapament fluix de sameName per a noms canònics: els cognoms es repeteixen
+// (FERNÁNDEZ VELASCO ≠ FERNÁNDEZ BARRAGAN, en grups diferents) i confondre'ls
+// trencaria la regla "els dos jugadors d'una partida són del mateix grup".
+const _canon = (s) => norm(s || '').replace(/[^A-Z0-9]/g, '');
+function canonEq(a, b) { return !!a && !!b && _canon(a) === _canon(b); }
+
 function matchGroup(aName, bName, players) {
   if (!aName || !bName) return null;
-  const aG = players.filter((p) => sameName(p.name, aName)).map((p) => p.group);
-  const bG = new Set(players.filter((p) => sameName(p.name, bName)).map((p) => p.group));
+  const aG = players.filter((p) => canonEq(p.name, aName)).map((p) => p.group);
+  const bG = new Set(players.filter((p) => canonEq(p.name, bName)).map((p) => p.group));
   const shared = aG.filter((g) => bG.has(g));
   return shared.length ? shared[shared.length - 1] : null;
 }
@@ -162,12 +169,62 @@ function openMatches(payload) {
 // Quan un costat no resol, dedueix el rival: si el jugador conegut té UNA sola
 // partida del grup pendent (o una de sola en total), el rival és l'altre.
 function opponentInGroup(name, matches, players) {
-  const inv = matches.filter((m) => sameName(m.a, name) || sameName(m.b, name));
+  const inv = matches.filter((m) => canonEq(m.a, name) || canonEq(m.b, name));
   const pending = inv.filter((m) => !m.played);
   const pool = pending.length === 1 ? pending : (inv.length === 1 ? inv : []);
   if (pool.length !== 1) return null;
-  const oppName = sameName(pool[0].a, name) ? pool[0].b : pool[0].a;
-  return players.find((p) => p.name === oppName) || { name: oppName, group: pool[0].group };
+  const oppName = canonEq(pool[0].a, name) ? pool[0].b : pool[0].a;
+  return players.find((p) => canonEq(p.name, oppName)) || { name: oppName, group: pool[0].group };
+}
+
+// Candidats d'un nom OCR/títol (sovint parcial) als jugadors, per solapament de
+// tokens. Retorna [{p, s}] ordenat per score desc (s>=1). Per a noms canònics
+// fes servir canonEq; això és NOMÉS per fer encaixar text d'OCR/títol amb jugadors.
+function candidates(name, players) {
+  if (!name) return [];
+  const ntoks = norm(name).replace(/[^A-Z ]/g, '').split(/\s+/).filter((t) => t.length >= 3);
+  if (!ntoks.length) return [];
+  const out = [];
+  for (const p of players) {
+    const ptoks = norm(p.name).replace(/[^A-Z ]/g, '').split(/\s+/).filter((t) => t.length >= 3);
+    let s = 0;
+    for (const nt of ntoks) for (const pt of ptoks) {
+      if (pt === nt) s += 2; else if (pt.includes(nt) || nt.includes(pt)) s += 1;
+    }
+    if (s > 0) out.push({ p, s });
+  }
+  return out.sort((a, b) => b.s - a.s);
+}
+function scoreName(name, player) { const c = candidates(name, [player]); return c.length ? c[0].s : 0; }
+
+// Resol la PARELLA d'una partida a partir de pistes (noms OCR + títol), amb les
+// regles dures de l'usuari: (1) els dos jugadors han de ser del MATEIX grup;
+// (2) preferim la partida PENDENT (la que s'està jugant) a una de ja jugada. Si
+// només un costat és fiable, dedueix el rival pel grup. Retorna [pA, pB] (algun
+// pot ser null) o null si no s'identifica ningú.
+function resolvePairing(hints, oplayers, omatches) {
+  const cand = new Map();  // name -> {p, s} (millor score per jugador entre totes les pistes)
+  for (const h of hints) for (const { p, s } of candidates(h, oplayers)) {
+    if (!cand.has(p.name) || cand.get(p.name).s < s) cand.set(p.name, { p, s });
+  }
+  const cs = [...cand.values()].sort((a, b) => b.s - a.s);
+  let best = null;
+  for (let i = 0; i < cs.length; i++) for (let j = i + 1; j < cs.length; j++) {
+    const a = cs[i], b = cs[j];
+    if (canonEq(a.p.name, b.p.name) || !matchGroup(a.p.name, b.p.name, oplayers)) continue;  // mateix grup obligatori
+    const m = omatches.find((mm) => (canonEq(mm.a, a.p.name) && canonEq(mm.b, b.p.name)) || (canonEq(mm.a, b.p.name) && canonEq(mm.b, a.p.name)));
+    const pend = m ? (m.played ? 8 : 80) : 0;  // partida real; la PENDENT pesa molt més
+    const score = a.s + b.s + pend;
+    if (!best || score > best.score) best = { a: a.p, b: b.p, score };
+  }
+  if (best) return [best.a, best.b];
+  // Cap parella del mateix grup entre els candidats → un sol costat fiable:
+  // dedueix el rival pel grup (partida pendent única).
+  for (const { p } of cs) {
+    const opp = opponentInGroup(p.name, omatches, oplayers);
+    if (opp && !canonEq(opp.name, p.name)) return [p, opp];
+  }
+  return cs.length ? [cs[0].p, null] : null;
 }
 
 function grabFrames(videoId, n, intervalSec, tmpDir) {
@@ -287,27 +344,18 @@ async function runOnce({ samples = 5, interval = 3, log = console.error } = {}) 
           continue;
         }
 
-        // Routing: resol cada costat contra els jugadors reals de l'open. El
-        // costat esquerre/dret de l'overlay mana per a les caramboles. Mai dos
-        // cops el mateix jugador; ordre de preferència: resolt → títol → OCR.
-        const t0 = resolvePlayer(tp.players[0], oplayers);
-        const t1 = resolvePlayer(tp.players[1], oplayers);
-        let pL, pR;
-        if (t0 && t1 && t0.name !== t1.name) {
-          // Títol FIABLE: ja tenim els dos jugadors. L'OCR només decideix quin és
-          // a l'esquerra i quin a la dreta del marcador (per a les caramboles).
-          const ocrL = resolvePlayer(c.name_left, [t0, t1]);
-          const ocrR = resolvePlayer(c.name_right, [t0, t1]);
-          const swap = (ocrL && ocrL.name === t1.name) || (ocrR && ocrR.name === t0.name);
-          pL = swap ? t1 : t0;
-          pR = swap ? t0 : t1;
-        } else {
-          // Títol genèric (p.ex. "TAULA N"): OCR de noms + deducció pel grup.
-          pL = resolvePlayer(c.name_left, oplayers);
-          pR = resolvePlayer(c.name_right, oplayers);
-          if (pL && pR && pL.name === pR.name) pR = null;
-          if (!pR && pL) { const o = opponentInGroup(pL.name, omatches, oplayers); if (o && o.name !== pL.name) pR = o; }
-          if (!pL && pR) { const o = opponentInGroup(pR.name, omatches, oplayers); if (o && o.name !== pR.name) pL = o; }
+        // Routing: resol la PARELLA amb les pistes de l'OCR i del títol, imposant
+        // que els dos jugadors siguin del MATEIX grup i preferint la partida
+        // pendent (regles de l'usuari). Després assignem esquerra/dreta segons quin
+        // costat de l'overlay casa amb cada jugador (per a les caramboles).
+        const pair = resolvePairing([c.name_left, c.name_right, tp.players[0], tp.players[1]], oplayers, omatches);
+        if (!pair) { log(`  ~ ${s.videoId} no s'ha identificat cap jugador (${c.name_left}/${c.name_right})`); continue; }
+        let [pL, pR] = pair;
+        if (pL && pR) {
+          // Orientació: la combinació que maximitza l'acord amb l'OCR mana.
+          const keep = scoreName(c.name_left, pL) + scoreName(c.name_right, pR);
+          const swap = scoreName(c.name_left, pR) + scoreName(c.name_right, pL);
+          if (swap > keep) { const t = pL; pL = pR; pR = t; }
         }
         if (!pL && !pR) { log(`  ~ ${s.videoId} no s'ha identificat cap jugador (${c.name_left}/${c.name_right})`); continue; }
         const group = (pL && pR && matchGroup(pL.name, pR.name, oplayers)) || tp.group || pL?.group || pR?.group || null;
@@ -322,14 +370,22 @@ async function runOnce({ samples = 5, interval = 3, log = console.error } = {}) 
           reset_pending_at: null,  // per defecte cap reinici pendent (l'upsert sempre l'escriu)
         };
         const prev = prevByVid[s.videoId];
-        if (prev && (sameName(prev.player_a, row.player_a) || sameName(prev.player_b, row.player_b)
-                  || sameName(prev.player_a, row.player_b) || sameName(prev.player_b, row.player_a))) {
-          // MATEIXA PARTIDA (regles de l'usuari): els NOMS i els COSTATS no canvien
-          // (càmera fixa), les CARAMBOLES només creixen i les ENTRADES també.
-          // Mantenim la identitat de prev i hi alineem aquesta lectura; si ve
-          // girada respecte prev, desfem el gir de les caramboles.
-          const flipped = (sameName(prev.player_a, row.player_b) || sameName(prev.player_b, row.player_a))
-                       && !(sameName(prev.player_a, row.player_a) || sameName(prev.player_b, row.player_b));
+        // CONTINUÏTAT (mateixa partida): cal que coincideixin ELS DOS jugadors (la
+        // parella), no només un — a la mateixa taula el RIVAL ROTA entre partides
+        // (p.ex. JOU juga successivament amb FERNÁNDEZ i amb MARTÍNEZ). Si un costat
+        // ha quedat sense resoldre però l'altre casa amb prev, ho considerem
+        // continuació (rival momentàniament il·legible) i conservem la identitat.
+        const _newSet = [row.player_a, row.player_b].filter(Boolean).map(_canon);
+        const _prevSet = [prev?.player_a, prev?.player_b].filter(Boolean).map(_canon);
+        const _common = _newSet.filter((n) => _prevSet.includes(n)).length;
+        const _incomplete = !row.player_a || !row.player_b;
+        const samePair = !!prev && _prevSet.length >= 2 && (_common >= 2 || (_incomplete && _common >= 1));
+        if (samePair) {
+          // Els NOMS i els COSTATS no canvien (càmera fixa), les CARAMBOLES només
+          // creixen i les ENTRADES també. Si la lectura ve girada respecte prev,
+          // desfem el gir de les caramboles.
+          const flipped = (canonEq(prev.player_a, row.player_b) || canonEq(prev.player_b, row.player_a))
+                       && !(canonEq(prev.player_a, row.player_a) || canonEq(prev.player_b, row.player_b));
           if (flipped) { const t = row.car_a; row.car_a = row.car_b; row.car_b = t; }
           if (prev.player_a) row.player_a = prev.player_a;
           if (prev.player_b) row.player_b = prev.player_b;
