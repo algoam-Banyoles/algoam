@@ -219,14 +219,13 @@ function consensus(reads) {
   };
 }
 
-// Candidats a REINICI de marcador: una caiguda brusca a ~0 amb els MATEIXOS
+// Debounce de REINICI de marcador: una caiguda brusca a ~0 amb els MATEIXOS
 // jugadors és, gairebé sempre, un VOD/replay que s'ha colat o un directe reiniciat
 // (no una partida nova: una de nova porta jugadors diferents). No ens ho creiem a
 // l'instant —ni amb consens fort, que un VOD dona 5/5 estable a 0-0— sinó que
-// mantenim el marcador alt previ fins que el reinici PERSISTEIXI ~5 min. Estat en
-// memòria (el worker viu en bucle); si el procés es reinicia, com a molt es reinicia
-// el comptador (cap resultat real esborrat de cop).
-const resetPending = {};               // video_id -> ms del primer cop que s'hi veu el reinici
+// mantenim el marcador alt previ fins que el reinici PERSISTEIXI ~5 min. El moment
+// del primer reinici es desa a la columna `reset_pending_at` (BD), de manera que el
+// debounce SOBREVIU als reinicis del worker (robustesa total).
 const RESET_GRACE_MS = 5 * 60 * 1000;  // cal que el 0-0 duri 5 min abans d'acceptar-lo
 
 async function runOnce({ samples = 5, interval = 3, log = console.error } = {}) {
@@ -235,7 +234,7 @@ async function runOnce({ samples = 5, interval = 3, log = console.error } = {}) 
   // Marcadors previs (per la guarda monotònica: les caramboles no baixen).
   let prevByVid = {};
   try {
-    const prevRows = await supa('GET', 'open_live_scores', { query: '?select=video_id,player_a,player_b,car_a,car_b,entrades' });
+    const prevRows = await supa('GET', 'open_live_scores', { query: '?select=video_id,player_a,player_b,car_a,car_b,entrades,reset_pending_at' });
     for (const r of prevRows || []) prevByVid[r.video_id] = r;
   } catch { /* primera vegada */ }
   const nowIso = new Date().toISOString();
@@ -278,7 +277,7 @@ async function runOnce({ samples = 5, interval = 3, log = console.error } = {}) 
               video_id: s.videoId, fcb_division_id: open.fcb_division_id, club: tokens[0],
               title: s.title, phase: tp.phase, group_label: wg,
               player_a: w0.name, player_b: w1.name, car_a: null, car_b: null, entrades: null,
-              captured_at: nowIso, updated_at: nowIso,
+              captured_at: nowIso, updated_at: nowIso, reset_pending_at: null,
             }], upsert: true });
             published++;
             log(`  ◴ [${wg || '?'}] ${w0.name} (escalfament) ${w1.name}`);
@@ -320,6 +319,7 @@ async function runOnce({ samples = 5, interval = 3, log = console.error } = {}) 
           player_b: pR ? pR.name : null,
           car_a: c.car_left, car_b: c.car_right, entrades: c.entrades,
           captured_at: nowIso, updated_at: nowIso,
+          reset_pending_at: null,  // per defecte cap reinici pendent (l'upsert sempre l'escriu)
         };
         const prev = prevByVid[s.videoId];
         if (prev && (sameName(prev.player_a, row.player_a) || sameName(prev.player_b, row.player_b)
@@ -346,19 +346,21 @@ async function runOnce({ samples = 5, interval = 3, log = console.error } = {}) 
             (row.car_a <= 1 && row.car_b <= 1 && (prev.car_a + prev.car_b) >= 5)
           );
           if (bigReset) {
-            const since = resetPending[s.videoId];
+            // `since` ve de la BD (reset_pending_at) → el debounce sobreviu als
+            // reinicis del worker. Si encara no n'hi havia, l'iniciem ARA i el desem.
+            const since = prev.reset_pending_at ? Date.parse(prev.reset_pending_at) : null;
             if (since && Date.now() - since >= RESET_GRACE_MS) {
-              delete resetPending[s.videoId];  // persisteix >5 min → reinici real/partida nova: acceptem
+              row.reset_pending_at = null;     // persisteix >5 min → reinici real/partida nova: acceptem
               log(`  ↺ [${group || '?'}] reinici acceptat (persisteix >5min) ${row.player_a} ${row.car_a}-${row.car_b}`);
             } else {
-              if (!since) resetPending[s.videoId] = Date.now();
               row.car_a = prev.car_a; row.car_b = prev.car_b;        // mantenim l'alt
               if (prev.entrades != null) row.entrades = prev.entrades;
+              row.reset_pending_at = prev.reset_pending_at || nowIso; // conserva el primer cop vist
               const waited = since ? Math.round((Date.now() - since) / 1000) : 0;
               log(`  ⏸ [${group || '?'}] possible VOD/reinici ${prev.car_a}-${prev.car_b}→${c.car_left}-${c.car_right}: mantinc l'alt (${waited}/${RESET_GRACE_MS / 1000}s)`);
             }
           } else {
-            delete resetPending[s.videoId];  // lectura coherent → fora candidat a reinici
+            // lectura coherent → fora candidat a reinici (row.reset_pending_at ja és null)
             // Entrades sempre creixents: si la lectura baixa, és error → mantenim
             // (tret de consens fort, que pot desfer un pic fals d'entrades).
             if (prev.entrades != null && (row.entrades == null || row.entrades < prev.entrades) && !strong) {
