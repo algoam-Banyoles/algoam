@@ -152,11 +152,14 @@ function grabFrames(videoId, n, intervalSec, tmpDir) {
   const ck = process.env.YT_COOKIES ? ['--cookies', process.env.YT_COOKIES] : [];
   let hls;
   try {
-    hls = execFileSync('yt-dlp', ['-f', 'best[height<=720]/best', ...ck, '-g', `https://www.youtube.com/watch?v=${videoId}`], { encoding: 'utf8' }).split('\n')[0].trim();
+    // TIMEOUT imprescindible: si yt-dlp es penja (IP throttlejada/bloquejada),
+    // sense límit el worker s'encallaria per sempre en aquest stream.
+    hls = execFileSync('yt-dlp', ['-f', 'best[height<=720]/best', ...ck, '-g', `https://www.youtube.com/watch?v=${videoId}`], { encoding: 'utf8', timeout: 30000 }).split('\n')[0].trim();
   } catch { return []; }
   if (!hls) return [];
   const pat = path.join(tmpDir, `${videoId}_%03d.jpg`);
-  spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', hls, '-vf', `fps=1/${intervalSec}`, '-frames:v', String(n), pat]);
+  // Timeout també a ffmpeg (lectura de l'HLS en viu): si es penja, no bloqueja.
+  spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', hls, '-vf', `fps=1/${intervalSec}`, '-frames:v', String(n), pat], { timeout: 90000 });
   return fs.readdirSync(tmpDir).filter((f) => f.startsWith(`${videoId}_`)).map((f) => path.join(tmpDir, f));
 }
 
