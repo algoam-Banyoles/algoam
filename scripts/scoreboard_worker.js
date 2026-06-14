@@ -157,21 +157,42 @@ function sameName(a, b) {
   return ta.some((x) => tb.includes(x));
 }
 
-// Totes les partides dels grups (de open_live): [{a, b, group, played}].
+// Totes les partides dels grups (de open_live): [{a, b, group, played, ca, cb}].
+// ca/cb (caramboles) permeten saber el guanyador/perdedor d'una partida jugada,
+// necessari per l'ordre de joc (g2 = seed1 vs PERDEDOR de g1).
 function openMatches(payload) {
   const out = [];
   for (const ph of payload?.phases || []) for (const g of ph.groups || []) for (const m of g.matches || []) {
-    if (m.player_a && m.player_b) out.push({ a: m.player_a, b: m.player_b, group: g.label, played: !!m.is_played });
+    if (m.player_a && m.player_b) out.push({
+      a: m.player_a, b: m.player_b, group: g.label, played: !!m.is_played,
+      ca: m.caramboles_a, cb: m.caramboles_b,
+    });
   }
   return out;
 }
 
-// Quan un costat no resol, dedueix el rival: si el jugador conegut té UNA sola
-// partida del grup pendent (o una de sola en total), el rival és l'altre.
+// Quan un costat no resol, dedueix el rival pel grup. Si el jugador conegut té UNA
+// sola partida pendent, el rival és l'altre. Si en té DUES (típic del cap de sèrie
+// a mig grup de 3), aplica l'ORDRE DE JOC: g1 = 2n vs 3r, g2 = 1r vs PERDEDOR(g1),
+// g3 = 1r vs GUANYADOR(g1). Per tant la que toca ara és contra el PERDEDOR de la
+// partida ja jugada entre els altres dos.
 function opponentInGroup(name, matches, players) {
   const inv = matches.filter((m) => canonEq(m.a, name) || canonEq(m.b, name));
   const pending = inv.filter((m) => !m.played);
-  const pool = pending.length === 1 ? pending : (inv.length === 1 ? inv : []);
+  let pool = pending.length === 1 ? pending : (inv.length === 1 ? inv : []);
+  if (pool.length !== 1 && pending.length === 2) {
+    // Els dos rivals pendents de `name`; la partida entre ells (g1) decideix l'ordre.
+    const others = [...new Set(pending.flatMap((m) => [m.a, m.b]).filter((p) => !canonEq(p, name)))];
+    if (others.length === 2) {
+      const g1 = matches.find((m) =>
+        (canonEq(m.a, others[0]) && canonEq(m.b, others[1])) ||
+        (canonEq(m.a, others[1]) && canonEq(m.b, others[0])));
+      if (g1 && g1.played && Number.isInteger(g1.ca) && Number.isInteger(g1.cb) && g1.ca !== g1.cb) {
+        const loser = g1.ca < g1.cb ? g1.a : g1.b;  // menys caramboles = perdedor → rival de g2
+        pool = pending.filter((m) => canonEq(m.a, loser) || canonEq(m.b, loser));
+      }
+    }
+  }
   if (pool.length !== 1) return null;
   const oppName = canonEq(pool[0].a, name) ? pool[0].b : pool[0].a;
   return players.find((p) => canonEq(p.name, oppName)) || { name: oppName, group: pool[0].group };
