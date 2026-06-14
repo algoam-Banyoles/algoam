@@ -227,7 +227,28 @@ async function runOnce({ samples = 5, interval = 3, log = console.error } = {}) 
         const reads = [];
         for (const f of frames) { try { const rr = await _readFrame(f); if (rr) reads.push(rr); } catch { /* skip */ } }
         const c = consensus(reads);
-        if (!c) { log(`  ~ ${s.videoId} sense consens (${reads.filter((r) => r?.found).length}/${frames.length} llegits) — ${tp.players.join(' vs ')}`); continue; }
+        if (!c) {
+          // Sense marcador llegible. Si són frames de RELLOTGE (escalfament/pausa)
+          // i el TÍTOL identifica els dos jugadors, publiquem la partida com EN JOC
+          // sense resultat (escalfament) perquè es vegi i s'hi pugui anar al directe.
+          const clockish = reads.filter((r) => r && r.state === 'clock').length >= 2;
+          const w0 = resolvePlayer(tp.players[0], oplayers);
+          const w1 = resolvePlayer(tp.players[1], oplayers);
+          if (clockish && w0 && w1 && w0.name !== w1.name) {
+            const wg = tp.group || w0.group || w1.group || null;
+            await supa('POST', 'open_live_scores', { body: [{
+              video_id: s.videoId, fcb_division_id: open.fcb_division_id, club: tokens[0],
+              title: s.title, phase: tp.phase, group_label: wg,
+              player_a: w0.name, player_b: w1.name, car_a: null, car_b: null, entrades: null,
+              captured_at: nowIso, updated_at: nowIso,
+            }], upsert: true });
+            published++;
+            log(`  ◴ [${wg || '?'}] ${w0.name} (escalfament) ${w1.name}`);
+          } else {
+            log(`  ~ ${s.videoId} sense consens (${reads.filter((r) => r?.found).length}/${frames.length} llegits) — ${tp.players.join(' vs ')}`);
+          }
+          continue;
+        }
 
         // Routing: resol cada costat contra els jugadors reals de l'open. El
         // costat esquerre/dret de l'overlay mana per a les caramboles. Mai dos

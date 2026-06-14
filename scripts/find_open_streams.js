@@ -88,6 +88,23 @@ async function channelLive(ch) {
   return [];
 }
 
+// Verifica que un vídeo emet EN DIRECTE ARA (no un VOD ni un directe just acabat).
+// El badge "LIVE" de la pàgina /streams pot quedar enganxat uns minuts després
+// d'acabar; la pàgina watch té "isLiveNow" (autoritatiu) i, mentre emet de debò,
+// hi ha "hlsManifestUrl". Així evitem llegir un VOD i publicar un marcador antic.
+async function verifyLiveNow(videoId) {
+  try {
+    const res = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0', 'Accept-Language': 'en-US,en;q=0.9', 'Cookie': 'CONSENT=YES+1' },
+    });
+    if (!res.ok) return false;
+    const html = await res.text();
+    if (/"isLiveNow"\s*:\s*true/.test(html)) return true;
+    if (/"isLiveNow"\s*:\s*false/.test(html)) return false;
+    return /"hlsManifestUrl"\s*:\s*"/.test(html);  // fallback: HLS només mentre emet
+  } catch { return false; }
+}
+
 const path = require('path');
 const CANALS = path.join(__dirname, '..', 'canals.json');
 
@@ -101,15 +118,19 @@ async function liveStreamsForTokens(tokens, { canalsPath = CANALS, onLog = () =>
   const results = [];
   for (const ch of targets) {
     const streams = await channelLive(ch);
+    const liveIds = [];
     for (const s of streams) {
+      // Confirma que emet EN DIRECTE ARA (descarta VODs/directes acabats).
+      if (!(await verifyLiveNow(s.videoId))) { onLog(`  (descartat, no és directe ara: ${s.videoId})`); continue; }
       results.push({ channel: ch.name, videoId: s.videoId, url: `https://www.youtube.com/watch?v=${s.videoId}`, title: s.title });
+      liveIds.push(s.videoId);
     }
-    onLog(`${streams.length ? 'LIVE' : ' -- '} ${ch.name}${streams.length ? ' -> ' + streams.map((s) => s.videoId).join(',') : ''}`);
+    onLog(`${liveIds.length ? 'LIVE' : ' -- '} ${ch.name}${liveIds.length ? ' -> ' + liveIds.join(',') : ''}`);
   }
   return results;
 }
 
-module.exports = { liveStreamsForTokens, channelLive, norm };
+module.exports = { liveStreamsForTokens, channelLive, verifyLiveNow, norm };
 
 if (require.main === module) {
   const tokens = process.argv.slice(2);
