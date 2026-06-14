@@ -33,19 +33,27 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Install ffmpeg + yt-dlp
+      - name: Install ffmpeg
         run: |
           sudo apt-get update && sudo apt-get install -y ffmpeg
-          sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
-          sudo chmod a+rx /usr/local/bin/yt-dlp
-          yt-dlp --version && ffmpeg -version | head -1
+          ffmpeg -version | head -1
 
-      - name: Set up Python + PaddleOCR
+      - name: Set up Python + PaddleOCR + yt-dlp (pip)
         run: |
           python3 -m venv .venv-paddle
           .venv-paddle/bin/python -m pip install --quiet --upgrade pip
           .venv-paddle/bin/python -m pip install --quiet paddlepaddle paddleocr
+          # yt-dlp de PIP (no el binari): cal per al plugin del PO-token, que permet
+          # baixar frames SENSE cookies des de les IP de datacenter de GitHub.
+          .venv-paddle/bin/python -m pip install --quiet -U yt-dlp bgutil-ytdlp-pot-provider
           .venv-paddle/bin/python -c "import paddleocr; print('paddleocr', paddleocr.__version__)"
+          .venv-paddle/bin/yt-dlp --version
+
+      - name: Start PO-token provider (yt-dlp sense cookies)
+        run: |
+          docker run --name bgutil-provider -d --init -p 127.0.0.1:4416:4416 brainicism/bgutil-ytdlp-pot-provider
+          sleep 6
+          docker ps --filter name=bgutil-provider --format '{{.Status}}'
 
       - name: Install node deps
         run: npm install --no-audit --no-fund
@@ -56,13 +64,17 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           YOUTUBE_COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
         run: |
+          # yt-dlp de PIP (amb el plugin del PO-token) i el python del venv al PATH.
+          export PATH="$PWD/.venv-paddle/bin:$PATH"
+          # El PO-token provider (localhost:4416) fa que yt-dlp passi el control de
+          # bot SENSE cookies. Les cookies queden com a FALLBACK opcional.
           if [ -n "$YOUTUBE_COOKIES" ]; then
             printf '%s' "$YOUTUBE_COOKIES" > /tmp/yt_cookies.txt
             export YT_COOKIES=/tmp/yt_cookies.txt
-            echo "cookies de YouTube: ACTIVES"
+            echo "cookies: ACTIVES (fallback)"
           else
-            echo "AVÍS: sense YOUTUBE_COOKIES → YouTube bloquejarà les IPs de GitHub i no es podrà llegir cap stream."
+            echo "sense cookies → via PO-token provider"
           fi
-          # El worker fa el BUCLE INTERN (~5,5 h) mantenint el sidecar PaddleOCR
-          # viu (model carregat un sol cop); no re-invoquem node a cada passada.
+          yt-dlp --version
+          # El worker fa el BUCLE INTERN (~5,5 h) mantenint el sidecar PaddleOCR viu.
           node scripts/scoreboard_worker.js --loop --samples=5 || true
