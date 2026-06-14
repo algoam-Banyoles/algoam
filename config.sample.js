@@ -1,8 +1,9 @@
 // Copia aquest fitxer a `config.js` (gitignored) per configurar opcions opcionals.
 //
-// CORS_PROXY      proxy per fer scrape de YouTube. Per defecte
-//                 https://api.codetabs.com/v1/proxy?quest=. canal.js encadena
-//                 la URL via encodeURIComponent.
+// CORS_PROXY      proxy OPCIONAL per fer scrape de YouTube, posat al capdavant
+//                 de la cadena. Si no s'indica, la PWA usa el /proxy del propi
+//                 Worker (recomanat) i, com a darrer recurs, proxies públics.
+//                 canal.js encadena la URL via encodeURIComponent.
 // WORKER_URL      URL del Cloudflare Worker que envia push notifications
 //                 (vegeu worker/README.md). Sense aquesta variable, els bells
 //                 de notificacions de cada canal estan deshabilitats.

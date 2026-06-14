@@ -10,6 +10,11 @@
 // Endpoints:
 //   GET  /vapid-public       -> {key}
 //   GET  /all-live           -> {ts, channels:[{channelKey,name,streams}]}
+//   GET  /proxy?url=...       -> passthrough fetch (YouTube only) amb capçaleres
+//                                CORS. Substitueix els proxies CORS públics
+//                                (codetabs/corsproxy/allorigins), tots morts o
+//                                intermitents el 2025. La PWA l'usa de fallback
+//                                quan el snapshot /all-live està obsolet.
 //   POST /subscribe          -> body {subscription, channels:[]}
 //   POST /unsubscribe        -> body {endpoint}
 //   POST /update-channels    -> body {endpoint, channels:[]}
@@ -166,6 +171,41 @@ export default {
         streams: v.streams || [],
       }));
       return json({ ts: state.ts || 0, channels }, {}, origin);
+    }
+
+    // Proxy CORS server-side per a la PWA. Només es permet YouTube perquè el
+    // worker no esdevingui un proxy obert. Es retorna l'HTML tal qual amb les
+    // capçaleres CORS perquè el navegador pugui llegir-lo i extreure'n
+    // ytInitialData (cosa impossible amb un fetch directe per la política CORS).
+    if (request.method === 'GET' && url.pathname === '/proxy') {
+      const target = url.searchParams.get('url');
+      if (!target) return json({ error: 'missing url' }, { status: 400 }, origin);
+      let host;
+      try { host = new URL(target).hostname; }
+      catch { return json({ error: 'bad url' }, { status: 400 }, origin); }
+      const allowed = /(^|\.)youtube\.com$/.test(host) || host === 'youtu.be';
+      if (!allowed) return json({ error: 'forbidden host' }, { status: 403 }, origin);
+      try {
+        const upstream = await fetch(target, {
+          redirect: 'follow',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; AlgoamBot/1.0)',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Cookie': 'CONSENT=YES+1',
+          },
+        });
+        const body = await upstream.text();
+        return new Response(body, {
+          status: upstream.status,
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+            'Cache-Control': 'public, max-age=60',
+            ...corsHeaders(origin),
+          },
+        });
+      } catch (err) {
+        return json({ error: err?.message || 'proxy failed' }, { status: 502 }, origin);
+      }
     }
 
     if (request.method === 'POST' && url.pathname === '/subscribe') {

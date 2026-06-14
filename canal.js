@@ -9,9 +9,27 @@
 // múltiples directes simultanis: en sortirà una targeta per stream.
 // Selecció manual persistida a localStorage (per videoId).
 
-const CORS_PROXY = window.APP_CONFIG?.CORS_PROXY || 'https://api.codetabs.com/v1/proxy?quest=';
 const WORKER_URL = window.APP_CONFIG?.WORKER_URL || '';
 let vapidPublic = window.APP_CONFIG?.VAPID_PUBLIC || '';
+
+// Detecció des del navegador: YouTube no envia capçaleres CORS, així que cal un
+// hop server-side. Els proxies CORS públics gratuïts (codetabs, corsproxy.io,
+// allorigins) han anat morint/limitant-se el 2024-2025, de manera que confiar
+// en un de sol deixa l'app sense detecció. Provem una llista en ordre fins que
+// un retorni ytInitialData:
+//   1) CORS_PROXY explícit d'APP_CONFIG (si l'usuari en configura un de propi).
+//   2) El nostre Cloudflare Worker (/proxy) — fiable, sense límits de tercers.
+//   3) Proxies públics, només com a darrer recurs (sovint cauen o limiten).
+function buildProxyList() {
+  const list = [];
+  const explicit = window.APP_CONFIG?.CORS_PROXY;
+  if (explicit) list.push(u => `${explicit}${encodeURIComponent(u)}`);
+  if (WORKER_URL) list.push(u => `${WORKER_URL}/proxy?url=${encodeURIComponent(u)}`);
+  list.push(u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`);
+  list.push(u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`);
+  return list;
+}
+const PROXIES = buildProxyList();
 
 const CACHE_TTL = 5 * 60 * 1000;
 const CACHE_KEY = 'liveCacheV6';
@@ -947,27 +965,31 @@ async function checkOneChannel(channel) {
   if (channel.channelId) paths.push(`https://www.youtube.com/channel/${channel.channelId}/streams`);
 
   let streams = [];
+  let got = false;
   for (const livePath of paths) {
-    const proxyUrl = `${CORS_PROXY}${encodeURIComponent(livePath)}`;
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
-    try {
-      const res = await fetch(proxyUrl, {
-        redirect: 'follow',
-        signal: ctrl.signal,
-        headers: { 'Accept-Language': 'en-US,en;q=0.9' },
-      });
-      if (!res.ok) continue;
-      const html = await res.text();
-      const ytData = extractYtInitialData(html);
-      if (!ytData) continue;
-      streams = findLiveStreams(ytData);
-      break;
-    } catch (err) {
-      console.warn(`fetch failed for ${livePath}`, err.name || err);
-    } finally {
-      clearTimeout(timer);
+    for (const makeProxyUrl of PROXIES) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
+      try {
+        const res = await fetch(makeProxyUrl(livePath), {
+          redirect: 'follow',
+          signal: ctrl.signal,
+          headers: { 'Accept-Language': 'en-US,en;q=0.9' },
+        });
+        if (!res.ok) continue;
+        const html = await res.text();
+        const ytData = extractYtInitialData(html);
+        if (!ytData) continue;       // proxy viu però sense dades útils → prova el següent
+        streams = findLiveStreams(ytData);
+        got = true;
+        break;
+      } catch (err) {
+        console.warn(`fetch failed for ${livePath}`, err.name || err);
+      } finally {
+        clearTimeout(timer);
+      }
     }
+    if (got) break;
   }
 
   cache[key] = { ts: now, streams };
