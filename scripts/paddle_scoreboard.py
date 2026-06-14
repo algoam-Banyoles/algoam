@@ -12,7 +12,7 @@ Sants (números més junts / un de no detectat) encara cal afinar-lo.
     .venv-paddle/Scripts/python.exe scripts/paddle_scoreboard.py <img> [<img> ...]
 Integració al worker Node: cridar aquest script i parsejar el JSON per línia.
 """
-import os, re, sys, json
+import os, re, sys, json, subprocess, tempfile
 os.environ.setdefault("FLAGS_use_mkldnn", "0")  # evita un bug d'oneDNN a CPU
 from paddleocr import PaddleOCR
 
@@ -81,11 +81,44 @@ def locate(tokens):
     return best
 
 
+# Regions de FALLBACK (fraccions ffmpeg crop). Quan la detecció a frame sencer no
+# troba parella, retallem aquestes zones i ampliem 2x: alguns clubs tenen el
+# marcador petit i a la vora (Sants=baix-esquerra, Sant Adrià=baix-centre,
+# Llinars=dalt-esquerra) i a 720p PaddleOCR perd els números petits.
+_REGIONS = [
+    "crop=iw*0.55:ih*0.42:iw*0.45:ih*0.58",  # baix-dreta (Tarragona/Mont-Roig)
+    "crop=iw*0.45:ih*0.42:0:ih*0.58",        # baix-esquerra (Sants)
+    "crop=iw*0.60:ih*0.42:iw*0.20:ih*0.58",  # baix-centre (Sant Adrià)
+    "crop=iw*0.50:ih*0.42:0:0",              # dalt-esquerra (Llinars)
+]
+
+
+def _detect_region(img, vf):
+    out = os.path.join(tempfile.gettempdir(), "psb_region.png")
+    try:
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", img, "-vf",
+                        vf + ",scale=iw*2:ih*2", out], timeout=30, check=True)
+    except Exception:
+        return []
+    return detect(out)
+
+
 def read(img):
     tokens = detect(img)
     # Rellotge (escalfament/pausa/mitja part): token MM:SS amb minuts <= 10.
     clock = any(re.fullmatch(r"\d{1,2}:\d{2}", t["t"]) and int(t["t"].split(":")[0]) <= 10 for t in tokens)
     loc = locate(tokens)
+    if not loc and not clock:
+        # Fallback per layouts amb marcador petit/a la vora: retalla + amplia 2x.
+        # Provem TOTES les regions i ens quedem la de MÉS score (parella amb noms a
+        # sobre puntua més) — així no agafem una parella parcial del primer crop.
+        # Només acceptem un candidat de fallback si té ELS DOS noms (captura neta
+        # del marcador sencer) → evita parelles parcials/errònies (p.ex. agafar
+        # l'entrada com a caramboles). De tots, el de més score.
+        cands = [locate(_detect_region(img, vf)) for vf in _REGIONS]
+        cands = [c for c in cands if c and c.get("name_left") and c.get("name_right")]
+        if cands:
+            loc = max(cands, key=lambda c: c.get("score", 0))
     if not loc:
         return {"found": False, "state": "clock" if clock else "no_scoreboard"}
     return {"found": True, "state": "clock" if clock else "ok",
