@@ -65,6 +65,18 @@ function openToken(name) {
   return norm(name).replace(/OPEN|TRES BANDES|3 BANDES|3B|QUADRE 47\/2|QUADRE 71\/2|Q47\/2|FEMENI/g, '').replace(/\s+/g, ' ').trim();
 }
 
+// Valida que el títol de l'stream és d'aquest open. NO exigim el token sencer
+// (els clubs abreugen: "OPEN 3B C. DAURADA" en lloc de "COSTA DAURADA"), sinó que
+// el títol contingui ALMENYS UNA paraula DISTINTIVA de l'open (≥5 lletres, p.ex.
+// "DAURADA"). Si l'open no en té cap, no filtrem (deixem passar).
+function titleMatchesOpen(title, ot) {
+  if (!ot) return true;
+  const words = ot.split(' ').filter((w) => w.length >= 5);
+  if (!words.length) return norm(title).includes(ot);
+  const T = norm(title);
+  return words.some((w) => T.includes(w));
+}
+
 function venueTokens(payload) {
   const v = new Set();
   for (const ph of payload?.phases || []) for (const g of ph.groups || []) if (g.venue) v.add(g.venue.trim());
@@ -227,8 +239,9 @@ async function runOnce({ samples = 5, interval = 3, log = console.error } = {}) 
     log(`\n# ${open.name} (#${open.fcb_division_id}) seus=${tokens.join(', ')}`);
     let streams = [];
     try { streams = await liveStreamsForTokens(tokens, { onLog: () => {} }); } catch (e) { log(`  ! streams: ${e.message}`); continue; }
-    // Només streams el títol dels quals confirma aquest open.
-    streams = streams.filter((s) => !ot || norm(s.title).includes(ot));
+    // Només streams el títol dels quals confirma aquest open (paraula distintiva,
+    // tolerant a abreujatures com "C. DAURADA" en lloc de "COSTA DAURADA").
+    streams = streams.filter((s) => titleMatchesOpen(s.title, ot));
     log(`  ${streams.length} directes d'aquest open`);
     const oplayers = openPlayers(open.payload_json);
     const omatches = openMatches(open.payload_json);
