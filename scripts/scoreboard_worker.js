@@ -193,6 +193,22 @@ function opponentInGroup(name, matches, players) {
       }
     }
   }
+  if (pool.length !== 1) {
+    // GRUP TOT JUST COMENÇAT (cap partida jugada): per l'ordre de joc la primera és
+    // 2n vs 3r seed. La federació ordena els grups NO jugats per sembra, així que
+    // l'ordre dels jugadors al payload = ordre de seeds (seed1 primer; no juga la 1a).
+    for (const grp of [...new Set(inv.map((m) => m.group))]) {
+      const gm = matches.filter((m) => m.group === grp);
+      if (gm.length >= 3 && gm.every((m) => !m.played)) {
+        const order = players.filter((p) => p.group === grp).map((p) => p.name);
+        if (order.length === 3) {
+          const [, s2, s3] = order;  // seed2, seed3 = la partida en joc
+          if (canonEq(name, s2)) return players.find((p) => canonEq(p.name, s3)) || { name: s3, group: grp };
+          if (canonEq(name, s3)) return players.find((p) => canonEq(p.name, s2)) || { name: s2, group: grp };
+        }
+      }
+    }
+  }
   if (pool.length !== 1) return null;
   const oppName = canonEq(pool[0].a, name) ? pool[0].b : pool[0].a;
   return players.find((p) => canonEq(p.name, oppName)) || { name: oppName, group: pool[0].group };
